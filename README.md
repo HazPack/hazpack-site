@@ -39,9 +39,27 @@ vercel --prod
 4. Wait a few minutes (can take up to a few hours). Vercel shows a green check when valid and issues the HTTPS certificate automatically.
 5. If you use Microsoft 365 / GoDaddy email on the domain, leave those MX records alone.
 
+## Pages
+
+Each tab is its own page. With `cleanUrls` on in `vercel.json`, Vercel serves them without `.html`:
+
+| Page | File | URL |
+|---|---|---|
+| Home | `index.html` | `/` |
+| Services | `services.html` | `/services` |
+| Who We Serve | `who-we-serve.html` | `/who-we-serve` |
+| Request a Quote (form + contact) | `quote.html` | `/quote` |
+| Resources hub | `resources/index.html` | `/resources` |
+| Seven resource guides | `resources/*.html` | `/resources/<name>` |
+
+**Editing the menu or footer.** The header and footer are repeated in every page's HTML (there is no build step). To change a menu item, phone number or email, search the project for the old text and change it in each file. Phone and email also appear on `quote.html`, the resource pages' side boxes and the footer.
+
+**Previewing locally.** Links start with `/` (for example `/services`), so double-clicking a file will not follow them. Preview with `npx serve .` from this folder (it understands clean URLs), or just push to GitHub and use Vercel's preview link.
+
 ## Files
 
-- `index.html`, `styles.css`, `script.js`: the site
+- `index.html`, `services.html`, `who-we-serve.html`, `quote.html`: the main pages
+- `styles.css`, `script.js`: shared styling, menu and quote form behavior
 - `resources/`: the Resources hub and seven resource pages (linked from the Resources menu)
 - `logo.svg`, `logo.png`, `favicon.svg`, `apple-touch-icon.png`: brand assets
 - `vercel.json`, `robots.txt`, `sitemap.xml`: hosting and SEO

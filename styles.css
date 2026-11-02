@@ -294,3 +294,49 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
   .res-grid{grid-template-columns:1fr}
   .res-grid .card:last-child:nth-child(2n+1){grid-column:auto}
 }
+
+/* ---- multi-page additions ---- */
+.nav a[aria-current="page"]:not(.btn),.has-dd.current .dd-toggle{color:var(--orange-d)}
+.btn-outline{border-color:var(--navy);color:var(--navy);background:transparent}
+.btn-outline:hover{background:var(--navy);color:#fff;transform:translateY(-1px)}
+.more-row{margin:34px 0 0}
+.more-note{margin:28px 0 0;color:var(--muted)}
+.more-note a{color:var(--navy);font-weight:700}
+.split{display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap}
+.split>div{max-width:720px}
+.split h2{margin-bottom:.4em}
+.split .sub{margin:0}
+.split-cta{margin:0}
+.cards-3{grid-template-columns:repeat(3,1fr)}
+.reg-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.reg-grid li{background:#fff;border:1px solid var(--line);border-top:5px solid var(--orange);border-radius:var(--radius);padding:22px 22px 20px}
+.reg-grid b{display:block;color:var(--navy);font-size:1.15rem;margin-bottom:6px}
+.reg-grid span{color:var(--muted)}
+.card[id]{scroll-margin-top:96px}
+
+/* footer (multi-page) */
+.site-footer{padding:40px 0 0}
+.footer-inner{align-items:flex-start;gap:28px 48px}
+.footer-brand{max-width:300px}
+.footer-tag{margin:14px 0 0!important;font-size:.9rem;color:#aebcd0}
+.footer-nav{display:flex;flex-wrap:wrap;gap:10px 26px;font-weight:600;align-self:center}
+.footer-nav a{color:#fff;text-decoration:none}
+.footer-nav a:hover{text-decoration:underline}
+.footer-contact{display:grid;gap:6px;font-weight:600}
+.footer-contact a{color:#fff;text-decoration:none}
+.footer-contact a:hover{text-decoration:underline}
+.footer-base{margin-top:30px;padding:18px 0 26px;border-top:1px solid rgba(255,255,255,.12)}
+.footer-base p{margin:0;font-size:.85rem}
+
+@media (max-width:1100px){.reg-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:960px){.cards-3{grid-template-columns:1fr}}
+@media (max-width:760px){
+  .footer-nav{align-self:flex-start}
+  .nav a[aria-current="page"]:not(.btn){font-weight:800}
+}
+@media (max-width:600px){.reg-grid{grid-template-columns:1fr}}
+
+/* footer: three columns on desktop, stacked on phones */
+.footer-inner{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:28px 48px;align-items:start}
+.footer-nav{flex-direction:column;flex-wrap:nowrap;gap:10px;align-self:start}
+@media (max-width:760px){.footer-inner{grid-template-columns:1fr}}

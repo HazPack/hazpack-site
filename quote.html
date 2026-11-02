@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Request a Quote | HazPack Compliance Solutions</title>
+  <meta name="description" content="Request a dangerous goods shipping quote from HazPack Compliance Solutions. Tell us about your shipment by air, ocean or ground and we will respond with next steps.">
+  <meta name="theme-color" content="#183152">
+  <link rel="canonical" href="https://hazpackcompliance.com/quote">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Request a Quote | HazPack Compliance Solutions">
+  <meta property="og:description" content="Request a dangerous goods shipping quote from HazPack Compliance Solutions. Tell us about your shipment by air, ocean or ground and we will respond with next steps.">
+  <meta property="og:url" content="https://hazpackcompliance.com/quote">
+  <meta property="og:image" content="https://hazpackcompliance.com/logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Narrow:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/" aria-label="HazPack Compliance Solutions home">
+        <img src="/logo.svg" alt="HazPack Compliance" width="190" height="60">
+      </a>
+      <button class="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav id="nav" class="nav" aria-label="Main">
+        <a href="/">Home</a>
+        <a href="/services">Services</a>
+        <a href="/who-we-serve">Who We Serve</a>
+        <div class="has-dd">
+          <button class="dd-toggle" type="button" aria-expanded="false" aria-controls="dd-resources">Resources</button>
+          <ul class="dd" id="dd-resources">
+            <li><a href="/resources">All resources</a></li>
+            <li><a href="/resources/glossary">Acronyms and Glossary</a></li>
+            <li><a href="/resources/what-is-hazmat">What is Hazmat?</a></li>
+            <li><a href="/resources/dangerous-goods-classes">Dangerous Goods Classes</a></li>
+            <li><a href="/resources/lithium-batteries">Lithium Batteries</a></li>
+            <li><a href="/resources/dangerous-goods-declarations">Dangerous Goods Declarations</a></li>
+            <li><a href="/resources/enforcement-and-penalties">Enforcement and Penalties</a></li>
+            <li><a href="/resources/what-is-an-overpack">What is an Overpack</a></li>
+          </ul>
+        </div>
+        <a class="btn btn-primary btn-sm" href="/quote" aria-current="page">Request a Quote</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="page-hero">
+      <div class="hazard-stripe" aria-hidden="true"></div>
+      <div class="wrap">
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><span aria-current="page">Request a Quote</span></nav>
+        <h1>Request a quote</h1>
+        <p class="lead">Tell us about your shipment and we will get back to you with next steps and a quote.</p>
+      </div>
+    </section>
+
+    <section class="section section-tint" id="quote">
+      <div class="wrap quote-grid">
+        <div class="quote-intro">
+          <h2>Tell us about your shipment</h2>
+          <p>Fill out the form and we'll get back to you with next steps and a quote. The more detail you can share, the faster we can respond.</p>
+          <ul class="checks">
+            <li>No obligation</li>
+            <li>Response from a real person</li>
+            <li>Urgent? Call us directly</li>
+          </ul>
+        </div>
+
+        <form class="quote-form" id="quote-form" action="https://api.web3forms.com/submit" method="POST" novalidate>
+          <input type="hidden" name="access_key" value="064f0152-f998-4ad0-b202-ba1e19addd4d">
+          <input type="hidden" name="subject" value="New quote request from HazPackCompliance.com">
+          <input type="hidden" name="from_name" value="HazPack Website">
+          <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+          <div class="grid2">
+            <div class="field">
+              <label for="name">Full name <span class="req">*</span></label>
+              <input id="name" name="name" type="text" autocomplete="name" required>
+            </div>
+            <div class="field">
+              <label for="company">Company</label>
+              <input id="company" name="company" type="text" autocomplete="organization">
+            </div>
+            <div class="field">
+              <label for="email">Email <span class="req">*</span></label>
+              <input id="email" name="email" type="email" autocomplete="email" required>
+            </div>
+            <div class="field">
+              <label for="phone">Phone</label>
+              <input id="phone" name="phone" type="tel" autocomplete="tel">
+            </div>
+          </div>
+
+          <div class="field msel" id="services-group" data-name="services" data-required data-placeholder="Select one or more">
+            <label id="services-group-label" for="services-group-btn">Services needed <span class="req">*</span></label>
+            <button type="button" class="msel-btn" id="services-group-btn" aria-expanded="false" aria-controls="services-group-panel"><span class="msel-text">Select one or more</span></button>
+            <div class="msel-panel" id="services-group-panel" role="group" aria-labelledby="services-group-label" hidden>
+            <label class="mopt"><input type="checkbox" value="DG classification"><span>DG classification</span></label>
+            <label class="mopt"><input type="checkbox" value="Documentation &amp; DGD"><span>Documentation &amp; DGD</span></label>
+            <label class="mopt"><input type="checkbox" value="Packaging &amp; labeling"><span>Packaging &amp; labeling</span></label>
+            <label class="mopt"><input type="checkbox" value="DG inspections"><span>DG inspections</span></label>
+            <label class="mopt"><input type="checkbox" value="DG emergency support"><span>DG emergency support</span></label>
+            <label class="mopt"><input type="checkbox" value="DG consulting"><span>DG consulting</span></label>
+            <label class="mopt"><input type="checkbox" value="Temperature control"><span>Temperature control</span></label>
+            <label class="mopt"><input type="checkbox" value="Dry ice services"><span>Dry ice services</span></label>
+            <label class="mopt"><input type="checkbox" value="Not sure yet" data-exclusive><span>Not sure yet</span></label>
+            </div>
+            <input type="hidden" name="services">
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label for="mode">Shipping mode</label>
+              <select id="mode" name="mode">
+                <option value="">Select one</option>
+                <option>Ground</option>
+                <option>Air</option>
+                <option>Ocean</option>
+                <option>Multiple / not sure</option>
+              </select>
+            </div>
+            <div class="field msel" id="hazard-group" data-name="hazard_class" data-placeholder="Select any that apply">
+            <label id="hazard-group-label" for="hazard-group-btn">Hazard class (if known)</label>
+            <button type="button" class="msel-btn" id="hazard-group-btn" aria-expanded="false" aria-controls="hazard-group-panel"><span class="msel-text">Select any that apply</span></button>
+            <div class="msel-panel" id="hazard-group-panel" role="group" aria-labelledby="hazard-group-label" hidden>
+            <label class="mopt"><input type="checkbox" value="Class 1 – Explosives"><span>Class 1 – Explosives</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 2 – Gases"><span>Class 2 – Gases</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 3 – Flammable liquids"><span>Class 3 – Flammable liquids</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 4 – Flammable solids"><span>Class 4 – Flammable solids</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 5 – Oxidizers &amp; organic peroxides"><span>Class 5 – Oxidizers &amp; organic peroxides</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 6 – Toxic &amp; infectious substances"><span>Class 6 – Toxic &amp; infectious substances</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 7 – Radioactive"><span>Class 7 – Radioactive</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 8 – Corrosives"><span>Class 8 – Corrosives</span></label>
+            <label class="mopt"><input type="checkbox" value="Class 9 – Miscellaneous (incl. lithium batteries)"><span>Class 9 – Miscellaneous (incl. lithium batteries)</span></label>
+            <label class="mopt"><input type="checkbox" value="Not sure / not applicable" data-exclusive><span>Not sure / not applicable</span></label>
+            </div>
+            <input type="hidden" name="hazard_class">
+          </div>
+            <div class="field">
+              <label for="volume">Shipment frequency</label>
+              <select id="volume" name="frequency">
+                <option value="">Select one</option>
+                <option>One-time</option>
+                <option>Occasional</option>
+                <option>Weekly</option>
+                <option>Daily</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="material">Material / product name</label>
+              <input id="material" name="material" type="text" placeholder="e.g. lithium-ion batteries, paint">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="message">Shipment details <span class="req">*</span></label>
+            <textarea id="message" name="message" rows="5" required placeholder="Origin and destination, quantities, packaging you use today, timeline, and anything else we should know."></textarea>
+          </div>
+
+          <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Send quote request</button>
+          <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+          <p class="fineprint">Please don't include sensitive personal or payment information in this form.</p>
+        </form>
+      </div>
+    </section>
+
+<section class="section contact" id="contact">
+      <div class="wrap contact-grid">
+        <div>
+          <p class="eyebrow">Get in touch</p>
+          <h2>Prefer to talk?</h2>
+          <p>Reach out directly. For urgent DG shipments, call.</p>
+        </div>
+        <ul class="contact-list">
+          <li><span>Email</span><a href="mailto:lax-dgr@hazpackcompliance.com">lax-dgr@hazpackcompliance.com</a></li>
+          <li><span>Phone</span><a href="tel:+13104253712">+1 (310) 425-3712</a></li>
+          <li><span>US coverage</span>LAX</li>
+          <li><span>LinkedIn</span><a href="https://www.linkedin.com/company/hazpack-compliance-solutions" target="_blank" rel="noopener">HazPack Compliance Solutions</a></li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-inner">
+      <div class="footer-brand">
+        <img src="/logo.svg" alt="HazPack Compliance" width="150" height="48">
+        <p class="footer-tag">Dangerous goods shipping support. Air, ocean and ground.</p>
+      </div>
+      <nav class="footer-nav" aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="/services">Services</a>
+        <a href="/who-we-serve">Who We Serve</a>
+        <a href="/resources">Resources</a>
+        <a href="/quote">Get a Quote</a>
+      </nav>
+      <p class="footer-contact">
+        <a href="mailto:lax-dgr@hazpackcompliance.com">lax-dgr@hazpackcompliance.com</a>
+        <a href="tel:+13104253712">+1 (310) 425-3712</a>
+      </p>
+    </div>
+    <div class="wrap footer-base">
+      <p>&copy; <span id="year">2026</span> HazPack Compliance Solutions. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>
