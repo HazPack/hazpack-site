@@ -180,3 +180,106 @@
     if (f && !f.classList.contains('msel')) f.classList.remove('invalid');
   });
 })();
+
+// Step-by-step package animations: Home "package builder" and Services "inspection"
+(function () {
+  function init(rootId, p, playIdle) {
+    var root = document.getElementById(rootId);
+    if (!root) return;
+    var $ = function (s) { return document.getElementById(p + s); };
+
+    var steps = Array.prototype.slice.call(root.querySelectorAll('.b-step'));
+    var layers = Array.prototype.slice.call(root.querySelectorAll('[data-min]'));
+    var pkg = $('pkg');
+    var shift = $('shift');
+    var mag = $('mag');
+    var magPos = mag ? JSON.parse(mag.getAttribute('data-pos')) : null;
+    var bar = $('bar');
+    var count = $('count');
+    var now = $('now');
+    var live = $('live');
+    var back = $('back');
+    var next = $('next');
+    var play = $('play');
+    var total = steps.length;
+    var cur = 0;
+    var timer = null;
+
+    function titleOf(i) { return steps[i - 1].querySelector('.b-title').textContent; }
+    function descOf(i) { return steps[i - 1].querySelector('.b-desc').textContent; }
+
+    function render() {
+      layers.forEach(function (el) {
+        var min = parseInt(el.getAttribute('data-min'), 10);
+        var maxAttr = el.getAttribute('data-max');
+        var max = maxAttr === null ? 99 : parseInt(maxAttr, 10);
+        var on = cur >= min && cur <= max;
+        if (el.classList.contains('on') !== on) el.classList.toggle('on', on);
+      });
+      steps.forEach(function (btn, idx) {
+        var n = idx + 1;
+        btn.classList.toggle('active', n === cur);
+        btn.classList.toggle('done', n < cur);
+        if (n === cur) btn.setAttribute('aria-current', 'step'); else btn.removeAttribute('aria-current');
+        btn.querySelector('.b-num').textContent = n < cur ? '✓' : String(n);
+      });
+      if (pkg) pkg.classList.toggle('lift', cur === total);
+      if (shift) shift.classList.toggle('left', cur !== 1);
+      if (mag) {
+        var at = magPos[Math.min(Math.max(cur, 1), magPos.length) - 1];
+        mag.style.transform = 'translate(' + at[0] + 'px,' + at[1] + 'px)';
+        mag.classList.toggle('on', cur >= 1 && cur <= magPos.length);
+      }
+      bar.style.width = (cur / total * 100) + '%';
+      count.textContent = cur === 0 ? 'Click a step to begin' : 'Step ' + cur + ' of ' + total;
+      now.innerHTML = '';
+      var b = document.createElement('b');
+      var s = document.createElement('span');
+      if (cur === 0) {
+        b.textContent = root.getAttribute('data-intro-title') || 'Get started';
+        s.textContent = 'Press Next step, pick a step below, or let it play on its own.';
+      } else {
+        b.textContent = titleOf(cur);
+        s.textContent = descOf(cur);
+      }
+      now.appendChild(b);
+      now.appendChild(s);
+      live.textContent = cur === 0 ? '' : 'Step ' + cur + ' of ' + total + ': ' + titleOf(cur) + '. ' + descOf(cur);
+      back.disabled = cur === 0;
+      next.textContent = cur === total ? 'Start over' : 'Next step';
+    }
+
+    function go(n) {
+      cur = Math.max(0, Math.min(total, n));
+      render();
+    }
+
+    function stop() {
+      if (timer) { clearInterval(timer); timer = null; }
+      play.textContent = playIdle;
+    }
+
+    function start() {
+      if (cur >= total) go(0);
+      play.textContent = 'Pause';
+      setTimeout(function () { if (timer) go(cur + 1); }, 400);
+      timer = setInterval(function () {
+        if (cur >= total) { stop(); return; }
+        go(cur + 1);
+        if (cur >= total) stop();
+      }, 3200);
+    }
+
+    steps.forEach(function (btn, idx) {
+      btn.addEventListener('click', function () { stop(); go(idx + 1); });
+    });
+    back.addEventListener('click', function () { stop(); go(cur - 1); });
+    next.addEventListener('click', function () { stop(); go(cur >= total ? 0 : cur + 1); });
+    play.addEventListener('click', function () { if (timer) stop(); else start(); });
+
+    render();
+  }
+
+  init('builder', 'b-', 'Watch it build');
+  init('inspection-demo', 'i-', 'Watch it run');
+})();

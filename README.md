@@ -54,6 +54,8 @@ Each tab is its own page. With `cleanUrls` on in `vercel.json`, Vercel serves th
 
 **Editing the menu or footer.** The header and footer are repeated in every page's HTML (there is no build step). To change a menu item, phone number or email, search the project for the old text and change it in each file. Phone and email also appear on `quote.html`, the resource pages' side boxes and the footer.
 
+**Package builder (Home page) and inspection walkthrough (Services page).** The Home steps are in `index.html` (section `id="builder"`); the inspection steps are in `services.html` (section `id="inspection-demo"`). The animation logic is at the bottom of `script.js` and its styles at the bottom of `styles.css`. You can reword the step text freely. Adding or removing a step also means changing the drawing: each piece of artwork has a `data-min` number saying which step it appears at.
+
 **Previewing locally.** Links start with `/` (for example `/services`), so double-clicking a file will not follow them. Preview with `npx serve .` from this folder (it understands clean URLs), or just push to GitHub and use Vercel's preview link.
 
 ## Files
