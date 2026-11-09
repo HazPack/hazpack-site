@@ -162,6 +162,14 @@
             </div>
           </div>
 
+          <fieldset class="yn-group">
+            <legend>Where is your cargo at?</legend>
+            <label class="yn" for="cargo-packed"><input type="checkbox" id="cargo-packed" data-yn="cargo_packed"><span>My cargo is already packed.</span></label>
+            <label class="yn" for="cargo-photos"><input type="checkbox" id="cargo-photos" data-yn="cargo_photos"><span>I can send photos of the cargo.</span></label>
+            <input type="hidden" name="cargo_packed" value="No">
+            <input type="hidden" name="cargo_photos" value="No">
+          </fieldset>
+
           <div class="field">
             <label for="message">Shipment details <span class="req">*</span></label>
             <textarea id="message" name="message" rows="5" required placeholder="Origin and destination, quantities, packaging you use today, timeline, and anything else we should know."></textarea>

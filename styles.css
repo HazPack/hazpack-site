@@ -110,6 +110,12 @@ textarea{resize:vertical;min-height:120px}
 input:hover,select:hover,textarea:hover{border-color:#9fb0c8}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(243,122,33,.2)}
 .field.invalid input,.field.invalid select,.field.invalid textarea{border-color:#c0392b}
+.yn-group{border:0;padding:0;margin:0 0 18px}
+.yn-group legend{font-weight:600;font-size:.9rem;color:var(--navy);margin-bottom:8px;padding:0}
+.yn{display:flex;align-items:center;gap:12px;margin:0 0 8px;padding:12px 14px;border:1.5px solid #c9d3e1;border-radius:10px;cursor:pointer;font-weight:500;font-size:1rem;color:var(--ink);transition:border-color .15s}
+.yn:hover{border-color:#9fb0c8}
+.yn input{width:20px;height:20px;padding:0;margin:0;flex:0 0 auto;accent-color:var(--orange);box-shadow:none}
+.yn:focus-within{border-color:var(--orange);box-shadow:0 0 0 3px rgba(243,122,33,.2)}
 .hp{position:absolute;left:-9999px;opacity:0;width:1px;height:1px}
 .form-status{margin:14px 0 0;font-weight:600;min-height:1.4em}
 .form-status.ok{color:#177245}

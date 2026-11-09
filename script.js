@@ -160,6 +160,10 @@
       .then(function (res) {
         if (res.ok) {
           form.reset();
+          Array.prototype.forEach.call(form.querySelectorAll('input[data-yn]'), function (cb) {
+            var h = form.querySelector('input[name="' + cb.getAttribute('data-yn') + '"]');
+            if (h) h.value = 'No';
+          });
           msels.forEach(refresh);
           setStatus('Thank you! Your request was sent. We will be in touch soon.', 'ok');
         } else {
@@ -173,6 +177,14 @@
         btn.disabled = false;
         btn.textContent = label;
       });
+  });
+
+  // Yes/No checkboxes: send "Yes" or "No" in the email instead of nothing when unchecked
+  Array.prototype.forEach.call(form.querySelectorAll('input[data-yn]'), function (cb) {
+    cb.addEventListener('change', function () {
+      var hidden = form.querySelector('input[name="' + cb.getAttribute('data-yn') + '"]');
+      if (hidden) hidden.value = cb.checked ? 'Yes' : 'No';
+    });
   });
 
   form.addEventListener('input', function (e) {
