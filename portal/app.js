@@ -96,17 +96,15 @@
   var MAP_H = MASK.length * 3;
   function px(lon) { return (lon + 180) * 2; }
   function py(lat) { return (84 - lat) * 2; }
+  /* A simple, gentle arc between two airports on the flat map. It always takes the shorter way round (east or west),
+     and bends upward by an amount that grows with the distance. (A true shortest path over the globe goes up near the
+     North Pole for routes like Los Angeles to Dubai, which looks like a tall loop on a flat map.) */
   function greatCircle(a, b) {
-    var r = Math.PI / 180, la1 = a.lat * r, lo1 = a.lon * r, la2 = b.lat * r, lo2 = b.lon * r;
-    var v1 = [Math.cos(la1) * Math.cos(lo1), Math.cos(la1) * Math.sin(lo1), Math.sin(la1)], v2 = [Math.cos(la2) * Math.cos(lo2), Math.cos(la2) * Math.sin(lo2), Math.sin(la2)];
-    var dot = Math.max(-1, Math.min(1, v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2])), om = Math.acos(dot), N = 72, out = [], prev = a.lon;
-    for (var i = 0; i <= N; i++) {
-      var f = i / N, A = om < 1e-6 ? 1 - f : Math.sin((1 - f) * om) / Math.sin(om), B = om < 1e-6 ? f : Math.sin(f * om) / Math.sin(om);
-      var v = [A * v1[0] + B * v2[0], A * v1[1] + B * v2[1], A * v1[2] + B * v2[2]];
-      var lat = Math.asin(Math.max(-1, Math.min(1, v[2]))) / r, lon = Math.atan2(v[1], v[0]) / r;
-      while (lon - prev > 180) lon -= 360; while (lon - prev < -180) lon += 360;
-      prev = lon; out.push([px(lon), py(lat)]);
-    }
+    var x1 = px(a.lon), y1 = py(a.lat), x2 = px(b.lon), y2 = py(b.lat), dx = x2 - x1;
+    if (dx > 360) x2 -= 720; else if (dx < -360) x2 += 720;
+    var len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)), lift = Math.min(len * 0.28, 70);
+    var cx = (x1 + x2) / 2, cy = (y1 + y2) / 2 - lift, N = 72, out = [];
+    for (var i = 0; i <= N; i++) { var t = i / N, u = 1 - t; out.push([u * u * x1 + 2 * u * t * cx + t * t * x2, u * u * y1 + 2 * u * t * cy + t * t * y2]); }
     return out;
   }
   var PLANE = 'M12 0L5 -2.2L-1 -10L-4.5 -10L-1.5 -2.4L-7.5 -2.4L-9.5 -5.5L-12 -5.5L-10 0L-12 5.5L-9.5 5.5L-7.5 2.4L-1.5 2.4L-4.5 10L-1 10L5 2.2Z';
