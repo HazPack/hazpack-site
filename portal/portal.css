@@ -571,3 +571,8 @@ select.mini, .tools select, .cm-top select { padding-right: 30px; background-pos
 select:disabled { cursor: default; opacity: .6; }
 /* the printed quote and invoice keep their own plain look */
 .paper select { -webkit-appearance: auto; appearance: auto; background-image: none; padding-right: 2px; cursor: auto; }
+/* the Status filter and the Services picker are buttons, not selects: give them the same arrow */
+.msel-b .chev {
+  width: 12px; height: 6px; border: 0; transform: none; margin: 0 4px 0 6px; flex: 0 0 auto;
+  background: linear-gradient(45deg, transparent 50%, currentColor 50%) 0 0 / 6px 6px no-repeat, linear-gradient(135deg, currentColor 50%, transparent 50%) 6px 0 / 6px 6px no-repeat;
+}
