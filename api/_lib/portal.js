@@ -103,9 +103,21 @@ export async function clientData(orgId, repId) {
   return org && rep ? clientState(db, org, rep) : null;
 }
 
+// Quotes and invoices each count up per month (Q-2026-11-HP-001, I-2026-11-HP-001). meta.seq keeps the
+// highest number ever saved for each so a deleted document's number is never given out again.
+const DOC_NUM = /^([QI]-\d{4}-\d{2})-HP-(\d+)$/;
+function bumpSeq(seq, docs) {
+  for (const d of docs) {
+    const m = DOC_NUM.exec(String(d?.docNum ?? ''));
+    if (m) seq[m[1]] = Math.max(seq[m[1]] || 0, parseInt(m[2], 10));
+  }
+  return seq;
+}
+
 export async function staffData() {
   const db = await readDb();
-  return { orgs: db.orgs.map(pubOrg), docs: db.docs, tariff: db.tariff || null, staff: true };
+  const seq = bumpSeq({ ...(db.meta?.seq || {}) }, db.docs);
+  return { orgs: db.orgs.map(pubOrg), docs: db.docs, tariff: db.tariff || null, seq, staff: true };
 }
 
 // Returns file info only if it belongs to the signed-in person's company (and a job they can see).
@@ -423,7 +435,9 @@ const STAFF_ACTIONS = {
     if (orgId && !db.orgs.some((o) => o.id === orgId)) return fail('Company not found.');
     if (!Array.isArray(b.docs) || JSON.stringify(b.docs).length > 3_000_000) return fail('Invalid data.');
     const mine = b.docs.filter((d) => d && typeof d === 'object' && String(d.orgId ?? '') === orgId);
+    bumpSeq((db.meta.seq ||= {}), db.docs);
     db.docs = db.docs.filter((d) => String(d.orgId ?? '') !== orgId).concat(mine);
+    bumpSeq(db.meta.seq, mine);
     return { ok: true };
   },
   saveTariff(db, b) {

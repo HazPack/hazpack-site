@@ -180,7 +180,7 @@
   function adopt(data) {
     var keepOrg = S.org && S.org.id, keepRep = S.rep && S.rep.id;
     ORGS = {}; (data.orgs || [data.org]).forEach(function (o) { reviveOrg(o); ORGS[o.id] = o; REV[o.id] = o.rev; });
-    DOCS = data.docs || [];
+    DOCS = data.docs || []; SEQ = data.seq || {};
     Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(upgradeSteps); });
     if (data.tariff && data.tariff.length) TARIFF = data.tariff;
     if (data.me) ME = data.me;
@@ -814,11 +814,16 @@
   function docLabel(x) { return x.type === 'Invoice' ? 'Invoice' : 'Quote'; }
   function docOrgName(x) { return x.company || x.name || '—'; }
 
+  /* Quotes and invoices each keep their own counter per month (Q-2026-11-HP-001, I-2026-11-HP-001).
+     SEQ is the highest number ever used, kept on the server, so a deleted document's number is never handed out again. */
+  var SEQ = {};
+  function docStem(type, date) { return (type === 'Invoice' ? 'I' : 'Q') + '-' + date.slice(0, 4) + '-' + date.slice(5, 7) + '-HP-'; }
   function nextDocNum(type, date) {
-    var p = type === 'Invoice' ? 'I' : 'Q', stem = p + '-' + date.slice(0, 4) + '-' + date.slice(5, 7) + '-HP-', n = 0;
+    var stem = docStem(type, date), n = SEQ[stem.slice(0, -4)] || 0;
     DOCS.forEach(function (x) { if (x.docNum.indexOf(stem) === 0) n = Math.max(n, parseInt(x.docNum.slice(stem.length), 10) || 0); });
     return stem + ('00' + (n + 1)).slice(-3);
   }
+  function noteDocNum(num) { var m = /^([QI]-\d{4}-\d{2})-HP-(\d+)$/.exec(num || ''); if (m) SEQ[m[1]] = Math.max(SEQ[m[1]] || 0, parseInt(m[2], 10)); }
 
   /* ----- editor state ----- */
   function rateFor(org, id) { var o = org && org.rates && org.rates[id]; return (o !== undefined && o !== null && o !== '') ? o : tRow(id).rate; }
@@ -871,6 +876,7 @@
     if (!e.company && !e.name) { toast('Add a Bill To name or company before saving.'); return null; }
     if (!e.docNum) e.docNum = nextDocNum(e.type, e.date);
     if (DOCS.some(function (x) { return x.docNum === e.docNum && x.id !== e.id; })) { toast('Another document already uses ' + e.docNum + '.'); return null; }
+    noteDocNum(e.docNum);
     var rec = edRecord(e);
     if (e.id) DOCS[DOCS.map(function (x) { return x.id; }).indexOf(e.id)] = rec; else { rec.id = e.id = nid('d'); DOCS.unshift(rec); }
     if (e.fromQuote) { var q0 = DOCS.filter(function (x) { return x.id === e.fromQuote; })[0]; if (q0 && q0.status === 'Open') q0.status = 'Accepted'; }
@@ -914,7 +920,7 @@
     return '<div class="paper' + (print ? ' print' : '') + '"><div class="p-head"><img src="' + LOGO_L + '" alt="HazPack Compliance"><div class="co"><b>HazPack Compliance Solutions LLC</b>Dangerous Goods Compliance &amp; Inspection Services<br>' + esc(FROM_EMAIL) + ' &nbsp;|&nbsp; +1 (310) 425-3712<br>www.hazpackcompliance.com &nbsp;|&nbsp; Los Angeles, CA<em class="cert">IATA DGR Certified &nbsp;&middot;&nbsp; IMDG Certified &nbsp;&middot;&nbsp; 49 CFR Certified</em></div></div>' +
       '<div class="p-title"><span>' + (inv ? 'INVOICE' : 'QUOTE') + '</span></div>' +
       '<div class="p-row"><div class="p-box"><h4>Bill to</h4><div class="bd">' + fld('Name', 'name', e.name, print) + fld('Company', 'company', e.company, print) + fld('Address', 'addr', e.addr, print) + fld('City / State', 'city', e.city, print) + fld('Email', 'email', e.email, print) + fld('Phone', 'phone', e.phone, print) + fld('BKG #', 'bkg', e.bkg, print) + '</div></div>' +
-      '<div class="p-box nw"><h4>Document details</h4><div class="bd">' + fld('Doc #', 'docNum', e.docNum, print, ' placeholder="' + (inv ? 'I' : 'Q') + '-' + e.date.slice(0, 4) + '-' + e.date.slice(5, 7) + '-HP-001"') + fld('Date', 'date', e.date, print) +
+      '<div class="p-box nw"><h4>Document details</h4><div class="bd">' + fld('Doc #', 'docNum', print ? (e.docNum || nextDocNum(e.type, e.date)) : e.docNum, print, ' placeholder="' + nextDocNum(e.type, e.date) + '" title="Filled in with the next number when you save. Type here only to use a different number."' + id('edNum')) + fld('Date', 'date', e.date, print) +
       (inv ? '<div class="fl"><span>Due date</span><span class="v o"' + id('edDue') + '>' + esc(longDate(due)) + '</span></div>' + fld('Payment rcvd', 'payRcvd', e.payRcvd, print, ' placeholder="e.g. 06/12/2026"') : '') + '<div class="fl"><span>Prepared by</span>' + staffSel('preparedBy', e.preparedBy, print) + '</div></div></div></div>' +
       '<div class="sec rel">' + (print ? '' : '<div class="wm"><img src="' + LOGO_L + '" alt=""></div>') + '<table class="pt sv"><thead><tr>' + (print ? '' : '<th></th>') + '<th>#</th><th class="l">Service</th><th class="l">Notes</th><th>Qty</th><th>Unit</th><th class="r">Rate</th><th class="r">Line total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' + custBlock +
       '<div class="tots">' + (print ? '' : '<button type="button" class="latebtn" data-act="edLate">' + (!e.late ? '+ Late fee' : lateRate(e.late) === 1.5 ? 'Late fee 1.5%, switch to 2.0%' : 'Late fee 2.0%, remove') + '</button>') + '<table><tr><td>Subtotal</td><td' + id('edSub') + '>' + money(s.sub) + '</td></tr><tr><td>Discount ' + (print ? esc(e.disc || '0') : '<input type="number" min="0" max="100" step="0.5" data-ed="disc" value="' + esc(e.disc) + '" placeholder="0">') + '%</td><td' + id('edDisc') + '>' + (s.d > 0 ? '−' + money(s.d) : '—') + '</td></tr>' +
@@ -927,7 +933,7 @@
     var s = sums(ED.rows, ED.custom, ED.disc, ED.late), set = function (id, t) { var el = document.getElementById(id); if (el) el.textContent = t; };
     ED.rows.forEach(function (r, i) { set('ea' + i, r.active ? money(r.qty * r.rate) : '—'); });
     ED.custom.forEach(function (c, i) { set('ec' + i, money(c.qty * c.rate)); });
-    set('edSub', money(s.sub)); set('edDisc', s.d > 0 ? '−' + money(s.d) : '—'); set('edLate', money(s.lf)); set('edTot', money(s.total)); set('edDue', longDate(dueOf(ED)));
+    set('edSub', money(s.sub)); set('edDisc', s.d > 0 ? '−' + money(s.d) : '—'); set('edLate', money(s.lf)); set('edTot', money(s.total)); set('edDue', longDate(dueOf(ED))); var nb = document.getElementById('edNum'); if (nb) nb.placeholder = nextDocNum(ED.type, ED.date);
   }
 
   /* ----- screens ----- */
@@ -1143,7 +1149,7 @@
     if (d.act === 'edToggle') { var r = ED.rows[+d.i]; r.active = el.checked; if (!el.checked) r.qty = 1; render(); return true; }
     if (d.act === 'edOrg') { var o = ORGS[el.value]; var keep = ED; ED = edNew(keep.type, el.value, ''); ED.id = keep.id; ED.docNum = keep.docNum; ED.date = keep.date; ED.rows = keep.rows; if (!keep.id) ED.rows.forEach(function (r) { r.rate = rateFor(o, r.id); }); ED.custom = keep.custom; ED.disc = keep.disc; ED.late = keep.late; ED.notes = keep.notes; ED.preparedBy = keep.preparedBy; ED.issuedBy = keep.issuedBy; ED.status = keep.status; ED.datePaid = keep.datePaid; ED.fileId = keep.fileId; if (!o) { ED.company = keep.company; ED.name = keep.name; ED.email = keep.email; ED.bkg = keep.bkg; } render(); return true; }
     if (d.act === 'edRep') { var rp = ORGS[ED.orgId].reps.filter(function (y) { return y.id === el.value; })[0]; ED.repId = el.value; if (rp) putBill(ED, personBill(ORGS[ED.orgId], rp)); else applyBill(ED, ORGS[ED.orgId], null); render(); return true; }
-    if (d.act === 'edJob') { var jb = ORGS[ED.orgId].jobs.filter(function (y) { return y.id === el.value; })[0]; ED.jobId = el.value; if (jb) { ED.bkg = jb.ref; if (!ED.id && prefillFromJob(ED, jb)) toast('Lines filled from the job\'s services and piece count. Check them before sending.'); var rq = ORGS[ED.orgId].billing ? null : ORGS[ED.orgId].reps.filter(function (y) { return y.id === jb.rep; })[0]; if (rq) { ED.repId = rq.id; putBill(ED, personBill(ORGS[ED.orgId], rq)); } } render(); return true; }
+    if (d.act === 'edJob') { var jb = ORGS[ED.orgId].jobs.filter(function (y) { return y.id === el.value; })[0]; var was = ED.jobId && ORGS[ED.orgId].jobs.filter(function (y) { return y.id === ED.jobId; })[0]; if (was && ED.bkg === was.ref) ED.bkg = ''; ED.jobId = el.value; if (jb) { ED.bkg = jb.ref || ED.bkg; if (!ED.id && prefillFromJob(ED, jb)) toast('Lines filled from the job\'s services and piece count. Check them before sending.'); var rq = ORGS[ED.orgId].billing ? null : ORGS[ED.orgId].reps.filter(function (y) { return y.id === jb.rep; })[0]; if (rq) { ED.repId = rq.id; putBill(ED, personBill(ORGS[ED.orgId], rq)); } } render(); return true; }
     if (el.id === 'bt') { billF.type = el.value; render(); return true; }
     if (d.act === 'stOne') { var ix = billF.st.indexOf(d.v); if (el.checked && ix < 0) billF.st.push(d.v); else if (!el.checked && ix > -1) billF.st.splice(ix, 1); render(); return true; }
     return false;
