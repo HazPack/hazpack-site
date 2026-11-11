@@ -1,60 +1,58 @@
-// Made-up sample data. Every company, person and document here is fake.
+// Made-up sample data (from the portal prototype). Every company, person and document here is fake.
+// Dates are moved so the newest sample job always looks recent.
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { hashSecret } from './crypto.js';
-import { RETENTION_MONTHS } from './config.js';
+import { RETENTION_MONTHS, DB_VERSION } from './config.js';
 import { samplePdf, samplePng } from './samples.js';
 
+const SAMPLE = JSON.parse(readFileSync(new URL('./sample-data.json', import.meta.url), 'utf8'));
+const BASE = Date.UTC(2026, 10, 9); // the day the prototype's sample data is written for
+
 export const DEMO_LOGINS = [
-  { slug: 'demo-logistics', password: 'demo-password-1', profiles: { Gabe: '1234', Amy: '5678' } },
-  { slug: 'sample-freight', password: 'sample-password-2', profiles: { Jordan: '2468' } },
+  { slug: 'pacific', password: 'demo', profiles: { 'Dana Whitfield': '1111', 'Marcus Lee': '2222', 'Priya Nair': '3333' } },
+  { slug: 'sierra', password: 'demo', profiles: { 'Alicia Romero': '4444' } },
 ];
 
 const addMonths = (iso, n) => { const d = new Date(iso); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString(); };
-const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
 
 export function buildDemo() {
-  const db = { orgs: [], shipments: [], files: [], meta: { locks: {} } };
+  const now = new Date();
+  const shiftDays = Math.round((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - BASE) / 86400000);
+  const move = (v) => {
+    if (typeof v === 'string') {
+      if (/^\d{4}-\d{2}-\d{2}T/.test(v)) return new Date(Date.parse(v) + shiftDays * 86400000).toISOString();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return new Date(Date.parse(v) + shiftDays * 86400000).toISOString().slice(0, 10);
+      return v;
+    }
+    if (Array.isArray(v)) return v.map(move);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, move(x)]));
+    return v;
+  };
+  const src = move(SAMPLE);
+  const db = { v: DB_VERSION, orgs: [], docs: [], tariff: null, meta: { locks: {} } };
   const bytes = [];
+  const fileIds = new Map();
 
-  const org = (name, login) => {
-    const o = {
-      id: randomUUID(), slug: login.slug, name, demo: true, createdAt: daysAgo(40),
-      passwordHash: hashSecret(login.password),
-      profiles: Object.entries(login.profiles).map(([n, pin]) => ({ id: randomUUID(), name: n, pinHash: hashSecret(pin) })),
-    };
-    db.orgs.push(o);
-    return o;
-  };
-  const ship = (o, reference, description, status, age) => {
-    const createdAt = daysAgo(age);
-    const s = { id: randomUUID(), orgId: o.id, reference, description, status, createdAt, updatedAt: createdAt, expiresAt: addMonths(createdAt, RETENTION_MONTHS) };
-    db.shipments.push(s);
-    return s;
-  };
-  const file = (s, kind, name, buf, type, age) => {
-    const createdAt = daysAgo(age);
-    const f = { id: randomUUID(), orgId: s.orgId, shipmentId: s.id, kind, name, type, size: buf.length, createdAt, expiresAt: addMonths(createdAt, RETENTION_MONTHS) };
-    db.files.push(f);
-    bytes.push({ id: f.id, buf });
-  };
-
-  const a = org('Demo Logistics Co. (sample)', DEMO_LOGINS[0]);
-  const s1 = ship(a, 'DL-1001', 'Lithium batteries, UN3481, to Frankfurt (air)', 'Cleared to ship', 3);
-  file(s1, 'DGD', 'DL-1001-DGD.pdf', samplePdf('Shipper\'s Declaration (sample)', ['Reference: DL-1001', 'UN3481 Lithium ion batteries packed with equipment']), 'application/pdf', 3);
-  file(s1, 'Photo', 'DL-1001-packed-box.png', samplePng(360, 220, [24, 49, 82]), 'image/png', 3);
-  const s2 = ship(a, 'DL-1002', 'Dry ice, UN1845, to Chicago (ground)', 'Needs correction', 6);
-  file(s2, 'DGD', 'DL-1002-DGD.pdf', samplePdf('Shipper\'s Declaration (sample)', ['Reference: DL-1002', 'Needs correction: net quantity of dry ice missing']), 'application/pdf', 6);
-  const s3 = ship(a, 'DL-1003', 'Aerosols, UN1950, to Phoenix (ground)', 'In progress', 1);
-  file(s3, 'Photo', 'DL-1003-labels.png', samplePng(360, 220, [90, 40, 20]), 'image/png', 1);
-  const s4 = ship(a, 'DL-0990', 'Paint, UN1263, to Seattle (ground)', 'Completed', 35);
-  file(s4, 'DGD', 'DL-0990-DGD.pdf', samplePdf('Shipper\'s Declaration (sample)', ['Reference: DL-0990']), 'application/pdf', 35);
-  file(s4, 'Invoice', 'INV-0990.pdf', samplePdf('Invoice INV-0990 (sample)', ['Inspection and packing: $0.00 (sample)']), 'application/pdf', 34);
-
-  const b = org('Sample Freight LLC (sample)', DEMO_LOGINS[1]);
-  const s5 = ship(b, 'SF-2001', 'Perfume, UN1266, to Tokyo (air)', 'In progress', 2);
-  file(s5, 'DGD', 'SF-2001-DGD.pdf', samplePdf('Shipper\'s Declaration (sample)', ['Reference: SF-2001', 'This belongs to a different company']), 'application/pdf', 2);
-  const s6 = ship(b, 'SF-2000', 'Batteries, UN3480, to Dallas (ground)', 'Completed', 20);
-  file(s6, 'Invoice', 'INV-2000.pdf', samplePdf('Invoice INV-2000 (sample)'), 'application/pdf', 19);
-
+  for (const o of Object.values(src.ORGS)) {
+    const { password, ...rest } = o;
+    const org = { ...rest, demo: true, createdAt: o.jobs[o.jobs.length - 1]?.start || now.toISOString(), passwordHash: hashSecret(password), rev: 1, rates: o.rates || {}, accountsEmail: o.accountsEmail || '' };
+    org.reps = o.reps.map(({ pin, ...r }) => ({ ...r, pinHash: hashSecret(pin) }));
+    for (const j of org.jobs) { j.createdAt = j.start; j.expiresAt = addMonths(j.start, RETENTION_MONTHS); }
+    org.files = o.files.map((f) => {
+      const id = randomUUID();
+      fileIds.set(f.id, id);
+      const job = org.jobs.find((j) => j.id === f.job);
+      const isImg = f.type === 'Photo';
+      const buf = isImg ? samplePng() : samplePdf(f.name.replace(/\.pdf$/i, ''), [`Job: ${f.job || 'none'}`, `Prepared for: ${o.name}`, job ? `Item: ${job.item} (${job.un})` : '', f.note ? `Note: ${f.note}` : ''].filter(Boolean));
+      bytes.push({ id, buf });
+      return { ...f, id, name: isImg ? f.name.replace(/\.pdf$/i, '.png') : f.name, bytes: buf.length, mime: isImg ? 'image/png' : 'application/pdf', expiresAt: addMonths(f.date, RETENTION_MONTHS) };
+    });
+    db.orgs.push(org);
+  }
+  for (const d of src.DOCS) {
+    const lines = (d.lines || []).reduce((s, l) => s + l.rate * l.qty, 0);
+    db.docs.push({ ...d, fileId: d.fileId ? fileIds.get(d.fileId) : d.fileId, total: Math.round(lines * 100) / 100 });
+  }
   return { db, bytes };
 }

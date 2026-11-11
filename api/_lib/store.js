@@ -8,7 +8,7 @@ import { mkdir, readFile, writeFile, rename, unlink, rm } from 'node:fs/promises
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { isProd, DEMO, NotConfigured } from './config.js';
+import { isProd, DEMO, NotConfigured, DB_VERSION } from './config.js';
 
 const DIR = process.env.PORTAL_DATA_DIR
   || (isProd ? join(tmpdir(), 'hazpack-portal') : fileURLToPath(new URL('../../data', import.meta.url)));
@@ -31,9 +31,11 @@ let ready;
 function ensure() {
   ready ??= (async () => {
     if (isProd && !DEMO) throw new NotConfigured('Portal storage is not configured.');
-    if (!(await load())) {
+    const have = await load();
+    if (!have || have.v !== DB_VERSION) {
       const { buildDemo } = await import('./seed.js');
       const { db, bytes } = buildDemo();
+      await rm(FILES, { recursive: true, force: true });
       await mkdir(FILES, { recursive: true });
       for (const f of bytes) await writeFile(join(FILES, f.id), f.buf);
       await save(db);

@@ -10,7 +10,7 @@ export const POST = handler(async (request) => {
   if (r.error === 'locked') return bad('Too many attempts. Please try again in 15 minutes.', 429);
   if (r.error) return bad('The company ID or password is incorrect.', 401);
   return json(
-    { ok: true, org: { name: r.org.name }, profiles: r.org.profiles.map(({ id, name }) => ({ id, name })) },
+    { ok: true, org: { name: r.org.name }, profiles: r.org.reps.map(({ id, name, title }) => ({ id, name, title })) },
     200,
     [['set-cookie', setSession(request, { role: 'client', orgId: r.org.id })]],
   );

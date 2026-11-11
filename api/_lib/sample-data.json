@@ -1,0 +1,1245 @@
+{
+ "ORGS": {
+  "pacific": {
+   "id": "pacific",
+   "name": "Pacific Lab Supply Co.",
+   "password": "demo",
+   "reps": [
+    {
+     "id": "r1",
+     "name": "Dana Whitfield",
+     "title": "Compliance manager",
+     "email": "dana@pacificlabsupply.example",
+     "phone": "(555) 010-0143",
+     "addr": "",
+     "city": "",
+     "pin": "1111",
+     "admin": true,
+     "notify": true
+    },
+    {
+     "id": "r2",
+     "name": "Marcus Lee",
+     "title": "Shipping coordinator",
+     "email": "marcus@pacificlabsupply.example",
+     "phone": "(555) 010-0144",
+     "addr": "",
+     "city": "",
+     "pin": "2222",
+     "admin": true,
+     "notify": true
+    },
+    {
+     "id": "r3",
+     "name": "Priya Nair",
+     "title": "Lab operations",
+     "email": "priya@pacificlabsupply.example",
+     "phone": "(555) 010-0145",
+     "addr": "",
+     "city": "",
+     "pin": "3333",
+     "admin": false,
+     "notify": true
+    }
+   ],
+   "jobs": [
+    {
+     "id": "HP-2611-022",
+     "rep": "r2",
+     "item": "Lithium metal batteries packed with equipment",
+     "un": "UN3091",
+     "cls": "9",
+     "pg": "N/A",
+     "qty": "3 packages, 4.5 kg",
+     "mode": "Air",
+     "from": "LAX",
+     "to": "HKG",
+     "ref": "PO-48302",
+     "req": "2026-11-20",
+     "done": 0,
+     "start": "2026-11-09T08:00:00.000Z",
+     "pending": true,
+     "ev": [
+      [
+       "2026-11-09T08:00:00.000Z",
+       "Request submitted"
+      ]
+     ],
+     "svc": [
+      "pack",
+      "insp",
+      "dgd"
+     ],
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Inspection complete",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "fix": false,
+     "msgs": [],
+     "owner": "",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-11-09T08:00:00.000Z",
+       "who": "Client",
+       "text": "Request submitted"
+      }
+     ]
+    },
+    {
+     "id": "HP-2611-014",
+     "rep": "r2",
+     "item": "Lithium ion batteries packed with equipment",
+     "un": "UN3481",
+     "cls": "9",
+     "pg": "N/A",
+     "qty": "2 packages, 6.4 kg",
+     "mode": "Air",
+     "from": "LAX",
+     "to": "SIN",
+     "ref": "PO-48213",
+     "done": 4,
+     "start": "2026-11-04T08:00:00.000Z",
+     "svc": [
+      "pack",
+      "insp",
+      "dgd"
+     ],
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Inspection complete",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "ev": [
+      [
+       "2026-11-04T08:00:00.000Z",
+       "Job received"
+      ],
+      [
+       "2026-11-05T08:00:00.000Z",
+       "Packed and photographed"
+      ],
+      [
+       "2026-11-06T08:00:00.000Z",
+       "Inspection complete"
+      ],
+      [
+       "2026-11-07T08:00:00.000Z",
+       "Declaration signed, cleared to ship"
+      ]
+     ],
+     "fix": false,
+     "pending": false,
+     "msgs": [],
+     "req": "",
+     "owner": "James Whitty",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-11-04T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Job received"
+      },
+      {
+       "date": "2026-11-05T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Packed and photographed"
+      },
+      {
+       "date": "2026-11-06T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Inspection complete"
+      },
+      {
+       "date": "2026-11-07T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Declaration signed, cleared to ship"
+      }
+     ]
+    },
+    {
+     "id": "HP-2611-009",
+     "rep": "r2",
+     "item": "Aerosols, flammable",
+     "un": "UN1950",
+     "cls": "2.1",
+     "pg": "N/A",
+     "qty": "4 packages, 9.6 L",
+     "mode": "Ground",
+     "from": "LAX",
+     "to": "PHX",
+     "ref": "PO-48177",
+     "svc": [
+      "pack",
+      "dgd"
+     ],
+     "done": 4,
+     "start": "2026-11-02T08:00:00.000Z",
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "ev": [
+      [
+       "2026-11-02T08:00:00.000Z",
+       "Job received"
+      ],
+      [
+       "2026-11-03T08:00:00.000Z",
+       "Packed and photographed"
+      ],
+      [
+       "2026-11-04T08:00:00.000Z",
+       "Declaration signed, cleared to ship"
+      ],
+      [
+       "2026-11-05T08:00:00.000Z",
+       "Invoice sent"
+      ]
+     ],
+     "fix": false,
+     "pending": false,
+     "msgs": [],
+     "req": "",
+     "owner": "",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-11-02T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Job received"
+      },
+      {
+       "date": "2026-11-03T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Packed and photographed"
+      },
+      {
+       "date": "2026-11-04T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Declaration signed, cleared to ship"
+      },
+      {
+       "date": "2026-11-05T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Invoice sent"
+      }
+     ]
+    },
+    {
+     "id": "HP-2610-031",
+     "rep": "r3",
+     "item": "Biological substance, Category B",
+     "un": "UN3373",
+     "cls": "6.2",
+     "pg": "N/A",
+     "qty": "1 package, 1.2 kg",
+     "mode": "Air",
+     "from": "LAX",
+     "to": "FRA",
+     "ref": "PO-48090",
+     "done": 3,
+     "start": "2026-10-29T07:00:00.000Z",
+     "fix": true,
+     "fixNote": "Our inspection found that the net quantity on the declaration does not match the package marking. Confirm the correct quantity and we will reissue the declaration.",
+     "msgs": [
+      {
+       "from": "staff",
+       "who": "HazPack staff",
+       "text": "Can you confirm the net quantity on the package marking? The declaration shows 1.2 kg.",
+       "date": "2026-11-01T07:00:00.000Z"
+      }
+     ],
+     "ev": [
+      [
+       "2026-10-29T07:00:00.000Z",
+       "Job received"
+      ],
+      [
+       "2026-10-30T07:00:00.000Z",
+       "Packed and photographed"
+      ],
+      [
+       "2026-10-31T07:00:00.000Z",
+       "Inspection complete"
+      ],
+      [
+       "2026-11-01T07:00:00.000Z",
+       "Correction needed: net quantity on the declaration does not match the package marking"
+      ]
+     ],
+     "svc": [
+      "pack",
+      "insp",
+      "dgd"
+     ],
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Inspection complete",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "pending": false,
+     "req": "",
+     "owner": "Alex Walsh",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-10-29T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Job received"
+      },
+      {
+       "date": "2026-10-30T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Packed and photographed"
+      },
+      {
+       "date": "2026-10-31T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Inspection complete"
+      },
+      {
+       "date": "2026-11-01T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Correction needed: net quantity on the declaration does not match the package marking"
+      }
+     ]
+    },
+    {
+     "id": "HP-2611-018",
+     "rep": "r1",
+     "item": "Flammable liquids, n.o.s. (ethanol solution)",
+     "un": "UN1993",
+     "cls": "3",
+     "pg": "II",
+     "qty": "3 packages, 7.5 L",
+     "mode": "Air",
+     "from": "LAX",
+     "to": "YYZ",
+     "ref": "PO-48240",
+     "req": "2026-11-13",
+     "done": 1,
+     "start": "2026-11-06T08:00:00.000Z",
+     "svc": [
+      "pack",
+      "insp",
+      "dgd"
+     ],
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Inspection complete",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "ev": [
+      [
+       "2026-11-06T08:00:00.000Z",
+       "Job received"
+      ]
+     ],
+     "fix": false,
+     "pending": false,
+     "msgs": [],
+     "owner": "James Whitty",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-11-06T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Job received"
+      }
+     ]
+    },
+    {
+     "id": "HP-2610-008",
+     "rep": "r3",
+     "item": "Dry ice, packaged specimens",
+     "un": "UN1845",
+     "cls": "9",
+     "pg": "N/A",
+     "qty": "2 packages, 11 kg dry ice",
+     "mode": "Air",
+     "from": "LAX",
+     "to": "NRT",
+     "ref": "PO-47988",
+     "done": 5,
+     "start": "2026-10-07T07:00:00.000Z",
+     "svc": [
+      "pack",
+      "insp",
+      "dgd"
+     ],
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Inspection complete",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "ev": [
+      [
+       "2026-10-07T07:00:00.000Z",
+       "Job received"
+      ],
+      [
+       "2026-10-08T07:00:00.000Z",
+       "Packed and photographed"
+      ],
+      [
+       "2026-10-09T07:00:00.000Z",
+       "Inspection complete"
+      ],
+      [
+       "2026-10-10T07:00:00.000Z",
+       "Declaration signed, cleared to ship"
+      ],
+      [
+       "2026-10-11T07:00:00.000Z",
+       "Invoice sent"
+      ]
+     ],
+     "fix": false,
+     "pending": false,
+     "msgs": [],
+     "req": "",
+     "owner": "James Whitty",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-10-07T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Job received"
+      },
+      {
+       "date": "2026-10-08T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Packed and photographed"
+      },
+      {
+       "date": "2026-10-09T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Inspection complete"
+      },
+      {
+       "date": "2026-10-10T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Declaration signed, cleared to ship"
+      },
+      {
+       "date": "2026-10-11T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Invoice sent"
+      }
+     ]
+    },
+    {
+     "id": "HP-2609-017",
+     "rep": "r1",
+     "item": "Corrosive liquid, acidic, inorganic, n.o.s.",
+     "un": "UN3264",
+     "cls": "8",
+     "pg": "III",
+     "qty": "6 packages, 12 L",
+     "mode": "Ground",
+     "from": "LAX",
+     "to": "RNO",
+     "ref": "PO-47511",
+     "svc": [
+      "pack",
+      "dgd"
+     ],
+     "done": 4,
+     "start": "2026-09-15T07:00:00.000Z",
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "ev": [
+      [
+       "2026-09-15T07:00:00.000Z",
+       "Job received"
+      ],
+      [
+       "2026-09-16T07:00:00.000Z",
+       "Packed and photographed"
+      ],
+      [
+       "2026-09-17T07:00:00.000Z",
+       "Declaration signed, cleared to ship"
+      ],
+      [
+       "2026-09-18T07:00:00.000Z",
+       "Invoice sent"
+      ]
+     ],
+     "fix": false,
+     "pending": false,
+     "msgs": [],
+     "req": "",
+     "owner": "",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-09-15T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Job received"
+      },
+      {
+       "date": "2026-09-16T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Packed and photographed"
+      },
+      {
+       "date": "2026-09-17T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Declaration signed, cleared to ship"
+      },
+      {
+       "date": "2026-09-18T07:00:00.000Z",
+       "who": "HazPack",
+       "text": "Invoice sent"
+      }
+     ]
+    }
+   ],
+   "files": [
+    {
+     "id": "f1",
+     "job": "HP-2611-014",
+     "type": "DGD",
+     "name": "DGD_HP-2611-014_UN3481.pdf",
+     "size": "184 KB",
+     "date": "2026-11-07T08:00:00.000Z",
+     "by": "HazPack",
+     "note": "Signed"
+    },
+    {
+     "id": "f2",
+     "job": "HP-2611-014",
+     "type": "Report",
+     "name": "Inspection_HP-2611-014.pdf",
+     "size": "96 KB",
+     "date": "2026-11-06T08:00:00.000Z",
+     "by": "HazPack",
+     "note": "Passed, no findings"
+    },
+    {
+     "id": "f4",
+     "job": "HP-2611-009",
+     "type": "DGD",
+     "name": "DGD_HP-2611-009_UN1950.pdf",
+     "size": "152 KB",
+     "date": "2026-11-05T08:00:00.000Z",
+     "by": "HazPack",
+     "note": "Signed"
+    },
+    {
+     "id": "f5",
+     "job": "HP-2611-009",
+     "type": "Other",
+     "name": "SDS_aerosol_cleaner.pdf",
+     "size": "310 KB",
+     "date": "2026-11-02T08:00:00.000Z",
+     "by": "Marcus Lee, Pacific Lab Supply Co.",
+     "note": "Safety data sheet"
+    },
+    {
+     "id": "f11",
+     "job": "HP-2611-009",
+     "type": "Invoice",
+     "name": "Invoice_I-2026-11-HP-001.pdf",
+     "size": "41 KB",
+     "date": "2026-11-06T08:00:00.000Z",
+     "by": "HazPack",
+     "note": "Due, $240.00"
+    },
+    {
+     "id": "f6",
+     "job": "HP-2610-031",
+     "type": "DGD",
+     "name": "DGD_HP-2610-031_UN3373_DRAFT.pdf",
+     "size": "171 KB",
+     "date": "2026-11-01T07:00:00.000Z",
+     "by": "HazPack",
+     "note": "Draft, awaiting correction"
+    },
+    {
+     "id": "f7",
+     "job": "HP-2610-031",
+     "type": "Report",
+     "name": "Inspection_HP-2610-031.pdf",
+     "size": "102 KB",
+     "date": "2026-10-31T07:00:00.000Z",
+     "by": "HazPack",
+     "note": "1 finding"
+    },
+    {
+     "id": "f8",
+     "job": "HP-2610-008",
+     "type": "DGD",
+     "name": "DGD_HP-2610-008_UN1845.pdf",
+     "size": "160 KB",
+     "date": "2026-10-09T07:00:00.000Z",
+     "by": "HazPack",
+     "note": "Signed"
+    },
+    {
+     "id": "f9",
+     "job": "HP-2610-008",
+     "type": "Invoice",
+     "name": "Invoice_I-2026-10-HP-001.pdf",
+     "size": "39 KB",
+     "date": "2026-10-11T07:00:00.000Z",
+     "by": "HazPack",
+     "note": "Paid, $295.00"
+    },
+    {
+     "id": "f10",
+     "job": "HP-2609-017",
+     "type": "DGD",
+     "name": "DGD_HP-2609-017_UN3264.pdf",
+     "size": "149 KB",
+     "date": "2026-09-17T07:00:00.000Z",
+     "by": "HazPack",
+     "note": "Signed"
+    },
+    {
+     "id": "f12",
+     "job": "HP-2609-017",
+     "type": "Invoice",
+     "name": "Invoice_I-2026-09-HP-001.pdf",
+     "size": "40 KB",
+     "date": "2026-09-19T07:00:00.000Z",
+     "by": "HazPack",
+     "note": "Paid, $520.00"
+    },
+    {
+     "id": "f13",
+     "job": "HP-2611-018",
+     "type": "Other",
+     "name": "Quote_Q-2026-11-HP-002.pdf",
+     "size": "58 KB",
+     "date": "2026-11-08T08:00:00.000Z",
+     "by": "HazPack",
+     "note": "Quote, $150.00, awaiting your approval",
+     "docId": "d5"
+    }
+   ],
+   "notifs": [
+    {
+     "id": "n5",
+     "to": "client",
+     "job": "HP-2611-018",
+     "text": "HazPack added Quote_Q-2026-11-HP-002.pdf (quote) on HP-2611-018. It is waiting for your approval.",
+     "date": "2026-11-08T08:00:00.000Z",
+     "read": {}
+    },
+    {
+     "id": "n1",
+     "to": "client",
+     "job": "HP-2610-031",
+     "text": "HazPack added Inspection_HP-2610-031.pdf. The inspection found 1 issue that needs your correction.",
+     "date": "2026-11-01T07:00:00.000Z",
+     "read": {}
+    },
+    {
+     "id": "n2",
+     "to": "client",
+     "job": "HP-2611-014",
+     "text": "The declaration for HP-2611-014 is signed. It is cleared to ship.",
+     "date": "2026-11-07T08:00:00.000Z",
+     "read": {}
+    },
+    {
+     "id": "n3",
+     "to": "client",
+     "job": "HP-2611-009",
+     "text": "Invoice I-2026-11-HP-001 for HP-2611-009 was added.",
+     "date": "2026-11-06T08:00:00.000Z",
+     "read": {
+      "r1": 1,
+      "r2": 1,
+      "r3": 1
+     }
+    },
+    {
+     "id": "n4",
+     "to": "staff",
+     "job": "HP-2611-022",
+     "text": "Marcus Lee of Pacific Lab Supply Co. submitted a job request, HP-2611-022.",
+     "date": "2026-11-09T08:00:00.000Z",
+     "read": {}
+    }
+   ],
+   "accountsEmail": "payments@pacificlabsupply.example",
+   "rates": {
+    "dgd": 60,
+    "insp1": 9
+   }
+  },
+  "sierra": {
+   "id": "sierra",
+   "name": "Sierra Biologics",
+   "password": "demo",
+   "reps": [
+    {
+     "id": "s1",
+     "name": "Alicia Romero",
+     "title": "Quality lead",
+     "email": "alicia@sierrabio.example",
+     "pin": "4444",
+     "admin": true,
+     "notify": true
+    }
+   ],
+   "jobs": [
+    {
+     "id": "HP-2611-021",
+     "rep": "s1",
+     "item": "Biological substance, Category B",
+     "un": "UN3373",
+     "cls": "6.2",
+     "pg": "N/A",
+     "qty": "2 packages, 2.0 kg",
+     "mode": "Air",
+     "from": "LAX",
+     "to": "LHR",
+     "ref": "SB-2290",
+     "done": 3,
+     "start": "2026-11-05T08:00:00.000Z",
+     "svc": [
+      "pack",
+      "insp",
+      "dgd"
+     ],
+     "steps": [
+      "Job received",
+      "Packed and photographed",
+      "Inspection complete",
+      "Declaration signed, cleared to ship",
+      "Invoice sent"
+     ],
+     "ev": [
+      [
+       "2026-11-05T08:00:00.000Z",
+       "Job received"
+      ],
+      [
+       "2026-11-06T08:00:00.000Z",
+       "Packed and photographed"
+      ],
+      [
+       "2026-11-07T08:00:00.000Z",
+       "Inspection complete"
+      ]
+     ],
+     "fix": false,
+     "pending": false,
+     "msgs": [],
+     "req": "",
+     "owner": "Alex Walsh",
+     "pri": "",
+     "by": {},
+     "notes": {},
+     "log": [
+      {
+       "date": "2026-11-05T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Job received"
+      },
+      {
+       "date": "2026-11-06T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Packed and photographed"
+      },
+      {
+       "date": "2026-11-07T08:00:00.000Z",
+       "who": "HazPack",
+       "text": "Inspection complete"
+      }
+     ]
+    }
+   ],
+   "files": [
+    {
+     "id": "f20",
+     "job": "HP-2611-021",
+     "type": "DGD",
+     "name": "DGD_HP-2611-021_UN3373.pdf",
+     "size": "158 KB",
+     "date": "2026-11-07T08:00:00.000Z",
+     "by": "HazPack",
+     "note": "Signed"
+    },
+    {
+     "id": "f21",
+     "job": "",
+     "type": "Other",
+     "name": "Quote_Q-2026-11-HP-001.pdf",
+     "size": "57 KB",
+     "date": "2026-11-08T08:00:00.000Z",
+     "by": "HazPack",
+     "note": "Quote, $170.00, awaiting your approval",
+     "docId": "d4"
+    }
+   ],
+   "notifs": [
+    {
+     "id": "n6",
+     "to": "client",
+     "job": "",
+     "text": "HazPack added Quote_Q-2026-11-HP-001.pdf (quote) for Sierra Biologics. It is waiting for your approval.",
+     "date": "2026-11-08T08:00:00.000Z",
+     "read": {}
+    }
+   ]
+  }
+ },
+ "DOCS": [
+  {
+   "id": "d1",
+   "docNum": "I-2026-11-HP-001",
+   "type": "Invoice",
+   "orgId": "pacific",
+   "repId": "r2",
+   "jobId": "HP-2611-009",
+   "name": "Marcus Lee",
+   "company": "Pacific Lab Supply Co.",
+   "addr": "",
+   "city": "",
+   "email": "marcus@pacificlabsupply.example",
+   "phone": "",
+   "bkg": "PO-48177",
+   "date": "2026-11-06",
+   "payRcvd": "",
+   "preparedBy": "James Whitty",
+   "issuedBy": "James Whitty",
+   "lines": [
+    {
+     "id": "attend",
+     "label": "Attendance",
+     "note": "Site visit / call-out",
+     "unit": "per visit",
+     "rate": 55,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "dgd",
+     "label": "DGD",
+     "note": "Dangerous Goods Declaration prepared & certified",
+     "unit": "per DGD",
+     "rate": 65,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "insp1",
+     "label": "Check / Inspect (1–10)",
+     "note": "DG inspection — Tier 1 rate, pieces 1 through 10",
+     "unit": "per piece",
+     "rate": 10,
+     "qty": 5,
+     "noteOverride": ""
+    },
+    {
+     "id": "label1",
+     "label": "Marks & Label (1–10)",
+     "note": "Hazard marks and labels — Tier 1, pieces 1–10",
+     "unit": "per piece",
+     "rate": 10,
+     "qty": 7,
+     "noteOverride": ""
+    }
+   ],
+   "custom": [],
+   "disc": "",
+   "late": false,
+   "notes": "",
+   "status": "Unpaid",
+   "datePaid": "",
+   "fileId": "f11"
+  },
+  {
+   "id": "d2",
+   "docNum": "I-2026-10-HP-001",
+   "type": "Invoice",
+   "orgId": "pacific",
+   "repId": "r3",
+   "jobId": "HP-2610-008",
+   "name": "Priya Nair",
+   "company": "Pacific Lab Supply Co.",
+   "addr": "",
+   "city": "",
+   "email": "priya@pacificlabsupply.example",
+   "phone": "",
+   "bkg": "PO-47988",
+   "date": "2026-10-11",
+   "payRcvd": "2026-10-20",
+   "preparedBy": "James Whitty",
+   "issuedBy": "James Whitty",
+   "lines": [
+    {
+     "id": "attend",
+     "label": "Attendance",
+     "note": "Site visit / call-out",
+     "unit": "per visit",
+     "rate": 55,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "dgd",
+     "label": "DGD",
+     "note": "Dangerous Goods Declaration prepared & certified",
+     "unit": "per DGD",
+     "rate": 65,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "overpack",
+     "label": "Overpack",
+     "note": "Overpack assembly & palletizing. Excludes HT pallets",
+     "unit": "per pallet",
+     "rate": 65,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "pallet",
+     "label": "Pallet",
+     "note": "Pallet supply",
+     "unit": "each",
+     "rate": 45,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "pack1",
+     "label": "UN Spec Packaging (1–10)",
+     "note": "Packaging — Tier 1 rate, pieces 1–10",
+     "unit": "per piece",
+     "rate": 65,
+     "qty": 1,
+     "noteOverride": ""
+    }
+   ],
+   "custom": [],
+   "disc": "",
+   "late": false,
+   "notes": "",
+   "status": "Paid",
+   "datePaid": "2026-10-20",
+   "fileId": "f9"
+  },
+  {
+   "id": "d3",
+   "docNum": "I-2026-09-HP-001",
+   "type": "Invoice",
+   "orgId": "pacific",
+   "repId": "r1",
+   "jobId": "HP-2609-017",
+   "name": "Dana Whitfield",
+   "company": "Pacific Lab Supply Co.",
+   "addr": "",
+   "city": "",
+   "email": "dana@pacificlabsupply.example",
+   "phone": "",
+   "bkg": "PO-47511",
+   "date": "2026-09-19",
+   "payRcvd": "2026-10-01",
+   "preparedBy": "James Whitty",
+   "issuedBy": "James Whitty",
+   "lines": [
+    {
+     "id": "attend",
+     "label": "Attendance",
+     "note": "Site visit / call-out",
+     "unit": "per visit",
+     "rate": 55,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "dgd",
+     "label": "DGD",
+     "note": "Dangerous Goods Declaration prepared & certified",
+     "unit": "per DGD",
+     "rate": 65,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "pack1",
+     "label": "UN Spec Packaging (1–10)",
+     "note": "Packaging — Tier 1 rate, pieces 1–10",
+     "unit": "per piece",
+     "rate": 65,
+     "qty": 6,
+     "noteOverride": ""
+    },
+    {
+     "id": "label1",
+     "label": "Marks & Label (1–10)",
+     "note": "Hazard marks and labels — Tier 1, pieces 1–10",
+     "unit": "per piece",
+     "rate": 10,
+     "qty": 1,
+     "noteOverride": ""
+    }
+   ],
+   "custom": [],
+   "disc": "",
+   "late": false,
+   "notes": "",
+   "status": "Paid",
+   "datePaid": "2026-10-01",
+   "fileId": "f12"
+  },
+  {
+   "id": "d4",
+   "docNum": "Q-2026-11-HP-001",
+   "type": "Quote",
+   "orgId": "sierra",
+   "repId": "s1",
+   "jobId": "",
+   "name": "Alicia Romero",
+   "company": "Sierra Biologics",
+   "addr": "",
+   "city": "",
+   "email": "alicia@sierrabio.example",
+   "phone": "",
+   "bkg": "SB-2301",
+   "date": "2026-11-08",
+   "payRcvd": "",
+   "preparedBy": "James Whitty",
+   "issuedBy": "James Whitty",
+   "lines": [
+    {
+     "id": "attend",
+     "label": "Attendance",
+     "note": "Site visit / call-out",
+     "unit": "per visit",
+     "rate": 55,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "dgd",
+     "label": "DGD",
+     "note": "Dangerous Goods Declaration prepared & certified",
+     "unit": "per DGD",
+     "rate": 65,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "insp1",
+     "label": "Check / Inspect (1–10)",
+     "note": "DG inspection — Tier 1 rate, pieces 1 through 10",
+     "unit": "per piece",
+     "rate": 10,
+     "qty": 5,
+     "noteOverride": ""
+    }
+   ],
+   "custom": [],
+   "disc": "",
+   "late": false,
+   "notes": "",
+   "status": "Open",
+   "datePaid": "",
+   "fileId": "f21"
+  },
+  {
+   "id": "d5",
+   "docNum": "Q-2026-11-HP-002",
+   "type": "Quote",
+   "orgId": "pacific",
+   "repId": "r1",
+   "jobId": "HP-2611-018",
+   "name": "Dana Whitfield",
+   "company": "Pacific Lab Supply Co.",
+   "addr": "",
+   "city": "",
+   "email": "dana@pacificlabsupply.example",
+   "phone": "",
+   "bkg": "PO-48240",
+   "date": "2026-11-08",
+   "payRcvd": "",
+   "preparedBy": "James Whitty",
+   "issuedBy": "James Whitty",
+   "lines": [
+    {
+     "id": "attend",
+     "label": "Attendance",
+     "note": "Site visit / call-out",
+     "unit": "per visit",
+     "rate": 55,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "dgd",
+     "label": "DGD",
+     "note": "Dangerous Goods Declaration prepared & certified",
+     "unit": "per DGD",
+     "rate": 65,
+     "qty": 1,
+     "noteOverride": ""
+    },
+    {
+     "id": "insp1",
+     "label": "Check / Inspect (1–10)",
+     "note": "DG inspection — Tier 1 rate, pieces 1 through 10",
+     "unit": "per piece",
+     "rate": 10,
+     "qty": 3,
+     "noteOverride": ""
+    }
+   ],
+   "custom": [],
+   "disc": "",
+   "late": "",
+   "notes": "",
+   "status": "Open",
+   "datePaid": "",
+   "fileId": "f13",
+   "decision": null
+  }
+ ],
+ "TARIFF": [
+  {
+   "id": "attend",
+   "label": "Attendance",
+   "note": "Site visit / call-out",
+   "unit": "per visit",
+   "rate": 55
+  },
+  {
+   "id": "dgd",
+   "label": "DGD",
+   "note": "Dangerous Goods Declaration prepared & certified",
+   "unit": "per DGD",
+   "rate": 65
+  },
+  {
+   "id": "pack1",
+   "label": "UN Spec Packaging (1–10)",
+   "note": "Packaging — Tier 1 rate, pieces 1–10",
+   "unit": "per piece",
+   "rate": 65
+  },
+  {
+   "id": "pack2",
+   "label": "UN Spec Packaging (11–30)",
+   "note": "Packaging — Tier 2 rate, pieces 11–30",
+   "unit": "per piece",
+   "rate": 55
+  },
+  {
+   "id": "pack3",
+   "label": "UN Spec Packaging (31+)",
+   "note": "Packaging — Tier 3 rate, every piece beyond 30",
+   "unit": "per piece",
+   "rate": 45
+  },
+  {
+   "id": "dgd_multi",
+   "label": "DG Checklist (multi-DGD)",
+   "note": "Multiple DGDs on same booking",
+   "unit": "per checklist",
+   "rate": 45
+  },
+  {
+   "id": "insp1",
+   "label": "Check / Inspect (1–10)",
+   "note": "DG inspection — Tier 1 rate, pieces 1 through 10",
+   "unit": "per piece",
+   "rate": 10
+  },
+  {
+   "id": "insp2",
+   "label": "Check / Inspect (11–30)",
+   "note": "DG inspection — Tier 2 rate, pieces 11 through 30",
+   "unit": "per piece",
+   "rate": 7.5
+  },
+  {
+   "id": "insp3",
+   "label": "Check / Inspect (31+)",
+   "note": "DG inspection — Tier 3 rate, pieces 31+",
+   "unit": "per piece",
+   "rate": 5
+  },
+  {
+   "id": "label1",
+   "label": "Marks & Label (1–10)",
+   "note": "Hazard marks and labels — Tier 1, pieces 1–10",
+   "unit": "per piece",
+   "rate": 10
+  },
+  {
+   "id": "label2",
+   "label": "Marks & Label (11–30)",
+   "note": "Hazard marks and labels — Tier 2, pieces 11–30",
+   "unit": "per piece",
+   "rate": 7.5
+  },
+  {
+   "id": "label3",
+   "label": "Marks & Label (31+)",
+   "note": "Hazard marks and labels — Tier 3, pieces 31+",
+   "unit": "per piece",
+   "rate": 5
+  },
+  {
+   "id": "overpack",
+   "label": "Overpack",
+   "note": "Overpack assembly & palletizing. Excludes HT pallets",
+   "unit": "per pallet",
+   "rate": 65
+  },
+  {
+   "id": "pallet",
+   "label": "Pallet",
+   "note": "Pallet supply",
+   "unit": "each",
+   "rate": 45
+  },
+  {
+   "id": "wait",
+   "label": "Wait Time",
+   "note": "Wait time beyond first 15 min",
+   "unit": "per 30 min",
+   "rate": 45
+  }
+ ]
+}

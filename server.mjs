@@ -56,7 +56,7 @@ createServer(async (req, res) => {
   }
 }).listen(PORT, async () => {
   console.log(`HazPack site on http://localhost:${PORT}`);
-  console.log('Client portal: http://localhost:' + PORT + '/portal   Staff: /portal/staff (key "dev")');
+  console.log('Client portal: http://localhost:' + PORT + '/portal   Staff sign-in: the link on that page (key "dev")');
   const { DEMO_LOGINS } = await import('./api/_lib/seed.js');
   for (const l of DEMO_LOGINS) console.log(`  sample login: ${l.slug} / ${l.password}   profiles/PINs: ${Object.entries(l.profiles).map(([n, p]) => `${n} ${p}`).join(', ')}`);
 });

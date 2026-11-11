@@ -7,17 +7,19 @@ export const GET = handler(async (request) => {
   const url = new URL(request.url);
   const id = String(url.searchParams.get('id') || '');
   let orgId = null;
+  let repId = null;
   if (!isStaff(request)) {
     const c = await currentClient(request);
     if (!c || !c.profile) return bad('Please sign in.', 401);
     orgId = c.org.id;
+    repId = c.profile.id;
   }
-  const found = await fileFor(orgId, id);
+  const found = await fileFor(orgId, repId, id);
   if (!found) return bad('File not found.', 404);
   const name = found.meta.name.replace(/[^A-Za-z0-9._ -]/g, '_');
   return new Response(found.buf, {
     headers: {
-      'content-type': found.meta.type,
+      'content-type': found.meta.mime,
       'content-disposition': `${url.searchParams.get('download') ? 'attachment' : 'inline'}; filename="${name}"`,
       'cache-control': 'private, no-store',
       'x-content-type-options': 'nosniff',

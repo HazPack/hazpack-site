@@ -11,7 +11,7 @@ export const GET = handler(async (request) => {
     client: c && {
       org: { name: c.org.name, demo: Boolean(c.org.demo) },
       profile: c.profile && { id: c.profile.id, name: c.profile.name },
-      profiles: c.profile ? undefined : c.org.profiles.map(({ id, name }) => ({ id, name })),
+      profiles: c.profile ? undefined : c.org.reps.map(({ id, name, title }) => ({ id, name, title })),
     },
   });
 });

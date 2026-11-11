@@ -5,8 +5,10 @@ export const isProd = Boolean(process.env.VERCEL);
 export const DEMO = process.env.PORTAL_DEMO === '1';
 
 export const RETENTION_MONTHS = 5;
-export const STATUSES = ['Cleared to ship', 'Needs correction', 'In progress', 'Completed'];
-export const FILE_KINDS = ['DGD', 'Invoice', 'Photo'];
+export const FILE_TYPES = ['DGD', 'Report', 'Invoice', 'Photo', 'Other'];
+export const CLIENT_FILE_TYPES = ['DGD', 'Photo', 'Other'];
+export const SERVICES = ['class', 'dgd', 'pack', 'insp', 'emerg', 'consult', 'temp', 'dry'];
+export const DB_VERSION = 2;
 export const MAX_FILE_BYTES = 3 * 1024 * 1024; // uploads travel as base64 JSON and must stay under Vercel's 4.5 MB body limit
 export const SESSION_HOURS = 8;
 export const MAX_FAILS = 5;
