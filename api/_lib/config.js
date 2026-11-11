@@ -4,6 +4,16 @@ export const isProd = Boolean(process.env.VERCEL);
 // Never set this on the production site.
 export const DEMO = process.env.PORTAL_DEMO === '1';
 
+// Real storage: a Supabase database table for records and a private Supabase Storage bucket for files, both reached over
+// HTTPS from this server code only. Vercel's Supabase integration provides these two variables.
+// Without them the portal uses local files (development only).
+export const supabaseConfig = () => {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return url && key ? { url: url.replace(/\/+$/, ''), key } : null;
+};
+export const FILE_BUCKET = 'portal-files';
+
 export const RETENTION_MONTHS = 5;
 export const FILE_TYPES = ['DGD', 'Report', 'Invoice', 'Photo', 'Other'];
 export const CLIENT_FILE_TYPES = ['DGD', 'Photo', 'Other'];
