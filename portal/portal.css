@@ -434,11 +434,11 @@ select.mini { width: auto; padding: 5px 8px; font-size: 13px; }
 .callegend { display: flex; gap: 16px; padding: 6px 20px 8px; font-size: 12.5px; color: var(--muted); flex-wrap: wrap; } .callegend span { display: inline-flex; align-items: center; gap: 6px; } .callegend .cc { padding: 5px; }
 .own { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
 .own i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-size: 10px; font-weight: 700; }
-/* quick buttons float over the row on hover and take no space, so no column changes width */
-td.go { white-space: nowrap; position: relative; }
-.qa { display: inline-flex; gap: 6px; position: absolute; right: 74px; top: 50%; transform: translateY(-50%); padding: 4px 6px 4px 14px; background: var(--bg); opacity: 0; pointer-events: none; }
+/* quick buttons sit in their own space beside View, so they never cover another column */
+td.go { white-space: nowrap; text-align: right; min-width: 270px; }
+.qa { display: inline-flex; gap: 6px; margin-right: 12px; vertical-align: middle; opacity: 0; pointer-events: none; transition: opacity .12s; }
 tr.click:hover .qa, tr.click:focus-within .qa { opacity: 1; pointer-events: auto; }
-@media (hover: none) { .qa { position: static; transform: none; padding: 0; margin-right: 8px; background: none; opacity: 1; pointer-events: auto; } }
+@media (hover: none) { .qa { opacity: 1; pointer-events: auto; } }
 @media (max-width: 800px) { .ws-head { position: static; } .cd { min-height: 58px; padding: 4px; } .cc { font-size: 9px; padding: 1px 3px; } }
 
 .cd.today { background: var(--accent-soft); border-color: var(--orange); }
@@ -576,3 +576,7 @@ select:disabled { cursor: default; opacity: .6; }
   width: 12px; height: 6px; border: 0; transform: none; margin: 0 4px 0 6px; flex: 0 0 auto;
   background: linear-gradient(45deg, transparent 50%, currentColor 50%) 0 0 / 6px 6px no-repeat, linear-gradient(135deg, currentColor 50%, transparent 50%) 6px 0 / 6px 6px no-repeat;
 }
+
+/* route map: keep the captions readable over the dots */
+.mapcard::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 38px; background: linear-gradient(transparent, var(--map-bg) 80%); pointer-events: none; }
+.map-foot, .mlabel { z-index: 1; }

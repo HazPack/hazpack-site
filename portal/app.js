@@ -12,13 +12,30 @@
   function fmt(dt) { return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   function fmtS(dt) { return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
   var uid = 0; function nid(p) { return p + Date.now().toString(36) + (++uid); }
-  var LB = { rec: 'Job received', pack: 'Packed and photographed', insp: 'Inspection complete', dgd: 'Declaration signed, cleared to ship', inv: 'Invoice sent' };
+  var LB = { rec: 'Job received', rev: 'Documents reviewed', cls: 'Shipment classified', pack: 'Packed and photographed', temp: 'Temperature control set up', dry: 'Dry ice loaded and marked', insp: 'Inspection complete', dgdp: 'Declaration prepared', dgd: 'Declaration signed, cleared to ship', consult: 'Consultation delivered', emerg: 'Emergency support provided', inv: 'Invoice sent' };
   /* services as named on the HazPack website's Services page */
   var SVC = { class: 'DG classification', dgd: 'Documentation & DGD', pack: 'Packaging & labeling', insp: 'DG inspections', emerg: 'DG emergency support', consult: 'DG consulting', temp: 'Temperature control', dry: 'Dry ice services' };
   var SVC_HELP = { class: 'All 9 hazard classes, UN number, packing group, proper shipping name', dgd: 'Declarations and paperwork for air, ocean and ground', pack: 'UN-certified packaging, marking, labeling and placarding', insp: 'Pre-shipment inspections, repackaging and relabeling', emerg: 'Urgent help with a last-minute shipment or compliance problem', consult: 'Ongoing guidance for complex or restricted commodities', temp: 'Insulated packaging, coolants and transit planning', dry: 'Packaging, marking, labeling and paperwork for dry ice shipments' };
+  /* Every job starts the same way, then gets a step for each service chosen, and ends with the invoice. */
   function stepsFor(svc) {
     var has = function (k) { return svc.indexOf(k) > -1; };
-    var s = [LB.rec]; if (has('pack') || has('temp') || has('dry')) s.push(LB.pack); if (has('insp')) s.push(LB.insp); if (has('dgd') || has('dry')) s.push(LB.dgd); s.push(LB.inv); return s;
+    var s = [LB.rec, LB.rev];
+    if (has('class')) s.push(LB.cls);
+    if (has('pack') || has('temp') || has('dry')) s.push(LB.pack);
+    if (has('temp')) s.push(LB.temp);
+    if (has('dry')) s.push(LB.dry);
+    if (has('insp')) s.push(LB.insp);
+    if (has('dgd') || has('dry')) { s.push(LB.dgdp); s.push(LB.dgd); }
+    if (has('consult')) s.push(LB.consult);
+    if (has('emerg')) s.push(LB.emerg);
+    s.push(LB.inv); return s;
+  }
+  /* Jobs opened before these steps existed get them added, keeping everything already done. */
+  function upgradeSteps(j) {
+    if (!j.svc || j.pending || j.done >= j.steps.length) return;
+    var ns = stepsFor(j.svc); if (ns.join('|') === j.steps.join('|')) return;
+    var last = -1; j.steps.slice(0, j.done).forEach(function (l) { last = Math.max(last, ns.indexOf(l)); });
+    j.steps = ns; j.done = Math.max(1, last + 1);
   }
   function mk(o) {
     o.svc = o.svc || ['pack', 'insp', 'dgd']; o.steps = stepsFor(o.svc); o.ev = o.ev || [];
@@ -99,7 +116,7 @@
     if (!routes.length) return '<div class="mapcard empty"><span>' + (opt.empty || 'The route appears here once airports are added or a declaration is uploaded.') + '</span></div>';
     var minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
     routes.forEach(function (r) { r.P.forEach(function (q) { minx = Math.min(minx, q[0]); maxx = Math.max(maxx, q[0]); miny = Math.min(miny, q[1]); maxy = Math.max(maxy, q[1]); }); });
-    var AR = 2.1, w = Math.max((maxx - minx) * 1.5, (maxy - miny) * AR * 1.7, 150) * 1.2; w = Math.min(w, 900);
+    var AR = opt.ar || 2.1, w = Math.max((maxx - minx) * 1.5, (maxy - miny) * AR * 1.7, 150) * 1.2; w = Math.min(w, 900);
     var h = w / AR, cx = (minx + maxx) / 2, cy = (miny + maxy) / 2, vx = cx - w / 2, vy = cy - h / 2;
     if (h < MAP_H + 30) vy = Math.max(-15, Math.min(MAP_H + 15 - h, vy)); else vy = (MAP_H - h) / 2;
     var u = w / 720, svg = '<svg class="map" viewBox="' + vx.toFixed(1) + ' ' + vy.toFixed(1) + ' ' + w.toFixed(1) + ' ' + h.toFixed(1) + '" preserveAspectRatio="xMidYMid slice" role="img" aria-label="' + esc(opt.label || 'Route map') + '">';
@@ -162,6 +179,7 @@
     var keepOrg = S.org && S.org.id, keepRep = S.rep && S.rep.id;
     ORGS = {}; (data.orgs || [data.org]).forEach(function (o) { reviveOrg(o); ORGS[o.id] = o; REV[o.id] = o.rev; });
     DOCS = data.docs || [];
+    Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(upgradeSteps); });
     if (data.tariff && data.tariff.length) TARIFF = data.tariff;
     if (data.me) ME = data.me;
     var ids = Object.keys(ORGS).sort(function (a, b) { return ORGS[a].name.localeCompare(ORGS[b].name); });
@@ -443,7 +461,7 @@
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     return '<div style="display:grid;gap:14px"><button type="button" class="btn ghost sm back-m" data-act="backList">&larr; All jobs</button>' +
       '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + j.id + '</h2><div class="muted">' + esc(j.item) + '</div></div>' + pill(j) + '</div>' + sb +
-      mapHtml([j], { labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
+      mapHtml([j], { ar: 4, labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
       tabsCard + '</div>';
   }
   var FOLDER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
@@ -1412,7 +1430,14 @@
   function repName2(o, id) { var r = repOf2(o, id); return r ? r.name : 'Former member'; }
 
   var STEP_HELP = {};
-  STEP_HELP[LB.rec] = ['HazPack opened the job and reviewed the request.', null];
+  STEP_HELP[LB.rec] = ['HazPack opened the job.', null];
+  STEP_HELP[LB.rev] = ['HazPack read the request, the declaration and the safety data.', null];
+  STEP_HELP[LB.cls] = ['UN number, hazard class and packing group confirmed.', null];
+  STEP_HELP[LB.temp] = ['Temperature control prepared for the shipment.', null];
+  STEP_HELP[LB.dry] = ['Dry ice loaded and the package marked.', null];
+  STEP_HELP[LB.dgdp] = ['Declaration drafted and sent for checking.', null];
+  STEP_HELP[LB.consult] = ['Advice given to the client.', null];
+  STEP_HELP[LB.emerg] = ['Emergency support provided.', null];
   STEP_HELP[LB.pack] = ['Packaging done and photos added to the job.', ['Upload photos', 'Photo']];
   STEP_HELP[LB.insp] = ['Inspection finished and the report added.', ['Upload report', 'Report']];
   STEP_HELP[LB.dgd] = ['Declaration signed. The shipment is cleared to ship.', ['Upload DGD', 'DGD']];

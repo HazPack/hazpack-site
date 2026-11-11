@@ -156,13 +156,19 @@ async function storeUpload(org, { jobId, type, name, data, note, by, step }) {
 }
 
 // ---- helpers for jobs ----
-const LB = { rec: 'Job received', pack: 'Packed and photographed', insp: 'Inspection complete', dgd: 'Declaration signed, cleared to ship', inv: 'Invoice sent' };
+const LB = { rec: 'Job received', rev: 'Documents reviewed', cls: 'Shipment classified', pack: 'Packed and photographed', temp: 'Temperature control set up', dry: 'Dry ice loaded and marked', insp: 'Inspection complete', dgdp: 'Declaration prepared', dgd: 'Declaration signed, cleared to ship', consult: 'Consultation delivered', emerg: 'Emergency support provided', inv: 'Invoice sent' };
+// Every job starts the same way, then gets a step for each service chosen, and ends with the invoice.
 function stepsFor(svc) {
   const has = (k) => svc.includes(k);
-  const s = [LB.rec];
+  const s = [LB.rec, LB.rev];
+  if (has('class')) s.push(LB.cls);
   if (has('pack') || has('temp') || has('dry')) s.push(LB.pack);
+  if (has('temp')) s.push(LB.temp);
+  if (has('dry')) s.push(LB.dry);
   if (has('insp')) s.push(LB.insp);
-  if (has('dgd') || has('dry')) s.push(LB.dgd);
+  if (has('dgd') || has('dry')) { s.push(LB.dgdp); s.push(LB.dgd); }
+  if (has('consult')) s.push(LB.consult);
+  if (has('emerg')) s.push(LB.emerg);
   s.push(LB.inv);
   return s;
 }

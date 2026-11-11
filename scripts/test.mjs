@@ -145,7 +145,7 @@ try {
   const rq = await act(D.c, { action: 'requestJob', svc: ['dgd', 'insp'], item: 'Test aerosols', un: 'un1950', cls: '2.1', mode: 'Ground', from: 'LAX', to: 'PHX', ref: 'PO-1', req: '2026-12-01' });
   check('request a job', rq.status === 200 && /^HP-\d{4}-\d{3}$/.test(rq.data.jobId));
   const newJob = rq.data.state.org.jobs.find((j) => j.id === rq.data.jobId);
-  check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 4);
+  check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 6);
   check('request without a service refused', (await act(D.c, { action: 'requestJob', svc: ['bogus'] })).status === 400);
   const up = (type, bytes, name = 'doc', extra = {}) => act(D.c, { action: 'uploadFile', jobId: rq.data.jobId, type, name, data: b64(bytes), ...extra });
   const u1 = await up('DGD', PDF, 'My DGD.pdf', { quiet: true });
