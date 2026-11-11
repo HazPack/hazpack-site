@@ -41,7 +41,7 @@ marked "sample" on screen. They exist only locally (the `data/` folder is not co
    `PORTAL_STAFF_KEY` (the staff password), `CRON_SECRET` (a long random string).
 3. **Uploads** go through the function as base64 and are limited to 3 MB. Switch to direct-to-storage uploads if bigger photos are needed.
 4. **Content Security Policy.** The portal's inline styles need `style-src 'unsafe-inline'` (scripts stay `'self'` only). Review once before launch.
-5. **Add the "Client Portal" link** to the site menu only when everything above is done.
+5. **The "Client Portal" button is in the site menu** (between Resources and Request a Quote, on every page). Merging this branch to `main` makes it live, so only merge when everything above is done.
 6. Bank numbers on invoices are placeholders ("Added when live"). Put the real ones in before sending real invoices.
 7. Quote and invoice PDFs are page images (text is not selectable). Replace with real text PDFs before launch.
 8. Confirm the retention rule (each record is kept 5 months from when it was created) and who should see the staff page.
