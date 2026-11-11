@@ -54,6 +54,10 @@
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function initials(n) { return n.split(' ').map(function (p) { return p[0]; }).slice(0, 2).join('').toUpperCase(); }
+  /* Clients see their own reference number (their PO or order number) wherever a job is named. HazPack keeps the HP number. */
+  function jn(j) { return (!staff() && j && j.ref) ? j.ref : (j ? j.id : ''); }
+  function jnId(id) { var j = S.org && id ? S.org.jobs.filter(function (x) { return x.id === id; })[0] : null; return j ? jn(j) : id; }
+  function clientText(t) { return staff() ? String(t) : String(t).replace(/HP-\d{4}-\d{3}/g, function (m) { return jnId(m); }); }
   function pt(code) { return code ? AP[code] : null; }
   function getJob(id) { return S.org.jobs.filter(function (j) { return j.id === id; })[0]; }
   function repOf(id) { return S.org.reps.filter(function (r) { return r.id === id; })[0]; }
@@ -355,14 +359,14 @@
     var ids = vis().map(function (j) { return j.id; });
     var list = S.org.notifs.filter(function (n) { return n.to === 'client' && nvis(n, ids); }).sort(function (a, b) { return b.date - a.date; });
     return '<div class="npanel" role="dialog" aria-label="Notifications"><header><b>Notifications</b><button type="button" class="linkbtn" data-act="readAll">Mark all read</button></header><ul>' +
-      (list.length ? list.map(function (n) { return '<li class="' + (n.read[S.rep.id] ? '' : 'unread') + '"><button type="button" data-act="openNotif" data-id="' + n.id + '"><span>' + esc(n.text) + '</span><small class="mono">' + esc(n.job) + ' · ' + fmt(n.date) + '</small></button></li>'; }).join('') : '<li style="padding:16px" class="muted">Nothing new.</li>') + '</ul></div>';
+      (list.length ? list.map(function (n) { return '<li class="' + (n.read[S.rep.id] ? '' : 'unread') + '"><button type="button" data-act="openNotif" data-id="' + n.id + '"><span>' + esc(clientText(n.text)) + '</span><small class="mono">' + esc(jnId(n.job)) + ' · ' + fmt(n.date) + '</small></button></li>'; }).join('') : '<li style="padding:16px" class="muted">Nothing new.</li>') + '</ul></div>';
   }
 
   /* ---------- views ---------- */
   function showWho() { return staff() || S.rep.admin; }
   function jobTable(list) {
-    return '<div class="tbl-wrap"><table><thead><tr><th>Job</th><th>Contents</th><th>UN no.</th><th>Route</th>' + (showWho() ? '<th>Requested by</th>' : '') + '<th>Status</th></tr></thead><tbody>' + list.map(function (j) {
-      return '<tr class="click" data-act="job" data-id="' + j.id + '"><td class="mono"><b>' + j.id + '</b></td><td>' + esc(j.item) + '</td><td><span class="un">' + j.un + '</span></td><td class="mono">' + (routeOf(j) ? j.from + ' → ' + j.to : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—') + '</td>' + (showWho() ? '<td>' + esc(repName(j.rep)) + '</td>' : '') + '<td>' + pill(j) + '</td></tr>';
+    return '<div class="tbl-wrap"><table><thead><tr><th>' + (staff() ? 'Job' : 'Reference') + '</th><th>Contents</th><th>UN no.</th><th>Route</th>' + (showWho() ? '<th>Requested by</th>' : '') + '<th>Status</th></tr></thead><tbody>' + list.map(function (j) {
+      return '<tr class="click" data-act="job" data-id="' + j.id + '"><td class="mono"><b>' + esc(jn(j)) + '</b></td><td>' + esc(j.item) + '</td><td><span class="un">' + j.un + '</span></td><td class="mono">' + (routeOf(j) ? j.from + ' → ' + j.to : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—') + '</td>' + (showWho() ? '<td>' + esc(repName(j.rep)) + '</td>' : '') + '<td>' + pill(j) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function actions(f) {
@@ -377,7 +381,7 @@
   }
   function fileRow(f, showJob) {
     var t = ftype(f.type);
-    return '<li><div class="ico ' + t[1] + '">' + t[0] + '</div><div class="t"><b>' + esc(f.name) + '</b><span>' + (showJob ? '<span class="mono">' + f.job + '</span> · ' : '') + TYPE_LABEL[f.type] + ' · ' + fmt(f.date) + ' · ' + esc(f.by) + (f.note ? ' · ' + esc(f.note) : '') + '</span></div>' + actions(f) + '</li>';
+    return '<li><div class="ico ' + t[1] + '">' + t[0] + '</div><div class="t"><b>' + esc(f.name) + '</b><span>' + (showJob ? '<span class="mono">' + esc(jnId(f.job)) + '</span> · ' : '') + TYPE_LABEL[f.type] + ' · ' + fmt(f.date) + ' · ' + esc(f.by) + (f.note ? ' · ' + esc(f.note) : '') + '</span></div>' + actions(f) + '</li>';
   }
   function dashboard() {
     if (!staff() && S.dmap) return clientMapView();
@@ -396,11 +400,11 @@
       looseQuotesCard() + '<div class="card"><h2>Routes</h2><div class="pad">' + mapHtml(jobs.filter(isOpen), { label: 'Routes for open jobs', empty: 'Routes for open jobs appear here.', foot: ['Open jobs', 'Airports read from each declaration'] }) + '</div></div>' +
       '<div class="card"><h2>Jobs</h2>' + (jobs.length ? jobTable(jobs.slice(0, 5)) : emptyS('No jobs yet', 'Start a job request and it appears here.', !staff() ? '<button type="button" class="btn sm" data-act="request">New job request</button>' : '')) + '</div>' +
       '<div class="two"><div class="card"><h2>Latest files</h2><ul class="list">' + (recentFiles.length ? recentFiles.map(fileRowCompact).join('') : '<li class="muted">No files yet.</li>') + '</ul></div>' +
-      '<div class="card"><h2>Recent activity</h2><ul class="list">' + (feed.length ? feed.map(function (n) { return '<li><div class="t"><b style="font-weight:500">' + esc(n.text) + '</b><span class="mono">' + n.job + ' · ' + fmt(n.date) + '</span></div></li>'; }).join('') : '<li class="muted">No activity yet.</li>') + '</ul></div></div>';
+      '<div class="card"><h2>Recent activity</h2><ul class="list">' + (feed.length ? feed.map(function (n) { return '<li><div class="t"><b style="font-weight:500">' + esc(clientText(n.text)) + '</b><span class="mono">' + esc(jnId(n.job)) + ' · ' + fmt(n.date) + '</span></div></li>'; }).join('') : '<li class="muted">No activity yet.</li>') + '</ul></div></div>';
   }
   function jobCard(j) {
     var a = pt(j.from), b = pt(j.to), ok = routeOf(j);
-    return '<button type="button" class="jcard" data-act="job" data-id="' + j.id + '"' + (S.job === j.id ? ' aria-current="true"' : '') + '><div class="r1"><b>' + j.id + '</b>' + pill(j) + '</div>' +
+    return '<button type="button" class="jcard" data-act="job" data-id="' + j.id + '"' + (S.job === j.id ? ' aria-current="true"' : '') + '><div class="r1"><b>' + esc(jn(j)) + '</b>' + pill(j) + '</div>' +
       (ok ? '<div class="rt"><span class="code">' + a.code + '</span><span class="ln">' + (j.mode === 'Air' ? '<svg viewBox="-13 -11 26 22" aria-hidden="true"><path d="' + PLANE + '"/></svg>' : '') + '</span><span class="code">' + b.code + '</span></div><div class="cities"><span>' + esc(a.city) + '</span><span>' + esc(b.city) + '</span></div>' : '<div class="sub">' + (j.toText ? 'To ' + esc(j.toText) + ' (not on the map yet)' : 'Route not set yet') + '</div>') +
       '<div class="sub">' + esc(j.item) + '</div><div class="sub">' + j.mode + ' · Opened ' + fmtS(j.ev[0][0]) + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : '') + (showWho() ? ' · ' + esc(repName(j.rep)) : '') + '</div></button>';
   }
@@ -458,8 +462,8 @@
     if (staff()) return staffWorkspace(j, tabsCard);
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     return '<div style="display:grid;gap:14px"><button type="button" class="btn ghost sm back-m" data-act="backList">&larr; All jobs</button>' +
-      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + j.id + '</h2><div class="muted">' + esc(j.item) + '</div></div>' + pill(j) + '</div>' + sb +
-      mapHtml([j], { ar: 4, labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
+      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + esc(jn(j)) + '</h2><div class="muted">' + esc(j.item) + (j.ref ? ' · HazPack job <span class="mono">' + j.id + '</span>' : '') + '</div></div>' + pill(j) + '</div>' + sb +
+      mapHtml([j], { labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
       tabsCard + '</div>';
   }
   var FOLDER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
@@ -470,7 +474,7 @@
     var html = folders.map(function (p, i) {
       var j = p[0], fl = p[1], open = allOpen || (S.openF[j.id] !== undefined ? S.openF[j.id] : i === 0);
       return '<section class="folder' + (open ? ' open' : '') + '"><button type="button" class="fhead" data-act="folder" data-id="' + j.id + '" aria-expanded="' + open + '">' + FOLDER_SVG +
-        '<span class="ft"><b class="mono">' + j.id + '</b><span>' + esc(j.item) + '</span></span><span class="fmeta">' + pill(j) + '<span class="muted">' + fl.length + (fl.length === 1 ? ' file' : ' files') + ' · ' + fmtS(fl[0].date) + '</span></span><span class="chev" aria-hidden="true"></span></button>' +
+        '<span class="ft"><b class="mono">' + esc(jn(j)) + '</b><span>' + esc(j.item) + '</span></span><span class="fmeta">' + pill(j) + '<span class="muted">' + fl.length + (fl.length === 1 ? ' file' : ' files') + ' · ' + fmtS(fl[0].date) + '</span></span><span class="chev" aria-hidden="true"></span></button>' +
         (open ? '<ul class="list">' + fl.map(function (f) { return fileRow(f, false); }).join('') + '</ul>' : '') + '</section>';
     }).join('');
     return '<div class="tools"><select id="ff" aria-label="Filter by type"><option value="all">All file types</option>' + Object.keys(TYPE_LABEL).map(function (k) { return '<option value="' + k + '"' + (S.ff === k ? ' selected' : '') + '>' + TYPE_LABEL[k] + '</option>'; }).join('') + '</select>' +
@@ -624,7 +628,7 @@
   /* ---------- upload ---------- */
   function uploadModal(jobId, type, step) {
     var o = S.org, st = staff(), jobs = vis();
-    var opts = jobs.map(function (j) { return '<option value="' + j.id + '"' + (jobId === j.id ? ' selected' : '') + '>' + j.id + ' · ' + esc(j.item) + '</option>'; }).join('');
+    var opts = jobs.map(function (j) { return '<option value="' + j.id + '"' + (jobId === j.id ? ' selected' : '') + '>' + esc(jn(j)) + ' · ' + esc(j.item) + '</option>'; }).join('');
     if (!jobs.length) { toast('There are no jobs to attach a file to yet.'); return; }
     var types = Object.keys(TYPE_LABEL).filter(function (k) { return st || (k !== 'Invoice' && k !== 'Report'); }).map(function (k) { return '<option value="' + k + '"' + (type === k ? ' selected' : '') + '>' + TYPE_LABEL[k] + '</option>'; }).join('');
     openModal('<form class="modal" id="upForm" role="dialog" aria-modal="true" aria-label="Upload a file"><h2>' + (st ? 'Upload a file for ' + esc(o.name) : 'Upload a file to HazPack') + '</h2>' +
@@ -748,7 +752,7 @@
         sendFiles(res.jobId, list, true).then(function () {
         var j = getJob(res.jobId);
         S.view = 'jobs'; S.job = j.id; S.jobTab = 'overview'; S.f = 'all'; S.q = ''; S.fp = 'all'; S.mobileDetail = true; render();
-        openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Request submitted"><h2>Request submitted</h2><p style="margin:0">Your request is job <b class="mono">' + j.id + '</b>. HazPack will review it and open the job. You can follow it under Jobs.</p>' +
+        openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Request submitted"><h2>Request submitted</h2><p style="margin:0">Your request is <b class="mono">' + esc(jn(j)) + '</b>. HazPack will review it and open the job. You can follow it under Jobs.</p>' +
           mailBox('HazPack client portal', esc(FROM_EMAIL), 'New job request ' + j.id + ' from ' + S.org.name, esc(S.rep.name) + ' requested: ' + svc.map(function (k) { return SVC[k]; }).join(', ') + '. Reference ' + esc(j.ref) + '. DGD attached: ' + esc(dgd.name) + '.') +
           mailBox(HP_FROM, esc(S.rep.name) + ' &lt;' + esc(S.rep.email) + '&gt;', 'We received your request ' + j.id, 'Thanks. HazPack received your job request and will open the job shortly. You can follow it in the client portal.') + '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
         });
@@ -1250,7 +1254,7 @@
     list.forEach(function (x) { var t = docTotal(x); if (x.status === 'Paid') paid += t; else { out += t; if (isOverdue(x)) od++; } });
     var rows = list.map(function (x) {
       var f = S.org.files.filter(function (y) { return y.id === x.fileId; })[0], st = x.status === 'Paid' ? ['Paid', 'ok'] : isOverdue(x) ? ['Overdue', 'bad'] : ['Due', 'warn'];
-      return '<tr><td class="mono"><b>' + esc(x.docNum) + '</b></td><td class="mono">' + esc(x.jobId) + '</td><td>' + mdy(x.date) + '</td><td>' + money(docTotal(x)) + '</td><td>' + mdy(dueOf(x)) + '</td><td><span class="pill ' + st[1] + '">' + st[0] + '</span></td><td>' + (f ? actions(f) : '') + '</td></tr>';
+      return '<tr><td class="mono"><b>' + esc(x.docNum) + '</b></td><td class="mono">' + esc(jnId(x.jobId)) + '</td><td>' + mdy(x.date) + '</td><td>' + money(docTotal(x)) + '</td><td>' + mdy(dueOf(x)) + '</td><td><span class="pill ' + st[1] + '">' + st[0] + '</span></td><td>' + (f ? actions(f) : '') + '</td></tr>';
     }).join('');
     return '<div class="stats"><div class="card stat' + (od ? ' attn' : '') + '"><span class="k">Outstanding</span><span class="v">' + money(out) + '</span><span class="s">' + (od ? od + ' past the due date' : 'nothing past due') + '</span></div><div class="card stat"><span class="k">Paid</span><span class="v">' + money(paid) + '</span><span class="s">marked paid by HazPack</span></div><div class="card stat"><span class="k">Invoices</span><span class="v">' + list.length + '</span><span class="s">' + (showWho() ? 'across your team' : 'on your jobs') + '</span></div></div>' +
       '<div class="card">' + (list.length ? '<div class="tbl-wrap"><table><thead><tr><th>Invoice</th><th>Job</th><th>Date</th><th>Amount</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' : emptyS('No invoices yet', 'Invoices HazPack sends for your jobs appear here with the amount and due date.', '')) + '</div>';
@@ -1342,7 +1346,7 @@
   function quoteModal(fileId, accept) {
     var f = S.org.files.filter(function (y) { return y.id === fileId; })[0], q = quoteDoc(f); if (!q) return;
     openModal('<form class="modal" id="qForm" data-id="' + f.id + '" data-accept="' + (accept ? '1' : '0') + '" role="dialog" aria-modal="true" aria-label="' + (accept ? 'Accept quote' : 'Decline quote') + '"><h2>' + (accept ? 'Accept' : 'Decline') + ' quote ' + esc(q.docNum) + '</h2>' +
-      '<p style="margin:0">Total <b>' + money(docTotal(q)) + '</b>' + (q.jobId ? ' for job <span class="mono">' + esc(q.jobId) + '</span>' : '') + '. ' + (accept ? 'Accepting tells HazPack to go ahead with the work in this quote at these rates.' + (q.jobId ? '' : ' It also opens a new job request, and you can then add your declaration to it.') : 'Declining tells HazPack not to go ahead. You can add a reason so they can offer a different quote.') + '</p>' +
+      '<p style="margin:0">Total <b>' + money(docTotal(q)) + '</b>' + (q.jobId ? ' for job <span class="mono">' + esc(jnId(q.jobId)) + '</span>' : '') + '. ' + (accept ? 'Accepting tells HazPack to go ahead with the work in this quote at these rates.' + (q.jobId ? '' : ' It also opens a new job request, and you can then add your declaration to it.') : 'Declining tells HazPack not to go ahead. You can add a reason so they can offer a different quote.') + '</p>' +
       (accept ? '<label class="f" for="qName">Type your full name to accept<input id="qName" type="text" required autocomplete="off" placeholder="' + esc(S.rep.name) + '"></label>' : '<label class="f" for="qWhy">Reason (optional)<textarea id="qWhy" rows="3" placeholder="For example: the quantity is wrong, or please quote again with fewer pieces"></textarea></label>') +
       '<div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="submit" class="btn">' + (accept ? 'Accept quote' : 'Decline quote') + '</button></div></form>');
   }
@@ -1487,7 +1491,7 @@
     var accept = j.pending ? '<div class="alert" style="border-color:var(--info);background:var(--info-soft)"><b style="color:var(--info)">New request.</b> Check the details below, then accept it to open the job and start the first step.</div>' : '';
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     var mapbar = '<div class="mapbar"><span><b>Route</b> ' + (ok ? esc(a.city) + ' to ' + esc(b.city) + ' · ' + j.mode : j.toText ? 'to ' + esc(j.toText) : 'not set yet') + '</span><button type="button" class="linkbtn" data-act="mapToggle">' + (S.mapHide ? 'Show map' : 'Hide map') + '</button></div>';
-    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
+    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { ar: 4, labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
       boardHtml(j) + tabsCard + drawerHtml(j) + '</div>';
   }
 
@@ -1731,7 +1735,7 @@
     var types = function (files) { return cmTypeCounts(files).map(function (t) { return row(esc(t[0]), String(t[1])); }).join(''); };
     if (!it && st.g.k === 'files' && st.folder) {
       var fd = st.folder, fj = fd.j, nf = fd.files.length;
-      return head('Job files', fd.job ? esc(fd.job) : 'No job yet', !!fd.job, fj ? esc(fj.item) : fd.job ? '' : 'Files sent before a job was opened.', fj ? '<span class="pill ' + jobStatus(fj)[1] + '">' + jobStatus(fj)[0] + '</span>' : '') +
+      return head('Job files', fd.job ? esc(jnId(fd.job)) : 'No job yet', !!fd.job, fj ? esc(fj.item) : fd.job ? '' : 'Files sent before a job was opened.', fj ? '<span class="pill ' + jobStatus(fj)[1] + '">' + jobStatus(fj)[0] + '</span>' : '') +
         '<div class="cm-sb">' + row('Files', String(nf)) + row('Latest', fmt(fd.files[0].date)) + row('First', fmt(fd.files[nf - 1].date)) + '<div class="cm-sec"><h4>By type</h4>' + types(fd.files) + '</div></div>' +
         foot((fd.job ? '<button type="button" class="btn sm" data-act="cmZip" data-org="' + o.id + '" data-id="' + esc(fd.job) + '">Download all (zip)</button>' + jobBtn(fd.job, false) : '') + '<button type="button" class="btn sm ghost" data-act="cmFolderUp">Back to all jobs</button>');
     }
@@ -1764,11 +1768,11 @@
     }
     if (it.k === 'file') {
       var f = it.f, canView = /\.(pdf|png|jpe?g|gif|webp)$/i.test(f.name);
-      body = row('Type', TYPE_LABEL[f.type]) + row('Job', f.job ? '<span class="mono">' + esc(f.job) + '</span>' : '<span class="muted">No job yet</span>') + row('Added', fmt(f.date)) + row('Added by', esc(f.by)) + row('Size', esc(f.size)) + (f.note ? row('Note', esc(f.note)) : '');
+      body = row('Type', TYPE_LABEL[f.type]) + row('Job', f.job ? '<span class="mono">' + esc(jnId(f.job)) + '</span>' : '<span class="muted">No job yet</span>') + row('Added', fmt(f.date)) + row('Added by', esc(f.by)) + row('Size', esc(f.size)) + (f.note ? row('Note', esc(f.note)) : '');
       return head('File', esc(f.name), true, '', '') + '<div class="cm-sb">' + body + '</div>' + foot((canView ? '<button type="button" class="btn sm" data-act="view" data-id="' + f.id + '">View</button>' : '') + '<button type="button" class="btn sm ghost" data-act="dl" data-id="' + f.id + '">Download</button>' + jobBtn(f.job, false));
     }
     var x = it.x, inv = it.k === 'inv', stt = inv ? (x.status === 'Paid' ? ['Paid', 'ok'] : isOverdue(x) ? ['Overdue', 'bad'] : ['Due', 'warn']) : ['Waiting for approval', 'warn'];
-    body = row('Amount', money(docTotal(x))) + row('Date', mdy(x.date)) + (inv ? row('Due', mdy(dueOf(x))) + row('Paid', x.datePaid ? mdy(x.datePaid) : '<span class="muted">Not yet</span>') : '') + row('Job', x.jobId ? '<span class="mono">' + esc(x.jobId) + '</span>' : '<span class="muted">No job yet</span>') +
+    body = row('Amount', money(docTotal(x))) + row('Date', mdy(x.date)) + (inv ? row('Due', mdy(dueOf(x))) + row('Paid', x.datePaid ? mdy(x.datePaid) : '<span class="muted">Not yet</span>') : '') + row('Job', x.jobId ? '<span class="mono">' + esc(jnId(x.jobId)) + '</span>' : '<span class="muted">No job yet</span>') +
       (cl ? '' : row('Bill to', esc(x.name || x.company || '—')) + row('Client copy', x.fileId ? 'Sent' : 'Not sent'));
     var btns;
     if (!cl) btns = '<button type="button" class="btn sm" data-act="docOpen" data-id="' + x.id + '">Open in Billing</button>' + jobBtn(x.jobId, false);
