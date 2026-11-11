@@ -9,6 +9,6 @@
     "test": "node scripts/test.mjs && node scripts/test-supabase.mjs"
   },
   "engines": {
-    "node": "22.x"
+    "node": "26.x"
   }
 }
