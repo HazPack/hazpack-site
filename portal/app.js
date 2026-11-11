@@ -55,9 +55,9 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function initials(n) { return n.split(' ').map(function (p) { return p[0]; }).slice(0, 2).join('').toUpperCase(); }
   /* Clients see their own reference number (their PO or order number) wherever a job is named. HazPack keeps the HP number. */
-  function jn(j) { return (!staff() && j && j.ref) ? j.ref : (j ? j.id : ''); }
-  function jnId(id) { var j = S.org && id ? S.org.jobs.filter(function (x) { return x.id === id; })[0] : null; return j ? jn(j) : id; }
-  function clientText(t) { return staff() ? String(t) : String(t).replace(/HP-\d{4}-\d{3}/g, function (m) { return jnId(m); }); }
+  function jn(j) { return j ? (j.ref || j.id) : ''; }
+  function jnId(id) { if (!id) return id; var j = S.org ? S.org.jobs.filter(function (x) { return x.id === id; })[0] : null; if (!j) Object.keys(ORGS).some(function (k) { j = ORGS[k].jobs.filter(function (x) { return x.id === id; })[0]; return !!j; }); return j ? jn(j) : id; }
+  function clientText(t) { return String(t).replace(/HP-\d{4}-\d{3}/g, function (m) { return jnId(m); }); }
   function pt(code) { return code ? AP[code] : null; }
   function getJob(id) { return S.org.jobs.filter(function (j) { return j.id === id; })[0]; }
   function repOf(id) { return S.org.reps.filter(function (r) { return r.id === id; })[0]; }
@@ -375,7 +375,7 @@
   /* Dashboard version: one line of details and two buttons that line up on the right in every row. */
   function fileRowCompact(f) {
     var t = ftype(f.type), q = quoteDoc(f), waiting = !staff() && q && q.type === 'Quote' && q.status === 'Open';
-    var meta = [f.job || 'No job yet', TYPE_LABEL[f.type], fmtS(f.date)].concat(f.note ? [f.note] : []).join(' · ');
+    var meta = [f.job ? jnId(f.job) : 'No job yet', TYPE_LABEL[f.type], fmtS(f.date)].concat(f.note ? [f.note] : []).join(' · ');
     var first = waiting && f.job ? '<button type="button" class="btn sm" data-act="job" data-id="' + esc(f.job) + '">Review quote</button>' : /\.(pdf|png|jpe?g|gif|webp)$/i.test(f.name) ? '<button type="button" class="btn ghost sm" data-act="view" data-id="' + f.id + '">View</button>' : '';
     return '<li class="frow"><div class="ico ' + t[1] + '">' + t[0] + '</div><div class="t"><b title="' + esc(f.name) + '">' + esc(f.name) + '</b><span title="' + esc(meta) + '">' + esc(meta) + '</span></div><span class="fa">' + first + '<button type="button" class="btn ghost sm" data-act="dl" data-id="' + f.id + '">Download</button></span></li>';
   }
@@ -447,7 +447,7 @@
         '<div><dt>Requested by</dt><dd>' + esc(repName(j.rep)) + '</dd></div><div><dt>Services</dt><dd>' + j.svc.map(function (k) { return SVC[k]; }).join(', ') + '</dd></div><div><dt>Required by</dt><dd>' + (j.req ? fmt(isoDate(j.req)) : 'Not set') + '</dd></div>' +
         '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl><div class="steps" aria-label="Job progress">' + stepNodes(j) + '</div>';
     } else if (t === 'timeline') {
-      var items = j.ev.map(function (e) { return '<li class="' + (/^Correction needed/.test(e[1]) ? 'warn' : '') + '"><div><b>' + esc(e[1]) + '</b><span>' + fmt(e[0]) + '</span></div></li>'; });
+      var items = j.ev.map(function (e) { return '<li class="' + (/^Correction needed/.test(e[1]) ? 'warn' : '') + '"><div><b>' + esc(clientText(e[1])) + '</b><span>' + fmt(e[0]) + '</span></div></li>'; });
       j.steps.forEach(function (n, i) { if (i >= j.done) items.push('<li class="todo"><div><b>' + esc(n) + '</b><span>Up next</span></div></li>'); });
       body = '<ul class="tl">' + items.join('') + '</ul>';
     } else if (t === 'msgs') body = msgsBody(j); else if (t === 'log' && staff()) body = logBody(j); else body = filesBody(j, files);
@@ -462,7 +462,7 @@
     if (staff()) return staffWorkspace(j, tabsCard);
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     return '<div style="display:grid;gap:14px"><button type="button" class="btn ghost sm back-m" data-act="backList">&larr; All jobs</button>' +
-      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + esc(jn(j)) + '</h2><div class="muted">' + esc(j.item) + (j.ref ? ' · HazPack job <span class="mono">' + j.id + '</span>' : '') + '</div></div>' + pill(j) + '</div>' + sb +
+      '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + esc(jn(j)) + '</h2><div class="muted">' + esc(j.item) + '' + '</div></div>' + pill(j) + '</div>' + sb +
       mapHtml([j], { labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
       tabsCard + '</div>';
   }
@@ -504,7 +504,7 @@
       }).join('') + '</tbody></table></div></div>' +
       '<form class="card pad" id="addOrg" style="display:grid;gap:12px"><h3 style="font-size:16px">Add a client company</h3><div class="form-row"><label class="f" for="on">Company name<input id="on" type="text" required></label><label class="f" for="oi">Organization ID<input id="oi" type="text" required placeholder="lowercase, no spaces"></label><label class="f" for="op">Starting password<input id="op" type="text" required></label></div>' +
       '<p class="muted" style="margin:0;font-size:13px">First admin for the company</p><div class="form-row"><label class="f" for="an">Name<input id="an" type="text" required></label><label class="f" for="ae">Email<input id="ae" type="email" required></label><label class="f" for="ap">4-digit PIN<input id="ap" type="text" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required></label></div><div><button type="submit" class="btn">Add company</button></div></form>' +
-      '<div class="card"><h2>Recent client activity</h2><ul class="list">' + (acts.length ? acts.slice(0, 6).map(function (a) { return '<li><div class="t"><b style="font-weight:500">' + esc(a[1].text) + '</b><span class="mono">' + esc(a[0].name) + ' · ' + fmt(a[1].date) + '</span></div></li>'; }).join('') : '<li class="muted">Nothing yet.</li>') + '</ul></div>';
+      '<div class="card"><h2>Recent client activity</h2><ul class="list">' + (acts.length ? acts.slice(0, 6).map(function (a) { return '<li><div class="t"><b style="font-weight:500">' + esc(clientText(a[1].text)) + '</b><span class="mono">' + esc(a[0].name) + ' · ' + fmt(a[1].date) + '</span></div></li>'; }).join('') : '<li class="muted">Nothing yet.</li>') + '</ul></div>';
   }
 
   function render() {
@@ -660,9 +660,9 @@
         '<div><button type="button" class="btn sm" data-act="saveRoute" data-job="' + job.id + '">Save route</button></div></div>';
     }
     var mail;
-    if (st) mail = mailBox(HP_FROM, peopleList(recipients(job)), 'New file on ' + job.id + ': ' + rec.name, 'HazPack added a file to job ' + job.id + ' for ' + esc(o.name) + ': ' + esc(rec.name) + ' (' + TYPE_LABEL[rec.type] + '). Sign in to the client portal to view and download it.');
-    else mail = mailBox('HazPack client portal', esc(FROM_EMAIL), 'Client upload on ' + job.id + ': ' + rec.name, esc(S.rep.name) + ' of ' + esc(o.name) + ' uploaded ' + esc(rec.name) + ' to job ' + job.id + '.');
-    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Upload complete"><h2>Uploaded to ' + job.id + '</h2><p class="muted" style="margin:0">' + esc(rec.name) + ' · ' + rec.size + '</p>' + route + mail + '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
+    if (st) mail = mailBox(HP_FROM, peopleList(recipients(job)), 'New file on ' + jn(job) + ': ' + rec.name, 'HazPack added a file to job ' + esc(jn(job)) + ' for ' + esc(o.name) + ': ' + esc(rec.name) + ' (' + TYPE_LABEL[rec.type] + '). Sign in to the client portal to view and download it.');
+    else mail = mailBox('HazPack client portal', esc(FROM_EMAIL), 'Client upload on ' + jn(job) + ': ' + rec.name, esc(S.rep.name) + ' of ' + esc(o.name) + ' uploaded ' + esc(rec.name) + ' to job ' + esc(jn(job)) + '.');
+    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Upload complete"><h2>Uploaded to ' + esc(jn(job)) + '</h2><p class="muted" style="margin:0">' + esc(rec.name) + ' · ' + rec.size + '</p>' + route + mail + '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
     S.job = job.id; render();
   }
 
@@ -753,7 +753,7 @@
         var j = getJob(res.jobId);
         S.view = 'jobs'; S.job = j.id; S.jobTab = 'overview'; S.f = 'all'; S.q = ''; S.fp = 'all'; S.mobileDetail = true; render();
         openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Request submitted"><h2>Request submitted</h2><p style="margin:0">Your request is <b class="mono">' + esc(jn(j)) + '</b>. HazPack will review it and open the job. You can follow it under Jobs.</p>' +
-          mailBox('HazPack client portal', esc(FROM_EMAIL), 'New job request ' + j.id + ' from ' + S.org.name, esc(S.rep.name) + ' requested: ' + svc.map(function (k) { return SVC[k]; }).join(', ') + '. Reference ' + esc(j.ref) + '. DGD attached: ' + esc(dgd.name) + '.') +
+          mailBox('HazPack client portal', esc(FROM_EMAIL), 'New job request ' + jn(j) + ' from ' + S.org.name, esc(S.rep.name) + ' requested: ' + svc.map(function (k) { return SVC[k]; }).join(', ') + '. Reference ' + esc(j.ref) + '. DGD attached: ' + esc(dgd.name) + '.') +
           mailBox(HP_FROM, esc(S.rep.name) + ' &lt;' + esc(S.rep.email) + '&gt;', 'We received your request ' + j.id, 'Thanks. HazPack received your job request and will open the job shortly. You can follow it in the client portal.') + '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
         });
         });
@@ -975,7 +975,7 @@
     billIds = list.map(function (x) { return x.id; }); var nSel = Object.keys(sel).length;
     var rows = list.map(function (x) {
       var t = docTotal(x);
-      return '<tr class="click' + (selMode && sel[x.id] ? ' sel' : '') + '" data-act="' + (selMode ? 'bulkRow' : 'docOpen') + '" data-id="' + x.id + '">' + (selMode ? '<td class="cb"><input type="checkbox" data-act="bulkOne" data-id="' + x.id + '"' + (sel[x.id] ? ' checked' : '') + ' aria-label="Select ' + esc(x.docNum) + '"></td>' : '') + '<td class="mono nw"><b>' + esc(x.docNum) + '</b>' + (x.decision ? '<br><span class="muted" style="font-size:12px;font-family:var(--font-sans)">' + x.decision.action + ' by ' + esc(x.decision.by) + ', ' + mdy(x.decision.when) + '</span>' : '') + '</td><td>' + x.type + '</td><td>' + mdy(x.date) + '</td><td class="nw">' + esc(docOrgName(x)) + '</td><td class="mono nw">' + esc(x.jobId || '—') + '</td><td>' + money(t) + '</td><td>' + statusSel(x) + '</td>' +
+      return '<tr class="click' + (selMode && sel[x.id] ? ' sel' : '') + '" data-act="' + (selMode ? 'bulkRow' : 'docOpen') + '" data-id="' + x.id + '">' + (selMode ? '<td class="cb"><input type="checkbox" data-act="bulkOne" data-id="' + x.id + '"' + (sel[x.id] ? ' checked' : '') + ' aria-label="Select ' + esc(x.docNum) + '"></td>' : '') + '<td class="mono nw"><b>' + esc(x.docNum) + '</b>' + (x.decision ? '<br><span class="muted" style="font-size:12px;font-family:var(--font-sans)">' + x.decision.action + ' by ' + esc(x.decision.by) + ', ' + mdy(x.decision.when) + '</span>' : '') + '</td><td>' + x.type + '</td><td>' + mdy(x.date) + '</td><td class="nw">' + esc(docOrgName(x)) + '</td><td class="mono nw">' + esc(jnId(x.jobId) || '—') + '</td><td>' + money(t) + '</td><td>' + statusSel(x) + '</td>' +
         '<td>' + (x.type === 'Invoice' ? mdy(dueOf(x)) : '—') + '</td><td>' + (x.datePaid ? mdy(x.datePaid) : '—') + '</td><td>' + (x.fileId ? '<span class="pill ok">Sent</span>' : '<span class="muted">Not sent</span>') + '</td>' +
         '<td class="go nw">' + (x.type === 'Quote' && x.status !== 'Declined' ? '<button type="button" class="linkbtn mk" data-act="docToInvoice" data-id="' + x.id + '">Make invoice</button>' : '') + '<span class="vw">Open &rsaquo;</span></td></tr>';
     }).join('');
@@ -994,7 +994,7 @@
     var e = ED, org = ORGS[e.orgId], inv = e.type === 'Invoice';
     var orgs = '<option value="">Other, type below</option>' + Object.keys(ORGS).map(function (k) { return '<option value="' + k + '"' + (e.orgId === k ? ' selected' : '') + '>' + esc(ORGS[k].name) + '</option>'; }).join('');
     var reps = org ? '<option value="">' + 'Choose' + '</option>' + org.reps.map(function (r) { return '<option value="' + r.id + '"' + (e.repId === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') : '<option value="">Choose a company first</option>';
-    var jobs = org ? '<option value="">No job yet</option>' + org.jobs.map(function (j) { return '<option value="' + j.id + '"' + (e.jobId === j.id ? ' selected' : '') + '>' + j.id + ' · ' + esc(j.item) + '</option>'; }).join('') : '<option value="">Choose a company first</option>';
+    var jobs = org ? '<option value="">No job yet</option>' + org.jobs.map(function (j) { return '<option value="' + j.id + '"' + (e.jobId === j.id ? ' selected' : '') + '>' + esc(jn(j)) + ' · ' + esc(j.item) + '</option>'; }).join('') : '<option value="">Choose a company first</option>';
     var mode = e.id ? '<span class="pill info">' + e.type + ' ' + esc(e.docNum) + '</span>' : '<div class="seg" role="group" aria-label="Document type"><button type="button" data-act="edMode" data-m="Quote" aria-pressed="' + !inv + '">Quote</button><button type="button" data-act="edMode" data-m="Invoice" aria-pressed="' + inv + '">Invoice</button></div>';
     return '<div class="card pad"><div class="edbar"><button type="button" class="btn ghost sm" data-act="docBack">&larr; Billing</button>' + mode + (e.id ? '<span style="flex:1"></span><button type="button" class="btn ghost sm dng" data-act="docDel" data-id="' + e.id + '">' + (armDel === e.id ? 'Click again to delete' : 'Delete this document') + '</button>' : '') + '</div>' +
       '<div class="edbar" style="margin-top:12px"><label class="f">Client company<select data-act="edOrg">' + orgs + '</select></label><label class="f">Contact<select data-act="edRep"' + (org ? '' : ' disabled') + '>' + reps + '</select></label><label class="f">Job<select data-act="edJob"' + (org ? '' : ' disabled') + '>' + jobs + '</select></label></div>' +
@@ -1047,8 +1047,8 @@
       notify(job ? job.id : '', ('HazPack ' + (again ? 'updated' : 'added') + ' ' + name + ' (' + rec.type.toLowerCase() + ')' + (job ? ' on ' + job.id : ' for ' + org.name) + (rec.type === 'Quote' ? '. It is waiting for your approval.' : '.')).replace(/\.\./g, '.'), 'client');
       var to = peopleList(job ? recipients(job) : org.reps.filter(function (r) { return r.notify && (r.admin || r.id === rec.repId); })); S.org = prev;
       render();
-      openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Sent to client"><h2>' + rec.type + ' sent to ' + esc(org.name) + '</h2><p class="muted" style="margin:0">' + esc(name) + ' ' + (job ? 'is now a file on job ' + job.id + '. People who can see the job have a portal notification.' : 'was sent to the company with no job yet. Company admins and the contact see it on their dashboard. Accepting it opens a new job request.') + (reopened ? ' The quote changed after it was answered, so it is open for approval again.' : '') + (cc ? ' The company accounts email is copied on the invoice email.' : '') + '</p>' +
-        mailBox(HP_FROM, to, rec.type + ' ' + rec.docNum + (job ? ' for ' + job.id : ''), 'HazPack added ' + (rec.type === 'Invoice' ? 'an invoice' : 'a quote') + (job ? ' to job ' + job.id : '') + ' for ' + esc(org.name) + ': ' + esc(name) + ' (' + fileNote(rec) + '). Sign in to the client portal to view and download it.', '', cc) +
+      openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Sent to client"><h2>' + rec.type + ' sent to ' + esc(org.name) + '</h2><p class="muted" style="margin:0">' + esc(name) + ' ' + (job ? 'is now a file on job ' + esc(jn(job)) + '. People who can see the job have a portal notification.' : 'was sent to the company with no job yet. Company admins and the contact see it on their dashboard. Accepting it opens a new job request.') + (reopened ? ' The quote changed after it was answered, so it is open for approval again.' : '') + (cc ? ' The company accounts email is copied on the invoice email.' : '') + '</p>' +
+        mailBox(HP_FROM, to, rec.type + ' ' + rec.docNum + (job ? ' for ' + jn(job) : ''), 'HazPack added ' + (rec.type === 'Invoice' ? 'an invoice' : 'a quote') + (job ? ' to job ' + esc(jn(job)) : '') + ' for ' + esc(org.name) + ': ' + esc(name) + ' (' + fileNote(rec) + '). Sign in to the client portal to view and download it.', '', cc) +
         '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
       });
     }, function () { toast('Could not make the PDF. Check your connection and try again.'); });
@@ -1073,7 +1073,7 @@
   function applyRates() { if (ED && !ED.id) ED.rows.forEach(function (r) { if (tRow(r.id)) r.rate = rateFor(ORGS[ED.orgId], r.id); }); }
   function csvOut() {
     var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
-    var rows = [['Doc #', 'Type', 'Date', 'Client', 'Job', 'BKG #', 'Amount', 'Status', 'Due', 'Date paid', 'Prepared by']].concat(DOCS.map(function (x) { return [x.docNum, x.type, mdy(x.date), docOrgName(x), x.jobId, x.bkg, docTotal(x).toFixed(2), x.status, x.type === 'Invoice' ? mdy(dueOf(x)) : '', mdy(x.datePaid), x.preparedBy]; }));
+    var rows = [['Doc #', 'Type', 'Date', 'Client', 'Job', 'BKG #', 'Amount', 'Status', 'Due', 'Date paid', 'Prepared by']].concat(DOCS.map(function (x) { return [x.docNum, x.type, mdy(x.date), docOrgName(x), jnId(x.jobId), x.bkg, docTotal(x).toFixed(2), x.status, x.type === 'Invoice' ? mdy(dueOf(x)) : '', mdy(x.datePaid), x.preparedBy]; }));
     download('HazPack_Billing_' + iso(TODAY) + '.csv', new Blob(['﻿' + rows.map(function (r) { return r.map(q).join(','); }).join('\n')], { type: 'text/csv;charset=utf-8' }));
   }
   function setStatus(x, st) {
@@ -1200,7 +1200,7 @@
   function logBody(j) {
     var items = j.log.map(function (l, i) { return [l, i]; }).sort(function (a, b) { return (b[0].date - a[0].date) || (b[1] - a[1]); });
     return '<p class="muted" style="margin:0;padding:12px 16px 0;font-size:13px">Staff only. Clients do not see this history.</p><ul class="list">' +
-      (items.length ? items.map(function (p) { return '<li><div class="t"><b style="font-weight:500">' + esc(p[0].text) + '</b><span>' + esc(p[0].who) + ' · ' + fmt(p[0].date) + '</span></div></li>'; }).join('') : '<li>' + emptyS('Nothing logged yet', 'Actions on this job appear here as they happen.', '') + '</li>') + '</ul>';
+      (items.length ? items.map(function (p) { return '<li><div class="t"><b style="font-weight:500">' + esc(clientText(p[0].text)) + '</b><span>' + esc(p[0].who) + ' · ' + fmt(p[0].date) + '</span></div></li>'; }).join('') : '<li>' + emptyS('Nothing logged yet', 'Actions on this job appear here as they happen.', '') + '</li>') + '</ul>';
   }
   function filesBody(j, files) {
     return (files.length ? '<div style="padding:12px 16px 0"><button type="button" class="btn ghost sm" data-act="zipJob" data-id="' + j.id + '">Download all files (zip)</button></div>' : '') +
@@ -1227,7 +1227,7 @@
         files.forEach(function (f, k) { var n = f.name; if (used[n]) { var c = ++used[n], i = n.lastIndexOf('.'); n = (i > 0 ? n.slice(0, i) : n) + ' (' + c + ')' + (i > 0 ? n.slice(i) : ''); } else used[n] = 1; z.file(n, blobs[k]); });
         return z.generateAsync({ type: 'blob' });
       });
-    }).then(function (blob) { download(id + '_files.zip', blob); }, function () { toast('Could not make the zip. Check your connection and try again.'); });
+    }).then(function (blob) { download(String(jnId(id)).replace(/[^a-zA-Z0-9_-]+/g, '_') + '_files.zip', blob); }, function () { toast('Could not make the zip. Check your connection and try again.'); });
   }
 
   /* ----- withdraw a request (client) ----- */
@@ -1293,7 +1293,7 @@
     var none = function (t) { return '<li>' + emptyS(t, '', '') + '</li>'; };
     var reqLi = n.req.map(function (p) {
       var o = p[0], j = p[1], r = repOf2(o, j.rep);
-      return li('<span class="mono">' + j.id + '</span> · ' + esc(o.name), esc(j.item) + ' · ' + j.mode + (routeOf(j) ? ' · ' + j.from + ' to ' + j.to : '') + (r ? ' · ' + esc(r.name) : '') + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : ''),
+      return li('<span class="mono">' + esc(jn(j)) + '</span> · ' + esc(o.name), esc(j.item) + ' · ' + j.mode + (routeOf(j) ? ' · ' + j.from + ' to ' + j.to : '') + (r ? ' · ' + esc(r.name) : '') + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : ''),
         '<button type="button" class="btn sm" data-act="acceptOrg" data-org="' + o.id + '" data-id="' + j.id + '">Accept</button><button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '">Open</button>');
     }).join('');
     var fixLi = n.fix.map(function (p) { return li('<span class="mono">' + p[1].id + '</span> · ' + esc(p[0].name), esc(p[1].fixNote || 'Needs a correction'), '<button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + p[0].id + '" data-job="' + p[1].id + '">Open</button>'); }).join('');
@@ -1302,7 +1302,7 @@
     var qLi = n.qs.map(function (x) { return docLi(x, ''); }).join('');
     var soonLi = n.soon.map(function (p) { var dd = daysTo(p[1].req); return li('<span class="mono">' + p[1].id + '</span> · ' + esc(p[0].name), esc(p[1].item) + ' · required by ' + fmt(isoDate(p[1].req)) + (dd < 0 ? ' (late)' : dd === 0 ? ' (today)' : ' (' + dd + (dd === 1 ? ' day' : ' days') + ')'), '<button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + p[0].id + '" data-job="' + p[1].id + '">Open</button>'); }).join('');
     var acts = []; Object.keys(ORGS).forEach(function (k) { ORGS[k].notifs.forEach(function (x) { if (x.to === 'staff') acts.push([ORGS[k], x]); }); }); acts.sort(function (a, b) { return b[1].date - a[1].date; });
-    var actLi = acts.slice(0, 5).map(function (a) { return li(esc(a[1].text), esc(a[0].name) + ' · ' + fmt(a[1].date), ''); }).join('');
+    var actLi = acts.slice(0, 5).map(function (a) { return li(esc(clientText(a[1].text)), esc(a[0].name) + ' · ' + fmt(a[1].date), ''); }).join('');
     var card = function (title, html, empty) { return '<div class="card"><h2>' + title + '</h2><ul class="list">' + (html || none(empty)) + '</ul></div>'; };
     var stat = function (k, v, s, cls) { return '<div class="card stat' + (cls || '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span><span class="s">' + s + '</span></div>'; };
     return '<section class="banner"><div><p class="eyebrow">HazPack staff</p><h2>Needs attention</h2><p>Across every client company, on ' + fmt(TODAY) + '.</p></div></section>' +
@@ -1366,7 +1366,7 @@
   }
   function quoteDone(fileId, accept, typed, why, made) {
     var f = findFile(fileId), q = quoteDoc(f), org = S.org; if (!q) return;
-    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Quote answered"><h2>Quote ' + (accept ? 'accepted' : 'declined') + '</h2><p class="muted" style="margin:0">HazPack has been told. ' + (accept ? (made ? 'A job request, ' + made.id + ', was opened for you. Add your declaration (DGD) to it so HazPack can prepare the shipment. ' : '') + 'They will go ahead with the work and invoice you when it is done.' : 'They can send you a different quote.') + '</p>' +
+    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Quote answered"><h2>Quote ' + (accept ? 'accepted' : 'declined') + '</h2><p class="muted" style="margin:0">HazPack has been told. ' + (accept ? (made ? 'A job request, ' + esc(jn(made)) + ', was opened for you. Add your declaration (DGD) to it so HazPack can prepare the shipment. ' : '') + 'They will go ahead with the work and invoice you when it is done.' : 'They can send you a different quote.') + '</p>' +
       mailBox('HazPack client portal', esc(FROM_EMAIL), 'Quote ' + q.docNum + ' ' + q.status.toLowerCase() + ' by ' + S.rep.name, esc(S.rep.name) + ' of ' + esc(org.name) + ' ' + q.status.toLowerCase() + ' quote ' + esc(q.docNum) + ' (' + money(docTotal(q)) + ')' + (f.job ? ' for job ' + esc(f.job) : '') + '.' + (made ? ' A job request, ' + esc(made.id) + ', was opened.' : '') + (accept ? ' Typed name: ' + esc(typed) + '.' : '') + (why ? ' Reason: ' + esc(why) : '')) +
       '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
   }
@@ -1429,7 +1429,7 @@
     var chips = [['all', 'All'], ['open', 'Open'], ['air', 'Air'], ['ground', 'Ground'], ['attn', 'Needs correction']].map(function (c) { return '<button type="button" class="chip" data-act="filter" data-f="' + c[0] + '" aria-pressed="' + (S.f === c[0]) + '">' + c[1] + '</button>'; }).join('');
     var rows = list.map(function (j) {
       var o = orgOfJob(j.id), s = jobStatus(j);
-      return '<tr class="click" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '"><td><b class="mono">' + j.id + '</b><br><span class="muted">' + esc(j.item) + '</span></td><td>' + esc(o.name) + '<br><span class="muted">' + esc(repName2(o, j.rep)) + '</span></td><td>' + ownChip(j) + '</td><td><span class="pill ' + s[1] + '">' + s[0] + '</span></td><td><span class="pcell">' + progBar(j) + '</span></td><td>' + priChip(j) + '</td><td>' + (j.req ? '<span class="dcell2">' + fmtS(isoDate(j.req)) + '</span>' : '<span class="muted">Not set</span>') + '</td><td class="go"><span class="qa">' + qaButtons(o, j) + '</span><span class="vw">View &rsaquo;</span></td></tr>';
+      return '<tr class="click" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '"><td><b class="mono">' + esc(jn(j)) + '</b><br><span class="muted">' + esc(j.item) + '</span></td><td>' + esc(o.name) + '<br><span class="muted">' + esc(repName2(o, j.rep)) + '</span></td><td>' + ownChip(j) + '</td><td><span class="pill ' + s[1] + '">' + s[0] + '</span></td><td><span class="pcell">' + progBar(j) + '</span></td><td>' + priChip(j) + '</td><td>' + (j.req ? '<span class="dcell2">' + fmtS(isoDate(j.req)) + '</span>' : '<span class="muted">Not set</span>') + '</td><td class="go"><span class="qa">' + qaButtons(o, j) + '</span><span class="vw">View &rsaquo;</span></td></tr>';
     }).join('');
     return '<div class="statline">' + stat(all.length, 'Total jobs') + stat(open, 'Open') + stat(req, 'Requests to accept') + stat(fix, 'Needs correction') + '</div>' +
       '<div class="card roomy"><div class="ch"><div><h2>Jobs</h2><p class="muted">Every client company. Select a job to work on it, or use the quick buttons on a row.</p></div></div>' +
@@ -1483,7 +1483,7 @@
     var acts = (state === 'cur' ? '<button type="button" class="btn" data-act="stepNext" data-id="' + j.id + '">Complete step</button>' : '') + (state === 'done' && i === j.done - 1 && j.done > 1 ? '<button type="button" class="btn ghost" data-act="stepUndo" data-id="' + j.id + '">Undo this step</button>' : '') +
       (h[1] && h[1][1] !== '__inv' ? '<button type="button" class="btn ghost" data-act="upload" data-job="' + j.id + '" data-type="' + h[1][1] + '" data-step="' + esc(s) + '">' + h[1][0] + '</button>' : '') + (h[1] && h[1][1] === '__inv' ? '<button type="button" class="btn ghost" data-act="docNew" data-m="Invoice" data-org="' + S.org.id + '" data-job="' + j.id + '">Create invoice</button>' : '');
     return '<div class="dveil" data-act="stepClose"></div><aside class="drawer" role="dialog" aria-label="Step details"><div class="dhead"><div><p class="eyebrow">Step ' + (i + 1) + ' of ' + j.steps.length + '</p><h3>' + esc(s) + '</h3></div><button type="button" class="btn ghost sm" data-act="stepClose" aria-label="Close details">Close</button></div><div class="dbody">' +
-      '<div class="dsec"><h4>Details</h4>' + row('Status', pillH) + row('Job', '<span class="mono">' + j.id + '</span>') + row('Owner', j.owner ? esc(j.owner) : '<span class="muted">Unassigned</span>') + row('Completed by', state === 'done' ? esc(by ? byName(by.who) : 'HazPack') : '<span class="muted">Not yet</span>') + row('Completed on', state === 'done' && (by || e) ? fmt(by ? by.date : e[0]) : '<span class="muted">Not yet</span>') + row('Required by', j.req ? fmt(isoDate(j.req)) : '<span class="muted">Not set</span>') + '</div>' +
+      '<div class="dsec"><h4>Details</h4>' + row('Status', pillH) + row('Job', '<span class="mono">' + esc(jn(j)) + '</span>') + row('Owner', j.owner ? esc(j.owner) : '<span class="muted">Unassigned</span>') + row('Completed by', state === 'done' ? esc(by ? byName(by.who) : 'HazPack') : '<span class="muted">Not yet</span>') + row('Completed on', state === 'done' && (by || e) ? fmt(by ? by.date : e[0]) : '<span class="muted">Not yet</span>') + row('Required by', j.req ? fmt(isoDate(j.req)) : '<span class="muted">Not set</span>') + '</div>' +
       '<div class="dsec"><h4>What this step means</h4><p style="margin:0">' + esc(h[0]) + '</p></div>' +
       '<div class="dsec"><h4>Notes <span class="muted" style="text-transform:none;letter-spacing:0">(staff only)</span></h4><textarea id="sn" rows="4" placeholder="Anything the team should know about this step">' + esc((j.notes && j.notes[s]) || '') + '</textarea><div style="margin-top:8px"><button type="button" class="btn ghost sm" data-act="stepNote">Save note</button></div></div>' +
       '<div class="dsec"><h4>Files for this step</h4>' + (files.length ? '<ul class="list">' + files.map(function (f) { return fileRow(f, false); }).join('') + '</ul>' : '<p class="muted" style="margin:0">No files yet. Files you upload from this step appear here.</p>') + '</div></div>' + (acts ? '<div class="dfoot">' + acts + '</div>' : '') + '</aside>';
@@ -1492,7 +1492,7 @@
     var o = S.org, a = pt(j.from), b = pt(j.to), ok = routeOf(j), s = jobStatus(j), r = repOf2(o, j.rep);
     var fact = function (k, v) { return '<div class="fact"><span>' + k + '</span><b>' + v + '</b></div>'; };
     var pr = priorityOf(j), cur = !j.pending && isOpen(j) ? j.steps[j.done] : '';
-    var head = '<div class="ws-head"><div class="wh1"><button type="button" class="btn ghost sm" data-act="backList">&larr; All jobs</button><h2 class="mono">' + j.id + '</h2><span class="pill ' + s[1] + '">' + s[0] + '</span>' + priChip(j) + '<span class="ws-item">' + esc(j.item) + '</span></div>' +
+    var head = '<div class="ws-head"><div class="wh1"><button type="button" class="btn ghost sm" data-act="backList">&larr; All jobs</button><h2 class="mono">' + esc(jn(j)) + '</h2><span class="pill ' + s[1] + '">' + s[0] + '</span>' + priChip(j) + '<span class="ws-item">' + esc(j.item) + '</span></div>' +
       '<div class="wh2"><label class="mini-l">Owner<select id="owner" class="mini"><option value="">Unassigned</option>' + OWNERS.map(function (n) { return '<option' + (j.owner === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
       '<label class="mini-l">Priority<select id="prio" class="mini"><option value="">Auto' + (pr && !j.pri ? ' (' + pr[0] + ')' : '') + '</option>' + ['Urgent', 'High', 'Normal', 'Low'].map(function (n) { return '<option' + (j.pri === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
       (j.pending ? '<button type="button" class="btn sm" data-act="accept" data-id="' + j.id + '">Accept request</button>' : cur ? '<button type="button" class="btn sm" data-act="stepNext" data-id="' + j.id + '" title="' + esc(cur) + '">Complete step</button>' : '') +
@@ -1508,7 +1508,7 @@
   /* ----- calendar on Home ----- */
   function calEvents() {
     var ev = {}, add = function (k, e) { (ev[k] = ev[k] || []).push(e); };
-    Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(function (j) { if (j.req && isOpen(j)) add(j.req, { t: 'job', label: 'Job ' + j.id.slice(-3), org: ORGS[k], job: j, late: daysTo(j.req) < 0 && !doneStep(j, LB.dgd) }); }); });
+    Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(function (j) { if (j.req && isOpen(j)) add(j.req, { t: 'job', label: jn(j), org: ORGS[k], job: j, late: daysTo(j.req) < 0 && !doneStep(j, LB.dgd) }); }); });
     DOCS.forEach(function (x) { if (x.type === 'Invoice' && x.status === 'Unpaid') add(dueOf(x), { t: 'inv', label: 'Inv ' + x.docNum.slice(-3), doc: x, late: isOverdue(x) }); });
     return ev;
   }
@@ -1518,11 +1518,11 @@
     for (var n = 1; n <= days; n++) {
       var key = y + '-' + ('0' + (m + 1)).slice(-2) + '-' + ('0' + n).slice(-2), list = ev[key] || [];
       cells += '<button type="button" class="cd' + (key === iso(TODAY) ? ' today' : '') + (key === sel ? ' sel' : '') + '" data-act="calDay" data-d="' + key + '" aria-label="' + longDate(key) + (list.length ? ', ' + list.length + ' items' : '') + '"><span class="cn">' + n + '</span>' +
-        list.slice(0, 2).map(function (e) { return '<i class="cc ' + (e.late ? 'bad' : e.t) + '">' + e.label + '</i>'; }).join('') + (list.length > 2 ? '<em>+' + (list.length - 2) + ' more</em>' : '') + '</button>';
+        list.slice(0, 2).map(function (e) { return '<i class="cc ' + (e.late ? 'bad' : e.t) + '">' + esc(e.label) + '</i>'; }).join('') + (list.length > 2 ? '<em>+' + (list.length - 2) + ' more</em>' : '') + '</button>';
     }
     var items = ev[sel] || [];
     var li = items.map(function (e) {
-      return e.t === 'job' ? '<li><div class="t"><b><span class="mono">' + e.job.id + '</span> · ' + esc(e.org.name) + '</b><span>Required by this day · ' + esc(e.job.item) + (e.late ? ' · late' : '') + '</span></div><button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + e.org.id + '" data-job="' + e.job.id + '">Open</button></li>' :
+      return e.t === 'job' ? '<li><div class="t"><b><span class="mono">' + esc(jn(e.job)) + '</span> · ' + esc(e.org.name) + '</b><span>Required by this day · ' + esc(e.job.item) + (e.late ? ' · late' : '') + '</span></div><button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + e.org.id + '" data-job="' + esc(jn(e.job)) + '">Open</button></li>' :
         '<li><div class="t"><b><span class="mono">' + esc(e.doc.docNum) + '</span> · ' + esc(docOrgName(e.doc)) + '</b><span>Invoice due this day · ' + money(docTotal(e.doc)) + (e.late ? ' · overdue' : '') + '</span></div><button type="button" class="btn ghost sm" data-act="docOpen" data-id="' + e.doc.id + '">Open</button></li>';
     }).join('');
     return '<div class="card roomy"><div class="ch"><div><h2>Calendar</h2><p class="muted">Required-by dates and invoice due dates.</p></div><div class="calnav"><button type="button" class="btn ghost sm" data-act="calNav" data-n="-1" aria-label="Previous month">&lsaquo;</button><b>' + base.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) + '</b><button type="button" class="btn ghost sm" data-act="calNav" data-n="1" aria-label="Next month">&rsaquo;</button></div></div>' +
@@ -1542,7 +1542,7 @@
       f('Requested by', r ? esc(r.name) + '<br><span class="muted">' + esc(r.title) + '</span>' : 'Former member') + f('Contact', r ? esc(r.email) + (r.phone ? '<br>' + esc(r.phone) : '') : '—') + f('Company', esc(o.name)) + '</dl>' +
       '<h4 class="reqh">Files sent with the request</h4>' + (files.length ? '<ul class="list">' + files.map(function (x) { return fileRow(x, false); }).join('') + '</ul>' : '<p class="muted" style="margin:0 20px 14px">No files were attached.</p>') +
       '<div class="reqf"><button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '">Open the full job</button></div></div>';
-    return '<li class="reqli' + (open ? ' open' : '') + '"><div class="reqrow"><button type="button" class="reqhead" data-act="reqToggle" data-id="' + j.id + '" aria-expanded="' + open + '"><span class="chev" aria-hidden="true"></span><span class="t"><b><span class="mono">' + j.id + '</span> · ' + esc(o.name) + '</b><span>' + esc(j.item) + ' · ' + j.mode + (routeOf(j) ? ' · ' + j.from + ' to ' + j.to : j.toText ? ' · to ' + esc(j.toText) : '') + (r ? ' · ' + esc(r.name) : '') + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : '') + '</span></span></button>' +
+    return '<li class="reqli' + (open ? ' open' : '') + '"><div class="reqrow"><button type="button" class="reqhead" data-act="reqToggle" data-id="' + j.id + '" aria-expanded="' + open + '"><span class="chev" aria-hidden="true"></span><span class="t"><b><span class="mono">' + esc(jn(j)) + '</span> · ' + esc(o.name) + '</b><span>' + esc(j.item) + ' · ' + j.mode + (routeOf(j) ? ' · ' + j.from + ' to ' + j.to : j.toText ? ' · to ' + esc(j.toText) : '') + (r ? ' · ' + esc(r.name) : '') + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : '') + '</span></span></button>' +
       '<button type="button" class="btn sm" data-act="acceptOrg" data-org="' + o.id + '" data-id="' + j.id + '">Accept</button></div>' + detailHtml + '</li>';
   }
   function requestItems(pairs) {
@@ -1610,7 +1610,7 @@
     var tiles = tile(open, 'open jobs') + tile(done, 'completed to date') + tile(fix, 'needs correction', fix) +
       (sc.client ? tile(pend, 'requests under review') : tile(avg === null ? '—' : avg, 'average days to pay')) + tile(money(out), od ? od + ' overdue' : 'outstanding', od) + tile(money(billed), 'invoiced to date');
     var them = sc.client ? (S.rep.admin ? 'Your team' : 'You') : 'Client', wc = [], wh = [];
-    jobs.forEach(function (j) { if (j.fix && isOpen(j)) wc.push('Correction on <span class="mono">' + j.id + '</span>'); if (j.pending) wh.push((sc.client ? 'Review request ' : 'Accept request ') + '<span class="mono">' + j.id + '</span>'); });
+    jobs.forEach(function (j) { if (j.fix && isOpen(j)) wc.push('Correction on <span class="mono">' + esc(jn(j)) + '</span>'); if (j.pending) wh.push((sc.client ? 'Review request ' : 'Accept request ') + '<span class="mono">' + esc(jn(j)) + '</span>'); });
     sc.qs.forEach(function (q) { wc.push('Approve quote <span class="mono">' + esc(q.docNum) + '</span>'); });
     var waits = wc.map(function (t) { return '<div class="dr"><span>' + them + '</span><b>' + t + '</b></div>'; }).join('') + wh.map(function (t) { return '<div class="dr"><span>HazPack</span><b>' + t + '</b></div>'; }).join('');
     var foot = sc.client ? '' : '<button type="button" class="btn sm" data-act="openOrg" data-org="' + o.id + '">Open portal</button><button type="button" class="btn sm ghost" data-act="clientRates" data-org="' + o.id + '">Rates</button>';
@@ -1633,13 +1633,13 @@
   }
   var CM_MAX = 7;
   function cmInfo(it) {
-    if (it.k === 'folder') { var nf = it.files.length; return { name: it.job || 'No job yet', sans: !it.job, chip: [nf + (nf === 1 ? ' file' : ' files'), 'done'], sub: (it.j ? it.j.item.split(/[,(]/)[0].trim() : it.job ? 'Job' : 'Not tied to a job') + ' · latest ' + fmtS(it.files[0].date) }; }
+    if (it.k === 'folder') { var nf = it.files.length; return { name: it.job ? jnId(it.job) : 'No job yet', sans: !it.job, chip: [nf + (nf === 1 ? ' file' : ' files'), 'done'], sub: (it.j ? it.j.item.split(/[,(]/)[0].trim() : it.job ? 'Job' : 'Not tied to a job') + ' · latest ' + fmtS(it.files[0].date) }; }
     if (it.k === 'rep') return { name: it.r.name, sans: true, chip: it.r.admin ? ['Admin', 'info'] : ['Member', 'done'], sub: it.r.title || 'Team member' };
     if (it.k === 'job') { var j = it.j, s = jobStatus(j); return { name: j.id, chip: [s[0], s[0] === 'Completed' ? 'done' : s[1]], sub: j.item.split(/[,(]/)[0].trim() + ' · ' + (j.from || 'LAX') + (j.to ? ' to ' + j.to : j.toText ? ' to ' + j.toText : ''), prog: progOf(j) }; }
     if (it.k === 'file') { var f = it.f; return { name: f.name, chip: [ftype(f.type)[0], 'done'], sub: (f.note ? f.note + ' · ' : '') + fmtS(f.date) }; } /* files are only shown inside their job's folder, so no job number here */
     var x = it.x;
     if (it.k === 'inv') return { name: x.docNum, chip: x.status === 'Paid' ? ['Paid', 'ok'] : isOverdue(x) ? ['Overdue', 'bad'] : ['Due', 'warn'], sub: money(docTotal(x)) + ' · due ' + mdy(dueOf(x)) };
-    return { name: x.docNum, chip: ['Waiting', 'warn'], sub: money(docTotal(x)) + ' · ' + (x.jobId || 'no job yet') };
+    return { name: x.docNum, chip: ['Waiting', 'warn'], sub: money(docTotal(x)) + ' · ' + (x.jobId ? jnId(x.jobId) : 'no job yet') };
   }
   function cmItemBtn(it, sel, style) {
     var n = cmInfo(it);
@@ -1794,7 +1794,7 @@
     var st = cmState(), o = st.o;
     var left = staff() ? '<label class="cm-pick">Company <select id="cmOrg" aria-label="Client company">' + Object.keys(ORGS).map(function (k) { return '<option value="' + k + '"' + (k === o.id ? ' selected' : '') + '>' + esc(ORGS[k].name) + '</option>'; }).join('') + '</select></label>'
       : '<span class="cm-pick"><b style="color:#fff">' + esc(o.name) + '</b>' + (S.rep.admin ? '' : ' · your jobs only') + '</span>';
-    var right = st.folder ? '<span class="cm-crumb">Files <span aria-hidden="true">›</span> <b class="' + (st.folder.job ? 'mono' : '') + '">' + esc(st.folder.job || 'No job yet') + '</b><button type="button" class="linkbtn" data-act="cmFolderUp">All jobs</button></span>'
+    var right = st.folder ? '<span class="cm-crumb">Files <span aria-hidden="true">›</span> <b class="' + (st.folder.job ? 'mono' : '') + '">' + esc(st.folder.job ? jnId(st.folder.job) : 'No job yet') + '</b><button type="button" class="linkbtn" data-act="cmFolderUp">All jobs</button></span>'
       : st.g.k === 'files' ? '<span>Select a job to see its files</span>' : '<span>Select a group, then an item</span>';
     return '<div class="cm-frame"><div class="cm-top">' + left + right + '</div><div class="cm-body"><div class="cm-canvas" id="cmGraph" role="group" aria-label="Map of ' + esc(o.name) + '"></div><aside class="cm-side" aria-label="Selected item">' + cmPanel(st) + '</aside></div></div>';
   }
