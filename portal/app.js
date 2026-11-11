@@ -823,6 +823,8 @@
     DOCS.forEach(function (x) { if (x.docNum.indexOf(stem) === 0) n = Math.max(n, parseInt(x.docNum.slice(stem.length), 10) || 0); });
     return stem + ('00' + (n + 1)).slice(-3);
   }
+  /* A new quote or invoice starts with its number already filled in. It follows the type and date until someone types their own. */
+  function autoNum(e) { if (!e.id && e.autoNum !== false) e.docNum = nextDocNum(e.type, e.date); }
   function noteDocNum(num) { var m = /^([QI]-\d{4}-\d{2})-HP-(\d+)$/.exec(num || ''); if (m) SEQ[m[1]] = Math.max(SEQ[m[1]] || 0, parseInt(m[2], 10)); }
 
   /* ----- editor state ----- */
@@ -857,6 +859,7 @@
     var e = { id: null, type: type, orgId: orgId || '', repId: rep ? rep.id : '', jobId: jobId || '', name: '', company: '', addr: '', city: '', email: '', phone: '', bkg: job ? job.ref : '', date: iso(TODAY), docNum: '', payRcvd: '', preparedBy: 'James Whitty', issuedBy: 'James Whitty', rows: blankRows(org), custom: [], disc: '', late: '', notes: '', status: type === 'Invoice' ? 'Unpaid' : 'Open', datePaid: '', fileId: '', split: '', decision: null };
     if (org) { applyBill(e, org, rep); if (org.billing) e.repId = ''; }
     if (job && prefillFromJob(e, job)) e.prefilled = true;
+    autoNum(e);
     return e;
   }
   function edFromDoc(x) {
@@ -874,6 +877,7 @@
   function edSave() {
     var e = ED;
     if (!e.company && !e.name) { toast('Add a Bill To name or company before saving.'); return null; }
+    autoNum(e);
     if (!e.docNum) e.docNum = nextDocNum(e.type, e.date);
     if (DOCS.some(function (x) { return x.docNum === e.docNum && x.id !== e.id; })) { toast('Another document already uses ' + e.docNum + '.'); return null; }
     noteDocNum(e.docNum);
@@ -920,7 +924,7 @@
     return '<div class="paper' + (print ? ' print' : '') + '"><div class="p-head"><img src="' + LOGO_L + '" alt="HazPack Compliance"><div class="co"><b>HazPack Compliance Solutions LLC</b>Dangerous Goods Compliance &amp; Inspection Services<br>' + esc(FROM_EMAIL) + ' &nbsp;|&nbsp; +1 (310) 425-3712<br>www.hazpackcompliance.com &nbsp;|&nbsp; Los Angeles, CA<em class="cert">IATA DGR Certified &nbsp;&middot;&nbsp; IMDG Certified &nbsp;&middot;&nbsp; 49 CFR Certified</em></div></div>' +
       '<div class="p-title"><span>' + (inv ? 'INVOICE' : 'QUOTE') + '</span></div>' +
       '<div class="p-row"><div class="p-box"><h4>Bill to</h4><div class="bd">' + fld('Name', 'name', e.name, print) + fld('Company', 'company', e.company, print) + fld('Address', 'addr', e.addr, print) + fld('City / State', 'city', e.city, print) + fld('Email', 'email', e.email, print) + fld('Phone', 'phone', e.phone, print) + fld('BKG #', 'bkg', e.bkg, print) + '</div></div>' +
-      '<div class="p-box nw"><h4>Document details</h4><div class="bd">' + fld('Doc #', 'docNum', print ? (e.docNum || nextDocNum(e.type, e.date)) : e.docNum, print, ' placeholder="' + nextDocNum(e.type, e.date) + '" title="Filled in with the next number when you save. Type here only to use a different number."' + id('edNum')) + fld('Date', 'date', e.date, print) +
+      '<div class="p-box nw"><h4>Document details</h4><div class="bd">' + fld('Doc #', 'docNum', e.docNum, print, ' placeholder="' + nextDocNum(e.type, e.date) + '" title="The next number for this month. Change it only to use a different number."' + id('edNum')) + fld('Date', 'date', e.date, print) +
       (inv ? '<div class="fl"><span>Due date</span><span class="v o"' + id('edDue') + '>' + esc(longDate(due)) + '</span></div>' + fld('Payment rcvd', 'payRcvd', e.payRcvd, print, ' placeholder="e.g. 06/12/2026"') : '') + '<div class="fl"><span>Prepared by</span>' + staffSel('preparedBy', e.preparedBy, print) + '</div></div></div></div>' +
       '<div class="sec rel">' + (print ? '' : '<div class="wm"><img src="' + LOGO_L + '" alt=""></div>') + '<table class="pt sv"><thead><tr>' + (print ? '' : '<th></th>') + '<th>#</th><th class="l">Service</th><th class="l">Notes</th><th>Qty</th><th>Unit</th><th class="r">Rate</th><th class="r">Line total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' + custBlock +
       '<div class="tots">' + (print ? '' : '<button type="button" class="latebtn" data-act="edLate">' + (!e.late ? '+ Late fee' : lateRate(e.late) === 1.5 ? 'Late fee 1.5%, switch to 2.0%' : 'Late fee 2.0%, remove') + '</button>') + '<table><tr><td>Subtotal</td><td' + id('edSub') + '>' + money(s.sub) + '</td></tr><tr><td>Discount ' + (print ? esc(e.disc || '0') : '<input type="number" min="0" max="100" step="0.5" data-ed="disc" value="' + esc(e.disc) + '" placeholder="0">') + '%</td><td' + id('edDisc') + '>' + (s.d > 0 ? '−' + money(s.d) : '—') + '</td></tr>' +
@@ -933,7 +937,7 @@
     var s = sums(ED.rows, ED.custom, ED.disc, ED.late), set = function (id, t) { var el = document.getElementById(id); if (el) el.textContent = t; };
     ED.rows.forEach(function (r, i) { set('ea' + i, r.active ? money(r.qty * r.rate) : '—'); });
     ED.custom.forEach(function (c, i) { set('ec' + i, money(c.qty * c.rate)); });
-    set('edSub', money(s.sub)); set('edDisc', s.d > 0 ? '−' + money(s.d) : '—'); set('edLate', money(s.lf)); set('edTot', money(s.total)); set('edDue', longDate(dueOf(ED))); var nb = document.getElementById('edNum'); if (nb) nb.placeholder = nextDocNum(ED.type, ED.date);
+    set('edSub', money(s.sub)); set('edDisc', s.d > 0 ? '−' + money(s.d) : '—'); set('edLate', money(s.lf)); set('edTot', money(s.total)); set('edDue', longDate(dueOf(ED))); var nb = document.getElementById('edNum'); if (nb) { autoNum(ED); nb.value = ED.docNum; nb.placeholder = nextDocNum(ED.type, ED.date); }
   }
 
   /* ----- screens ----- */
@@ -1099,7 +1103,7 @@
       case 'docOpen': x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; ED = edFromDoc(x); S.view = 'doc'; render(); window.scrollTo(0, 0); return true;
       case 'docToInvoice':
         x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; if (!x) return true;
-        var ni = edFromDoc(x); ni.id = null; ni.type = 'Invoice'; ni.docNum = ''; ni.date = iso(TODAY); ni.status = 'Unpaid'; ni.datePaid = ''; ni.fileId = ''; ni.payRcvd = ''; ni.fromQuote = x.id; ni.notes = (ni.notes ? ni.notes + '\n' : '') + 'Based on quote ' + x.docNum + '.';
+        var ni = edFromDoc(x); ni.id = null; ni.type = 'Invoice'; ni.docNum = ''; ni.autoNum = true; ni.date = iso(TODAY); ni.status = 'Unpaid'; ni.datePaid = ''; ni.fileId = ''; ni.payRcvd = ''; ni.fromQuote = x.id; ni.notes = (ni.notes ? ni.notes + '\n' : '') + 'Based on quote ' + x.docNum + '.'; autoNum(ni);
         ED = ni; S.view = 'doc'; render(); window.scrollTo(0, 0); toast('Invoice started from ' + x.docNum + '. Save it to mark the quote accepted.'); return true;
       case 'docSort': billSort = { k: ds.k, dir: billSort.k === ds.k ? -billSort.dir : (ds.k === 'date' || ds.k === 'amount' ? -1 : 1) }; render(); return true;
       case 'clientRates': ratesModal(ds.org); return true;
@@ -1111,7 +1115,7 @@
         if (armDel !== ds.id) { armDel = ds.id; render(); setTimeout(function () { if (armDel === ds.id) { armDel = null; if (S.view === 'billing') render(); } }, 3000); return true; }
         x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; DOCS.splice(DOCS.indexOf(x), 1); armDel = null; if (S.view === 'doc') { S.view = 'billing'; ED = null; } render(); toast('Deleted ' + x.docNum + (x.fileId ? '. The copy already sent to the client stays on their job.' : '.')); return true;
       case 'docCsv': csvOut(); return true;
-      case 'edMode': if (!ED.id) { ED.type = ds.m; ED.status = ds.m === 'Invoice' ? 'Unpaid' : 'Open'; render(); } return true;
+      case 'edMode': if (!ED.id) { ED.type = ds.m; ED.status = ds.m === 'Invoice' ? 'Unpaid' : 'Open'; autoNum(ED); render(); } return true;
       case 'edAddLine': ED.custom.push({ desc: '', note: '', qty: 1, unit: 'each', rate: 0 }); render(); return true;
       case 'edDelLine': ED.custom.splice(+ds.i, 1); render(); return true;
       case 'edLate': ED.late = !ED.late ? '1.5' : lateRate(ED.late) === 1.5 ? '2.0' : ''; render(); return true;
@@ -1147,7 +1151,7 @@
     if (d.act === 'bulkAll') { sel = {}; if (el.checked) billIds.forEach(function (id) { sel[id] = true; }); render(); return true; }
     if (d.act === 'docStatus') { var x = DOCS.filter(function (y) { return y.id === d.id; })[0]; if (el.value === 'Overdue') { render(); return true; } setStatus(x, el.value); render(); toast(x.docNum + ' marked ' + el.value.toLowerCase() + '.'); return true; }
     if (d.act === 'edToggle') { var r = ED.rows[+d.i]; r.active = el.checked; if (!el.checked) r.qty = 1; render(); return true; }
-    if (d.act === 'edOrg') { var o = ORGS[el.value]; var keep = ED; ED = edNew(keep.type, el.value, ''); ED.id = keep.id; ED.docNum = keep.docNum; ED.date = keep.date; ED.rows = keep.rows; if (!keep.id) ED.rows.forEach(function (r) { r.rate = rateFor(o, r.id); }); ED.custom = keep.custom; ED.disc = keep.disc; ED.late = keep.late; ED.notes = keep.notes; ED.preparedBy = keep.preparedBy; ED.issuedBy = keep.issuedBy; ED.status = keep.status; ED.datePaid = keep.datePaid; ED.fileId = keep.fileId; if (!o) { ED.company = keep.company; ED.name = keep.name; ED.email = keep.email; ED.bkg = keep.bkg; } render(); return true; }
+    if (d.act === 'edOrg') { var o = ORGS[el.value]; var keep = ED; ED = edNew(keep.type, el.value, ''); ED.id = keep.id; ED.docNum = keep.docNum; ED.autoNum = keep.autoNum; ED.date = keep.date; ED.rows = keep.rows; if (!keep.id) ED.rows.forEach(function (r) { r.rate = rateFor(o, r.id); }); ED.custom = keep.custom; ED.disc = keep.disc; ED.late = keep.late; ED.notes = keep.notes; ED.preparedBy = keep.preparedBy; ED.issuedBy = keep.issuedBy; ED.status = keep.status; ED.datePaid = keep.datePaid; ED.fileId = keep.fileId; if (!o) { ED.company = keep.company; ED.name = keep.name; ED.email = keep.email; ED.bkg = keep.bkg; } render(); return true; }
     if (d.act === 'edRep') { var rp = ORGS[ED.orgId].reps.filter(function (y) { return y.id === el.value; })[0]; ED.repId = el.value; if (rp) putBill(ED, personBill(ORGS[ED.orgId], rp)); else applyBill(ED, ORGS[ED.orgId], null); render(); return true; }
     if (d.act === 'edJob') { var jb = ORGS[ED.orgId].jobs.filter(function (y) { return y.id === el.value; })[0]; var was = ED.jobId && ORGS[ED.orgId].jobs.filter(function (y) { return y.id === ED.jobId; })[0]; if (was && ED.bkg === was.ref) ED.bkg = ''; ED.jobId = el.value; if (jb) { ED.bkg = jb.ref || ED.bkg; if (!ED.id && prefillFromJob(ED, jb)) toast('Lines filled from the job\'s services and piece count. Check them before sending.'); var rq = ORGS[ED.orgId].billing ? null : ORGS[ED.orgId].reps.filter(function (y) { return y.id === jb.rep; })[0]; if (rq) { ED.repId = rq.id; putBill(ED, personBill(ORGS[ED.orgId], rq)); } } render(); return true; }
     if (el.id === 'bt') { billF.type = el.value; render(); return true; }
@@ -1158,7 +1162,7 @@
     var d = el.dataset, p;
     if (el.id === 'bq') { billF.q = el.value; render(); return true; }
     if (!ED) return false;
-    if (d.ed) { ED[d.ed] = el.value; if (d.ed === 'date' || d.ed === 'disc') edRefresh(); return true; }
+    if (d.ed) { ED[d.ed] = el.value; if (d.ed === 'docNum') ED.autoNum = !el.value.trim(); if (d.ed === 'date' || d.ed === 'disc') edRefresh(); return true; }
     if (d.er) { p = d.er.split(':'); ED.rows[+p[0]][p[1]] = p[1] === 'qty' ? (parseFloat(el.value) || 0) : el.value; edRefresh(); return true; }
     if (d.ec) { p = d.ec.split(':'); ED.custom[+p[0]][p[1]] = (p[1] === 'qty' || p[1] === 'rate') ? (parseFloat(el.value) || 0) : el.value; edRefresh(); return true; }
     return false;
