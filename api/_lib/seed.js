@@ -1,6 +1,6 @@
 // Made-up sample data (from the portal prototype). Every company, person and document here is fake.
 // Dates are moved so the newest sample job always looks recent.
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { hashSecret } from './crypto.js';
 import { RETENTION_MONTHS, DB_VERSION } from './config.js';
@@ -14,6 +14,9 @@ export const DEMO_LOGINS = [
   { slug: 'sierra', password: 'demo', profiles: { 'Alicia Romero': '4444' } },
 ];
 
+// Sample file ids are worked out from the file's name, not random. On Vercel each function starts its own copy of the
+// sample data, so the copies must agree on the ids or a file listed by one function could not be opened by another.
+const sampleId = (seed) => { const h = createHash('sha1').update(seed).digest('hex'); return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`; };
 const addMonths = (iso, n) => { const d = new Date(iso); d.setUTCMonth(d.getUTCMonth() + n); return d.toISOString(); };
 
 export function buildDemo() {
@@ -40,7 +43,7 @@ export function buildDemo() {
     org.reps = o.reps.map(({ pin, ...r }) => ({ ...r, pinHash: hashSecret(pin) }));
     for (const j of org.jobs) { j.createdAt = j.start; j.expiresAt = addMonths(j.start, RETENTION_MONTHS); }
     org.files = o.files.map((f) => {
-      const id = randomUUID();
+      const id = sampleId(`${o.id}:${f.id}`);
       fileIds.set(f.id, id);
       const job = org.jobs.find((j) => j.id === f.job);
       const isImg = f.type === 'Photo';
