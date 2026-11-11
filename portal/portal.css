@@ -255,10 +255,10 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--bg); }
 
 /* billing: staff tracker and the quote or invoice paper. The paper is white in every theme, like a printed page. */
 .stsel { width: auto; padding: 3px 8px; border-radius: 999px; font-size: 12.5px; font-weight: 600; }
-.stsel.paid, .stsel.accepted { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
-.stsel.unpaid, .stsel.open { background: var(--warn-soft); color: var(--warn); border-color: transparent; }
-.stsel.overdue { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
-.stsel.declined, .stsel.cancelled { background: var(--rail-hover); color: var(--muted); }
+.stsel.paid, .stsel.accepted { background-color: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.stsel.unpaid, .stsel.open { background-color: var(--warn-soft); color: var(--warn); border-color: transparent; }
+.stsel.overdue { background-color: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.stsel.declined, .stsel.cancelled { background-color: var(--rail-hover); color: var(--muted); }
 .edbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
 .edbar label.f { flex: 1 1 200px; min-width: 0; }
 .edbar .seg { min-width: 180px; }
@@ -462,7 +462,7 @@ td.cb, th.cb { width: 40px; } th.cb input, td.cb input { width: auto; }
 .cm-pick { display: flex; align-items: center; gap: 8px; }
 .cm-crumb { display: flex; align-items: center; gap: 8px; color: #9db0cc; } .cm-crumb b { color: #fff; } .cm-crumb .linkbtn { color: #f6a35f; margin-left: 4px; }
 .cm-item.folder .l1 b::before { content: ""; display: inline-block; width: 12px; height: 9px; margin-right: 6px; border: 1.5px solid #f3c39c; border-radius: 2px 2px 3px 3px; border-top-width: 3px; vertical-align: 0; }
-.cm-top select { width: auto; padding: 5px 8px; font-size: 13px; background: rgba(255,255,255,.06); color: var(--map-ink); border-color: rgba(255,255,255,.2); color-scheme: dark; }
+.cm-top select { width: auto; padding: 5px 8px; font-size: 13px; background-color: rgba(255,255,255,.06); color: var(--map-ink); border-color: rgba(255,255,255,.2); color-scheme: dark; }
 .cm-body { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: stretch; }
 .cm-canvas { position: relative; min-width: 0; }
 .cm-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -558,3 +558,16 @@ td.cb, th.cb { width: 40px; } th.cb input, td.cb input { width: auto; }
   .topbar, .content { padding-left: 16px; padding-right: 16px; } .topbar h1 { font-size: 19px; }
 }
 @media (prefers-reduced-motion: no-preference) { .jcard, .btn, .chip { transition: border-color .15s, background .15s; } }
+
+/* dropdowns: one arrow for all of them (drawn in the text colour, so it follows the theme) */
+select {
+  -webkit-appearance: none; appearance: none; cursor: pointer; padding-right: 34px;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-repeat: no-repeat; background-size: 6px 6px, 6px 6px; background-position: calc(100% - 18px) 55%, calc(100% - 12px) 55%;
+  text-overflow: ellipsis;
+}
+select.mini, .tools select, .cm-top select { padding-right: 30px; background-position: calc(100% - 15px) 55%, calc(100% - 9px) 55%; }
+.stsel { padding-right: 26px; background-position: calc(100% - 14px) 55%, calc(100% - 8px) 55%; background-size: 5px 5px, 5px 5px; }
+select:disabled { cursor: default; opacity: .6; }
+/* the printed quote and invoice keep their own plain look */
+.paper select { -webkit-appearance: auto; appearance: auto; background-image: none; padding-right: 2px; cursor: auto; }
