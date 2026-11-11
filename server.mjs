@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 4321;
 const ROOT = fileURLToPath(new URL('./', import.meta.url));
 const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.xml': 'application/xml', '.txt': 'text/plain' };
 // Only these top-level names are public, like a deploy: everything else (api source, data, scripts) is not.
-const PUBLIC_DIRS = new Set(['portal', 'resources']);
+const PUBLIC_DIRS = new Set(['portal', 'resources', 'assets']);
 
 // Apply the portal's response headers from vercel.json (CSP, noindex, no-store) so problems show up here first.
 const vercel = JSON.parse(await readFile(join(ROOT, 'vercel.json'), 'utf8'));
@@ -37,7 +37,7 @@ createServer(async (req, res) => {
     }
     let rel = normalize(decodeURIComponent(url.pathname)).replace(/^[/\\]+/, '');
     const top = rel.split(/[/\\]/)[0];
-    if (rel && !PUBLIC_DIRS.has(top) && extname(rel) === '.js' && rel !== 'script.js') throw new Error('not public');
+    if (rel && !PUBLIC_DIRS.has(top) && extname(rel) === '.js') throw new Error('not public');
     let p = join(ROOT, rel);
     if (!p.startsWith(ROOT)) throw new Error('bad path');
     if (!extname(p)) {

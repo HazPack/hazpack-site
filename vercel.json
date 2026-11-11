@@ -51,5 +51,37 @@
       "path": "/api/portal-purge",
       "schedule": "15 11 * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/styles.css",
+      "destination": "/assets/styles.css",
+      "permanent": true
+    },
+    {
+      "source": "/script.js",
+      "destination": "/assets/script.js",
+      "permanent": true
+    },
+    {
+      "source": "/logo.png",
+      "destination": "/assets/logo.png",
+      "permanent": true
+    },
+    {
+      "source": "/logo.svg",
+      "destination": "/assets/logo.svg",
+      "permanent": true
+    },
+    {
+      "source": "/favicon.svg",
+      "destination": "/assets/favicon.svg",
+      "permanent": true
+    },
+    {
+      "source": "/apple-touch-icon.png",
+      "destination": "/assets/apple-touch-icon.png",
+      "permanent": true
+    }
   ]
 }

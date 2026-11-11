@@ -61,7 +61,8 @@ Each tab is its own page. With `cleanUrls` on in `vercel.json`, Vercel serves th
 ## Files
 
 - `index.html`, `services.html`, `who-we-serve.html`, `quote.html`: the main pages
-- `styles.css`, `script.js`: shared styling, menu and quote form behavior
+- `assets/`: `styles.css` and `script.js` (shared styling, menu and quote form behavior)
 - `resources/`: the Resources hub and seven resource pages (linked from the Resources menu)
-- `logo.svg`, `logo.png`, `favicon.svg`, `apple-touch-icon.png`: brand assets
+- `assets/`: `logo.svg`, `logo.png`, `favicon.svg`, `apple-touch-icon.png` (brand assets)
+- `docs/PORTAL.md`: how the client portal works and what is left before launch
 - `vercel.json`, `robots.txt`, `sitemap.xml`: hosting and SEO
