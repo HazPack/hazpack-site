@@ -219,10 +219,11 @@ try {
   const org2 = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
   org2.files = [];
   check('a save without the file removes it', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org2.rev, org: org2, docs: [] })).status === 200 && (await S.req(`/api/portal-file?id=${tf.id}`)).status === 404);
-  const qd = { id: 'dq1', orgId: 'test-co', type: 'Quote', docNum: 'Q-2099-01-HP-007', lines: [] }, idoc = { id: 'di1', orgId: 'test-co', type: 'Invoice', docNum: 'I-2099-01-HP-002', lines: [] };
-  check('quotes save', (await post({ action: 'saveDocs', orgId: 'test-co', docs: [qd, idoc] })).status === 200);
-  check('a deleted quote keeps its number used', (await post({ action: 'saveDocs', orgId: 'test-co', docs: [idoc] })).status === 200 && (await S.json('/api/portal-state')).data.seq['Q-2099-01'] === 7);
-  check('quotes and invoices count separately', (await S.json('/api/portal-state')).data.seq['I-2099-01'] === 2);
+  const qd = { id: 'dq1', orgId: 'test-co', type: 'Quote', docNum: 'Q-2099-01-HP-007', fileId: 'f1', lines: [] }, idoc = { id: 'di1', orgId: 'test-co', type: 'Invoice', docNum: 'I-2099-01-HP-002', fileId: 'f2', lines: [] }, draft = { id: 'di2', orgId: 'test-co', type: 'Invoice', docNum: 'I-2099-01-HP-003', lines: [] };
+  check('quotes save', (await post({ action: 'saveDocs', orgId: 'test-co', docs: [qd, idoc, draft] })).status === 200);
+  check('a deleted sent quote keeps its number used', (await post({ action: 'saveDocs', orgId: 'test-co', docs: [idoc] })).status === 200 && (await S.json('/api/portal-state')).data.seq['Q-2099-01'] === 7);
+  check('quotes and invoices count separately, and a deleted unsent invoice frees its number', !(await S.json('/api/portal-state')).data.seq['I-2099-01']);
+  check('renumbering a sent invoice frees its old number', (await post({ action: 'saveDocs', orgId: 'test-co', docs: [{ ...idoc, docNum: 'I-2099-01-HP-001' }] })).status === 200 && !(await S.json('/api/portal-state')).data.seq['I-2099-01']);
   check('company can be deleted', (await post({ action: 'deleteOrg', orgId: 'test-co' })).status === 200);
   check('deleted company cannot sign in', (await new Client(base).json('/api/portal-login', { method: 'POST', body: { slug: 'test-co', password: 'a-long-enough-pass' } })).status === 401);
   check('staff sign out works', (await S.json('/api/portal-session', { method: 'DELETE', body: {} })).status === 200 && (await S.json('/api/portal-staff')).status === 401);

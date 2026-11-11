@@ -103,11 +103,13 @@ export async function clientData(orgId, repId) {
   return org && rep ? clientState(db, org, rep) : null;
 }
 
-// Quotes and invoices each count up per month (Q-2026-11-HP-001, I-2026-11-HP-001). meta.seq keeps the
-// highest number ever saved for each so a deleted document's number is never given out again.
+// Quotes and invoices each count up per month (Q-2026-11-HP-001, I-2026-11-HP-001). The next number follows the
+// highest saved document. meta.sentSeq also keeps the highest number of any deleted document that had been sent to
+// the client, so a number the client has seen is never given out again. Deleting an unsent one frees its number.
 const DOC_NUM = /^([QI]-\d{4}-\d{2})-HP-(\d+)$/;
 function bumpSeq(seq, docs) {
   for (const d of docs) {
+    if (!d?.fileId) continue;
     const m = DOC_NUM.exec(String(d?.docNum ?? ''));
     if (m) seq[m[1]] = Math.max(seq[m[1]] || 0, parseInt(m[2], 10));
   }
@@ -116,7 +118,7 @@ function bumpSeq(seq, docs) {
 
 export async function staffData() {
   const db = await readDb();
-  const seq = bumpSeq({ ...(db.meta?.seq || {}) }, db.docs);
+  const seq = { ...(db.meta?.sentSeq || {}) };
   return { orgs: db.orgs.map(pubOrg), docs: db.docs, tariff: db.tariff || null, seq, staff: true };
 }
 
@@ -435,9 +437,10 @@ const STAFF_ACTIONS = {
     if (orgId && !db.orgs.some((o) => o.id === orgId)) return fail('Company not found.');
     if (!Array.isArray(b.docs) || JSON.stringify(b.docs).length > 3_000_000) return fail('Invalid data.');
     const mine = b.docs.filter((d) => d && typeof d === 'object' && String(d.orgId ?? '') === orgId);
-    bumpSeq((db.meta.seq ||= {}), db.docs);
+    const keep = new Set(mine.map((d) => d.id));
+    bumpSeq((db.meta.sentSeq ||= {}), db.docs.filter((d) => String(d.orgId ?? '') === orgId && !keep.has(d.id)));
     db.docs = db.docs.filter((d) => String(d.orgId ?? '') !== orgId).concat(mine);
-    bumpSeq(db.meta.seq, mine);
+    delete db.meta.seq;
     return { ok: true };
   },
   saveTariff(db, b) {

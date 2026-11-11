@@ -815,7 +815,9 @@
   function docOrgName(x) { return x.company || x.name || '—'; }
 
   /* Quotes and invoices each keep their own counter per month (Q-2026-11-HP-001, I-2026-11-HP-001).
-     SEQ is the highest number ever used, kept on the server, so a deleted document's number is never handed out again. */
+     The next number follows the highest one on a saved document. SEQ also holds the highest number of any deleted document
+     that had been sent to the client (they already have it), kept on the server, so that number is never given out again.
+     Deleting an unsent document, or renumbering and resending one, frees the number. */
   var SEQ = {};
   function docStem(type, date) { return (type === 'Invoice' ? 'I' : 'Q') + '-' + date.slice(0, 4) + '-' + date.slice(5, 7) + '-HP-'; }
   function nextDocNum(type, date) {
@@ -880,7 +882,6 @@
     autoNum(e);
     if (!e.docNum) e.docNum = nextDocNum(e.type, e.date);
     if (DOCS.some(function (x) { return x.docNum === e.docNum && x.id !== e.id; })) { toast('Another document already uses ' + e.docNum + '.'); return null; }
-    noteDocNum(e.docNum);
     var rec = edRecord(e);
     if (e.id) DOCS[DOCS.map(function (x) { return x.id; }).indexOf(e.id)] = rec; else { rec.id = e.id = nid('d'); DOCS.unshift(rec); }
     if (e.fromQuote) { var q0 = DOCS.filter(function (x) { return x.id === e.fromQuote; })[0]; if (q0 && q0.status === 'Open') q0.status = 'Accepted'; }
@@ -1098,7 +1099,7 @@
         var nums = DOCS.filter(function (y) { return sel[y.id]; }).map(function (y) { return y.docNum; });
         openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Delete documents"><h2>Delete ' + ids.length + (ids.length === 1 ? ' document?' : ' documents?') + '</h2><p style="margin:0" class="mono">' + esc(nums.slice(0, 8).join(', ')) + (nums.length > 8 ? ' and ' + (nums.length - 8) + ' more' : '') + '</p><p style="margin:0">This cannot be undone. Quotes and invoices already sent to clients stay on their jobs as files.</p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn dng2" data-act="bulkGo">Delete ' + ids.length + '</button></div></div>'); return true;
       case 'bulkGo':
-        var n = 0; for (var k = DOCS.length - 1; k >= 0; k--) if (sel[DOCS[k].id]) { DOCS.splice(k, 1); n++; }
+        var n = 0; for (var k = DOCS.length - 1; k >= 0; k--) if (sel[DOCS[k].id]) { if (DOCS[k].fileId) noteDocNum(DOCS[k].docNum); DOCS.splice(k, 1); n++; }
         sel = {}; selMode = false; closeModal(); render(); toast('Deleted ' + n + (n === 1 ? ' document.' : ' documents.')); return true;
       case 'docNew': ED = edNew(ds.m, ds.org || '', ds.job || ''); S.view = 'doc'; render(); window.scrollTo(0, 0); if (ED.prefilled) toast('Lines filled from the job\'s services and piece count. Check them before sending.'); return true;
       case 'docOpen': x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; ED = edFromDoc(x); S.view = 'doc'; render(); window.scrollTo(0, 0); return true;
@@ -1114,7 +1115,7 @@
       case 'docBack': S.view = 'billing'; render(); return true;
       case 'docDel':
         if (armDel !== ds.id) { armDel = ds.id; render(); setTimeout(function () { if (armDel === ds.id) { armDel = null; if (S.view === 'billing') render(); } }, 3000); return true; }
-        x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; DOCS.splice(DOCS.indexOf(x), 1); armDel = null; if (S.view === 'doc') { S.view = 'billing'; ED = null; } render(); toast('Deleted ' + x.docNum + (x.fileId ? '. The copy already sent to the client stays on their job.' : '.')); return true;
+        x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; if (x.fileId) noteDocNum(x.docNum); DOCS.splice(DOCS.indexOf(x), 1); armDel = null; if (S.view === 'doc') { S.view = 'billing'; ED = null; } render(); toast('Deleted ' + x.docNum + (x.fileId ? '. The copy already sent to the client stays on their job.' : '.')); return true;
       case 'docCsv': csvOut(); return true;
       case 'edMode': if (!ED.id) { ED.type = ds.m; ED.status = ds.m === 'Invoice' ? 'Unpaid' : 'Open'; autoNum(ED); render(); } return true;
       case 'edAddLine': ED.custom.push({ desc: '', note: '', qty: 1, unit: 'each', rate: 0 }); render(); return true;
@@ -1636,7 +1637,7 @@
   function cmInfo(it) {
     if (it.k === 'folder') { var nf = it.files.length; return { name: it.job ? jnId(it.job) : 'No job yet', sans: !it.job, chip: [nf + (nf === 1 ? ' file' : ' files'), 'done'], sub: (it.j ? it.j.item.split(/[,(]/)[0].trim() : it.job ? 'Job' : 'Not tied to a job') + ' · latest ' + fmtS(it.files[0].date) }; }
     if (it.k === 'rep') return { name: it.r.name, sans: true, chip: it.r.admin ? ['Admin', 'info'] : ['Member', 'done'], sub: it.r.title || 'Team member' };
-    if (it.k === 'job') { var j = it.j, s = jobStatus(j); return { name: j.id, chip: [s[0], s[0] === 'Completed' ? 'done' : s[1]], sub: j.item.split(/[,(]/)[0].trim() + ' · ' + (j.from || 'LAX') + (j.to ? ' to ' + j.to : j.toText ? ' to ' + j.toText : ''), prog: progOf(j) }; }
+    if (it.k === 'job') { var j = it.j, s = jobStatus(j); return { name: jn(j), chip: [s[0], s[0] === 'Completed' ? 'done' : s[1]], sub: j.item.split(/[,(]/)[0].trim() + ' · ' + (j.from || 'LAX') + (j.to ? ' to ' + j.to : j.toText ? ' to ' + j.toText : ''), prog: progOf(j) }; }
     if (it.k === 'file') { var f = it.f; return { name: f.name, chip: [ftype(f.type)[0], 'done'], sub: (f.note ? f.note + ' · ' : '') + fmtS(f.date) }; } /* files are only shown inside their job's folder, so no job number here */
     var x = it.x;
     if (it.k === 'inv') return { name: x.docNum, chip: x.status === 'Paid' ? ['Paid', 'ok'] : isOverdue(x) ? ['Overdue', 'bad'] : ['Due', 'warn'], sub: money(docTotal(x)) + ' · due ' + mdy(dueOf(x)) };
@@ -1677,7 +1678,7 @@
     probe.remove(); return max;
   }
   /* The canvas is drawn after render because it needs its own width. Items sit at even steps on a circle around the company,
-     so the layout stays neat however few items a group has. Overview sits level with the company, the other cards above and below it. */
+     so the layout stays neat however few items a group has. The column of group cards is centred on the company. */
   /* What the map last drew, so it animates only what changed: the full entrance when the map appears or the company changes,
      only the fan of items when the group changes, and only the side panel when the item changes. A plain redraw (any other click,
      or resizing the window) animates nothing. Cleared whenever the map is off screen, so coming back plays the entrance again. */
@@ -1706,7 +1707,7 @@
     el.className = 'cm-canvas' + (mode !== 'none' ? ' anim-' + mode : '');
     /* One height for every group (and every company, for staff): room for the cards around Overview, the largest fan and the tallest side panel. */
     var ov = 0; st.gs.forEach(function (g, i) { if (g.k === 'overview') ov = i; });
-    var reach = Math.max(ov, st.gs.length - 1 - ov), n = shown.length, nx = 92, cx = 196, cw = 150, R = Math.max(250, Math.min(W - nx - 262, 440)), deg = Math.PI / 180, MAXA = 72;
+    var mid = (st.gs.length - 1) / 2, reach = Math.max(mid, 0.5), n = shown.length, nx = 92, cx = 196, cw = 150, R = Math.max(250, Math.min(W - nx - 262, 440)), deg = Math.PI / 180, MAXA = 72;
     var slots = n + (more ? 1 : 0), stepA = slots > 1 ? Math.min(13, MAXA / (slots - 1)) : 0, half = (slots - 1) / 2 * stepA;
     var H = Math.max(2 * reach * 84 + 130, 2 * R * Math.sin(MAXA / 2 * deg) + 150, side ? cmPanelMax(side) : 0), cy = H / 2;
     el.style.height = H + 'px'; if (side) side.style.height = H + 'px';
@@ -1718,9 +1719,9 @@
     svg += '<path class="ln orbit" pathLength="1" style="' + d(T.orbit) + '" d="' + arc(R) + '" fill="none" stroke="rgba(168,190,222,.13)" stroke-width="1"/>';
     svg += '<path class="orbit2" style="' + d(T.orbit + 200) + '" d="' + arc(R + 26) + '" fill="none" stroke="rgba(168,190,222,.06)" stroke-width="1" stroke-dasharray="2 5"/>';
     var html = '<div class="cm-node" style="left:' + nx + 'px;top:' + cy + 'px"><span class="ring">' + esc(initials(o.name)) + '</span><b>' + esc(o.name) + '</b><span>' + esc(cmSince(o, st.sc)) + '</span></div>', selY = cy;
-    /* cards appear outward from Overview, which sits level with the company */
+    /* cards are centred on the company and appear outward from Overview */
     st.gs.forEach(function (g, i) {
-      var y = cy + (i - ov) * gap, on = g === st.g, t = T.card + Math.abs(i - ov) * T.cardStep; if (on) selY = y;
+      var y = cy + (i - mid) * gap, on = g === st.g, t = T.card + Math.abs(i - ov) * T.cardStep; if (on) selY = y;
       svg += '<path class="ln card-ln" pathLength="1" style="' + d(t - 60) + '" d="M' + (nx + 47) + ' ' + cy + ' C' + (nx + 84) + ' ' + cy + ' ' + (cx - 46) + ' ' + y + ' ' + cx + ' ' + y + '" fill="none" stroke="' + (on ? '#F37A21' : 'rgba(168,190,222,.32)') + '" stroke-width="' + (on ? 2 : 1.1) + '"/>';
       html += card(g, 'left:' + cx + 'px;top:' + y + 'px;' + d(t));
     });
@@ -1770,7 +1771,7 @@
         '<div class="cm-sec"><h4>Progress · ' + (j.pending ? 'not started' : Math.min(j.done, j.steps.length) + ' of ' + j.steps.length + ' steps') + '</h4><div class="cm-steps">' + bars + '</div><p>' + (j.pending ? 'Waiting for HazPack to accept the request.' : cur ? 'Up next: <b>' + esc(cur) + '</b>' : 'All steps done.') + '</p></div>' +
         (wait.length ? '<div class="cm-sec"><h4>' + (cl ? 'Waiting on you' : 'Waiting on the client') + '</h4>' + wait.map(function (w) { return '<p>' + w + '</p>'; }).join('') + '</div>' : '');
       var staffBtns = cl ? '' : j.pending ? '<button type="button" class="btn sm ghost" data-act="qAccept" data-org="' + o.id + '" data-id="' + j.id + '">Accept request</button>' : cur ? '<button type="button" class="btn sm ghost" data-act="qStep" data-org="' + o.id + '" data-id="' + j.id + '" title="Complete: ' + esc(cur) + '">Complete step</button>' : '';
-      return head(isOpen(j) ? 'Open job' : 'Job', j.id, true, esc(j.item), '<span class="pill ' + s[1] + '">' + s[0] + '</span>' + (pr ? '<span class="pill ' + pr[1] + '">' + pr[0] + '</span>' : '')) + '<div class="cm-sb">' + body + '</div>' + foot(jobBtn(j.id, true) + staffBtns + back);
+      return head(isOpen(j) ? 'Open job' : 'Job', esc(jn(j)), true, esc(j.item), '<span class="pill ' + s[1] + '">' + s[0] + '</span>' + (pr ? '<span class="pill ' + pr[1] + '">' + pr[0] + '</span>' : '')) + '<div class="cm-sb">' + body + '</div>' + foot(jobBtn(j.id, true) + staffBtns + back);
     }
     if (it.k === 'rep') {
       var p = it.r, njobs = o.jobs.filter(function (x) { return x.rep === p.id; }).length;
