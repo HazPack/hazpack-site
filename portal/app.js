@@ -165,7 +165,8 @@
     if (data.tariff && data.tariff.length) TARIFF = data.tariff;
     if (data.me) ME = data.me;
     var ids = Object.keys(ORGS).sort(function (a, b) { return ORGS[a].name.localeCompare(ORGS[b].name); });
-    S.org = ORGS[keepOrg] || ORGS[ids[0]] || null;
+    /* With no companies yet (a new setup) staff still need a screen to add the first one, so give the page an empty stand-in. */
+    S.org = ORGS[keepOrg] || ORGS[ids[0]] || (staff() ? { id: '', name: 'No clients yet', reps: [], jobs: [], files: [], notifs: [] } : null);
     if (!staff()) S.rep = S.org ? repOf(ME) : null;
     else S.rep = S.org ? (S.org.reps.filter(function (r) { return r.id === keepRep; })[0] || S.org.reps.filter(function (r) { return r.admin; })[0] || S.org.reps[0] || null) : null;
     S.home = S.org; S.homeRep = S.rep; S.demo = ids.some(function (id) { return ORGS[id].demo; });
