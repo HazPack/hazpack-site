@@ -60,10 +60,10 @@ body.is-login { background: linear-gradient(160deg, var(--navy-deep), var(--navy
 .note-bar { padding: 7px 16px; background: var(--accent-soft); color: var(--ink); font-size: 12.5px; text-align: center; border-bottom: 1px solid var(--line); }
 .login { min-height: calc(100vh - 40px); display: grid; place-items: center; padding: 28px max(16px, env(safe-area-inset-left, 0px)); }
 .login-card { width: min(100%, 440px); background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-xl); overflow: hidden; }
-.login-band { background: var(--navy); padding: 22px 28px; display: grid; gap: 10px; }
+.login-band { background: #ffffff; border-bottom: 1px solid var(--line); padding: 22px 28px; display: grid; gap: 10px; }
 .login-band .logo { height: 42px; }
-.login-band .logo-l { display: none; } .login-band .logo-d { display: block; }
-.login-band .eyebrow { color: var(--orange); }
+.login-band .logo-l { display: block !important; } .login-band .logo-d { display: none !important; }
+.login-band .eyebrow { color: var(--orange-ink); }
 .login-body { padding: 24px 28px 26px; display: grid; gap: 16px; }
 .login-body h1 { font-size: 24px; }
 .hint { font-size: 12.5px; color: var(--muted); background: var(--bg); border: 1px dashed var(--line); border-radius: 8px; padding: 9px 11px; margin: 0; }
