@@ -1,0 +1,14 @@
+{
+  "name": "hazpack-site",
+  "private": true,
+  "type": "module",
+  "description": "HazPack Compliance Solutions website. The public pages are static; the client portal under /portal uses the functions in /api.",
+  "scripts": {
+    "dev": "node server.mjs",
+    "seed": "node scripts/seed.mjs",
+    "test": "node scripts/test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
