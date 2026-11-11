@@ -343,7 +343,7 @@
       '<div class="org"><b>' + esc(o.name) + '</b><span>' + vis().length + ' ' + (vis().length === 1 ? 'job' : 'jobs') + (staff() || S.rep.admin ? ' across your team' : ' yours') + '</span></div>' +
       '<nav class="nav" aria-label="Portal sections">' + items.map(function (i) { return '<button type="button" data-act="nav" data-v="' + i[0] + '"' + (S.view === i[0] || (i[0] === 'billing' && S.view === 'doc') ? ' aria-current="page"' : '') + '>' + i[1] + '<span class="badge quiet">' + i[2] + '</span></button>'; }).join('') + '</nav>' +
       '<div class="foot">' +
-      '<div class="me"><span class="av">' + initials(meName) + '</span><div class="t"><b>' + esc(meName) + '</b><span>' + esc(meSub) + '</span></div><button type="button" class="linkbtn" data-act="lock" style="font-size:12.5px">' + (staff() ? 'Sign out' : 'Lock') + '</button></div></div></aside>';
+      '<div class="me"><span class="av">' + initials(meName) + '</span><div class="t"><b>' + esc(meName) + '</b><span>' + esc(meSub) + '</span></div><button type="button" class="linkbtn" data-act="lock" style="font-size:12.5px">' + 'Log out' + '</button></div></div></aside>';
   }
   function topbar() {
     var n = staff() ? 0 : unread().length;
@@ -530,14 +530,17 @@
   function toast(msg) { var t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t); setTimeout(function () { t.remove(); }, 3400); }
   function closeModal() { layer.innerHTML = ''; }
   function openModal(html) { layer.innerHTML = '<div class="veil" id="veil">' + html + '</div>'; var v = document.getElementById('veil'); v.addEventListener('click', function (e) { if (e.target === v) closeModal(); }); var f = layer.querySelector('select, input, button'); if (f) f.focus(); }
-  function resetIdle() { clearTimeout(idleT); if (S.stage === 'app') idleT = setTimeout(function () { lock(); toast('Locked after 10 minutes without activity.'); }, 600000); }
-  function lock() {
+  function resetIdle() { clearTimeout(idleT); if (S.stage === 'app') idleT = setTimeout(function () { lock(true); toast('Locked after 10 minutes without activity.'); }, 600000); }
+  /* Log out (the button) signs the company out completely. After 10 idle minutes a client is only locked: the company stays
+     signed in and the screen goes back to choosing a name and PIN, so a colleague on a shared computer can pick up from there. */
+  function lock(idle) {
     var wasStaff = staff(), o = S.org, reps = o ? o.reps.map(function (r) { return { id: r.id, name: r.name, title: r.title }; }) : [], name = o ? o.name : '';
     var done = function () { ORGS = {}; DOCS = []; BLOBS = {}; closeModal(); };
-    clearTimeout(pollT); S.notif = false; S.rep = null; S.pendingRep = null; S.pin = ''; S.pinErr = ''; S.job = null;
-    if (wasStaff) { apiCall('DELETE', '/api/portal-session', {}).then(function () { done(); S.role = 'client'; S.stage = 'org'; S.org = null; render(); }); return; }
-    apiCall('PATCH', '/api/portal-session', {}).then(function () { done(); S.role = 'client'; S.org = stubOrg(name, reps); S.stage = 'pin'; render(); });
+    clearTimeout(pollT); clearTimeout(idleT); S.notif = false; S.rep = null; S.pendingRep = null; S.pin = ''; S.pinErr = ''; S.job = null;
+    if (idle && !wasStaff) { apiCall('PATCH', '/api/portal-session', {}).then(function () { done(); S.role = 'client'; S.org = stubOrg(name, reps); S.stage = 'pin'; render(); }); return; }
+    apiCall('DELETE', '/api/portal-session', {}).then(function () { done(); S.role = 'client'; S.stage = 'org'; S.org = null; S.orgErr = ''; render(); });
   }
+
   function download(name, blob) {
     var use = window.claude && window.claude.use;
     if (!use) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); return; }
