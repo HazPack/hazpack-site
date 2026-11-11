@@ -180,7 +180,7 @@
   function adopt(data) {
     var keepOrg = S.org && S.org.id, keepRep = S.rep && S.rep.id;
     ORGS = {}; (data.orgs || [data.org]).forEach(function (o) { reviveOrg(o); ORGS[o.id] = o; REV[o.id] = o.rev; });
-    DOCS = data.docs || []; SEQ = data.seq || {};
+    DOCS = data.docs || []; SEQ = data.seq || {}; MAIL_ON = !!data.mail;
     Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(upgradeSteps); });
     if (data.tariff && data.tariff.length) TARIFF = data.tariff;
     if (data.me) ME = data.me;
@@ -549,10 +549,10 @@
       return dl.save({ filename: name, data: blob }).catch(function (e) { if (!e || e.code !== 'declined') toast('Could not save the file.'); });
     });
   }
-  function notify(job, text, to) { S.org.notifs.unshift({ id: nid('n'), to: to, job: job, text: text, date: TODAY, read: {} }); }
+  function notify(job, text, to, acct) { var n = { id: nid('n'), to: to, job: job, text: text, date: TODAY, read: {} }; if (acct) n.acct = true; S.org.notifs.unshift(n); }
   function recipients(job) { return S.org.reps.filter(function (r) { return r.notify && canSee(r, job); }); }
   function mailBox(from, toHtml, subject, bodyHtml, extra, ccHtml) {
-    return '<div class="mail"><div class="h"><b>Email preview.</b> This prototype does not send email.</div><div class="h">From: ' + from + '</div><div class="h">To: ' + toHtml + '</div>' + (ccHtml ? '<div class="h">Cc: ' + ccHtml + '</div>' : '') + '<div><b>Subject:</b> ' + esc(subject) + '</div><div>' + bodyHtml + '</div>' + (extra || '') + '</div>';
+    return '<div class="mail"><div class="h">' + (MAIL_ON ? '<b>Email sent.</b> People with email alerts on get this.' : '<b>Email preview.</b> Email is not set up yet, so this was not sent.') + '</div><div class="h">From: ' + from + '</div><div class="h">To: ' + toHtml + '</div>' + (ccHtml ? '<div class="h">Cc: ' + ccHtml + '</div>' : '') + '<div><b>Subject:</b> ' + esc(subject) + '</div><div>' + bodyHtml + '</div>' + (extra || '') + '</div>';
   }
   var HP_FROM = 'HazPack Compliance &lt;' + FROM_EMAIL + '&gt;';
   function peopleList(rs) { return rs.length ? rs.map(function (r) { return esc(r.name) + ' &lt;' + esc(r.email) + '&gt;'; }).join(', ') : 'nobody has email alerts on for this job'; }
@@ -821,7 +821,7 @@
      The next number follows the highest one on a saved document. SEQ also holds the highest number of any deleted document
      that had been sent to the client (they already have it), kept on the server, so that number is never given out again.
      Deleting an unsent document, or renumbering and resending one, frees the number. */
-  var SEQ = {};
+  var SEQ = {}, MAIL_ON = false;
   function docStem(type, date) { return (type === 'Invoice' ? 'I' : 'Q') + '-' + date.slice(0, 4) + '-' + date.slice(5, 7) + '-HP-'; }
   function nextDocNum(type, date) {
     var stem = docStem(type, date), n = SEQ[stem.slice(0, -4)] || 0;
@@ -1049,7 +1049,7 @@
       rec.fileId = f.id; f.note = fileNote(rec); f.docId = rec.id; f.job = job ? job.id : ''; var size = f.size;
       logEv(job, staffName(), rec.type + ' ' + rec.docNum + ' sent to the client (' + fileNote(rec) + ')');
       var prev = S.org, cc = rec.type === 'Invoice' && org.accountsEmail ? esc(org.accountsEmail) : ''; S.org = org;
-      notify(job ? job.id : '', ('HazPack ' + (again ? 'updated' : 'added') + ' ' + name + ' (' + rec.type.toLowerCase() + ')' + (job ? ' on ' + job.id : ' for ' + org.name) + (rec.type === 'Quote' ? '. It is waiting for your approval.' : '.')).replace(/\.\./g, '.'), 'client');
+      notify(job ? job.id : '', ('HazPack ' + (again ? 'updated' : 'added') + ' ' + name + ' (' + rec.type.toLowerCase() + ')' + (job ? ' on ' + job.id : ' for ' + org.name) + (rec.type === 'Quote' ? '. It is waiting for your approval.' : '.')).replace(/\.\./g, '.'), 'client', rec.type === 'Invoice');
       var to = peopleList(job ? recipients(job) : org.reps.filter(function (r) { return r.notify && (r.admin || r.id === rec.repId); })); S.org = prev;
       render();
       openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Sent to client"><h2>' + rec.type + ' sent to ' + esc(org.name) + '</h2><p class="muted" style="margin:0">' + esc(name) + ' ' + (job ? 'is now a file on job ' + esc(jn(job)) + '. People who can see the job have a portal notification.' : 'was sent to the company with no job yet. Company admins and the contact see it on their dashboard. Accepting it opens a new job request.') + (reopened ? ' The quote changed after it was answered, so it is open for approval again.' : '') + (cc ? ' The company accounts email is copied on the invoice email.' : '') + '</p>' +

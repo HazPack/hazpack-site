@@ -61,6 +61,29 @@ marked "sample" on screen. They exist only locally (the `data/` folder is not co
 7. Quote and invoice PDFs are page images (text is not selectable). Replace with real text PDFs before launch.
 8. Confirm the retention rule (each record is kept 5 months from when it was created) and who should see the staff page.
 
+## Email alerts
+
+Every portal notification is also emailed, through [Resend](https://resend.com), once these are set in Vercel
+(Settings, Environment Variables; tick **Preview** to try it on the client-portal link, and **Production** for launch):
+
+| Variable | What to put |
+| --- | --- |
+| `RESEND_API_KEY` | An API key from Resend (API Keys, Create, "Sending access"). Without it nothing is emailed. |
+| `PORTAL_MAIL_FROM` | The sender, e.g. `HazPack Compliance <portal@hazpackcompliance.com>`. |
+| `PORTAL_STAFF_EMAIL` | Where HazPack's alerts go. Defaults to lax-dgr@hazpackcompliance.com. |
+| `PORTAL_URL` | Optional. The link in each email. Defaults to the preview's branch link, or the live portal. |
+
+Before the first email: in Resend, **Domains, Add domain**, enter `hazpackcompliance.com`, and add the DNS records it shows
+where the domain's DNS is managed. Resend only sends from a verified domain.
+
+Who gets what:
+- **Clients:** each person at the company with email alerts on (Team page) who can see the job; admins see every job.
+  Covers files and documents HazPack adds, quotes and invoices sent, job steps, corrections and messages from HazPack.
+  Invoices also copy the company's accounts email. Replies go to `PORTAL_STAFF_EMAIL`.
+- **HazPack:** new job requests, withdrawn requests, client uploads and messages, and quotes accepted or declined.
+- Emails name jobs by the client's reference. Sample addresses (`.example`, `.test`) are never emailed, so the demo data is safe.
+- The portal's email previews say "Email sent" when email is on, and "not set up yet" when it is off.
+
 ## Keeping it off the live site while testing
 
 - Work only on this branch. Vercel builds branches as separate preview links, not on hazpackcompliance.com.

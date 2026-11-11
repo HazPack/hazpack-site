@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { hashSecret, verifySecret, DUMMY_HASH } from './crypto.js';
 import { FILE_TYPES, CLIENT_FILE_TYPES, SERVICES, RETENTION_MONTHS, MAX_FILE_BYTES, MAX_FAILS, LOCK_MS } from './config.js';
 import { withDb, readDb, putFile, getFile, delFile } from './store.js';
+import { notifIds, newMail, sendMail, mailOn } from './mail.js';
 
 const clean = (v, max) => String(v ?? '').trim().replace(/\s+/g, ' ').slice(0, max);
 export const normSlug = (v) => String(v ?? '').trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
@@ -93,7 +94,7 @@ export function clientState(db, org, rep) {
   const fileIds = new Set(files.map((f) => f.id));
   const notifs = org.notifs.filter((n) => n.to === 'client' && (n.job ? ids.has(n.job) : rep.admin));
   const docs = db.docs.filter((d) => d.orgId === org.id && d.fileId && fileIds.has(d.fileId));
-  return { org: { ...pubOrg(org), jobs, files, notifs, accountsEmail: rep.admin ? org.accountsEmail : undefined, rates: undefined }, docs, me: rep.id, rev: org.rev };
+  return { org: { ...pubOrg(org), jobs, files, notifs, accountsEmail: rep.admin ? org.accountsEmail : undefined, rates: undefined }, docs, me: rep.id, rev: org.rev, mail: mailOn() };
 }
 
 export async function clientData(orgId, repId) {
@@ -119,7 +120,7 @@ function bumpSeq(seq, docs) {
 export async function staffData() {
   const db = await readDb();
   const seq = { ...(db.meta?.sentSeq || {}) };
-  return { orgs: db.orgs.map(pubOrg), docs: db.docs, tariff: db.tariff || null, seq, staff: true };
+  return { orgs: db.orgs.map(pubOrg), docs: db.docs, tariff: db.tariff || null, seq, mail: mailOn(), staff: true };
 }
 
 // Returns file info only if it belongs to the signed-in person's company (and a job they can see).
@@ -347,19 +348,24 @@ const CLIENT_ACTIONS = {
   },
 };
 
-export function clientAction(orgId, repId, action, body) {
+export async function clientAction(orgId, repId, action, body) {
   const fn = CLIENT_ACTIONS[action];
-  if (!fn) return Promise.resolve(fail('Unknown action.'));
-  return withDb(async (db) => {
+  if (!fn) return fail('Unknown action.');
+  let mail = [];
+  const out = await withDb(async (db) => {
     const org = db.orgs.find((o) => o.id === orgId);
     const rep = org?.reps.find((r) => r.id === repId);
     if (!org || !rep) return fail('Please sign in again.');
+    const before = notifIds(db);
     const res = await fn(db, org, rep, body);
     if (res.error) return res;
     for (const id of res.removeFiles || []) await delFile(id);
     org.rev = (org.rev || 0) + 1;
+    mail = newMail(db, before);
     return { ok: true, jobId: res.jobId, fileId: res.fileId, state: clientState(db, org, rep) };
   });
+  if (!out.error) await sendMail(mail); // only once the change is saved, so a retried save never emails twice
+  return out;
 }
 
 // ---- staff ----
@@ -460,12 +466,15 @@ const STAFF_ACTIONS = {
   },
 };
 
-export function staffAction(action, body) {
+export async function staffAction(action, body) {
   const fn = STAFF_ACTIONS[action];
-  if (!fn) return Promise.resolve(fail('Unknown action.'));
-  return withDb(async (db) => {
+  if (!fn) return fail('Unknown action.');
+  let mail = [];
+  const out = await withDb(async (db) => {
+    const before = notifIds(db);
     const res = await fn(db, body);
     if (res.error) return res;
+    mail = newMail(db, before);
     for (const id of res.removeFiles || []) await delFile(id);
     if (action === 'addRep' || action === 'resetPin') {
       const org = db.orgs.find((o) => o.id === body.orgId); if (org) org.rev = (org.rev || 0) + 1;
@@ -473,6 +482,8 @@ export function staffAction(action, body) {
     const { removeFiles, ...rest } = res;
     return { ok: true, ...rest };
   });
+  if (!out.error) await sendMail(mail);
+  return out;
 }
 
 // ---- retention: records are kept 5 months, then removed (run daily by the cron in vercel.json) ----

@@ -1,6 +1,7 @@
 // Checks the client portal back end against throwaway sample data:  npm test
 // Starts the local server on its own port and data folder, so it never touches data/.
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -48,7 +49,12 @@ const PDF = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 const JPG = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0, 0, 0, 0]);
 
-const server = await startServer(4401, { CRON_SECRET: 'testcron', PORTAL_DATA_DIR: dataDir });
+// A stand-in for Resend that records every email the portal asks it to send.
+const mails = [];
+const mailer = createServer((req, res) => { let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => { mails.push({ auth: req.headers.authorization, ...JSON.parse(b) }); res.end('{"id":"x"}'); }); });
+await new Promise((r) => mailer.listen(4402, r));
+const MAIL_ENV = { RESEND_API_KEY: 'test-key', RESEND_API_URL: 'http://localhost:4402/emails', PORTAL_STAFF_EMAIL: 'alerts@hazpack-qa.com', PORTAL_URL: 'https://portal.hazpack-qa.com/portal' };
+const server = await startServer(4401, { CRON_SECRET: 'testcron', PORTAL_DATA_DIR: dataDir, ...MAIL_ENV });
 const base = 'http://localhost:4401';
 const act = (c, body) => c.json('/api/portal-act', { method: 'POST', body });
 async function signIn(slug, password, name, pin) {
@@ -146,6 +152,9 @@ try {
   check('request a job', rq.status === 200 && /^HP-\d{4}-\d{3}$/.test(rq.data.jobId));
   const newJob = rq.data.state.org.jobs.find((j) => j.id === rq.data.jobId);
   check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 6);
+  const reqMail = mails.find((m) => m.to[0] === 'alerts@hazpack-qa.com' && /submitted a job request/.test(m.subject));
+  check('a job request emails HazPack, naming the job by its reference', reqMail && /PO-1/.test(reqMail.subject) && !/HP-\d{4}/.test(reqMail.subject) && reqMail.auth === 'Bearer test-key' && reqMail.html.includes('https://portal.hazpack-qa.com/portal'), JSON.stringify(reqMail?.subject));
+  check('sample (.example) addresses are never emailed', mails.every((m) => ![...m.to, ...(m.cc || [])].some((a) => /\.example$/.test(a))));
   check('request without a service refused', (await act(D.c, { action: 'requestJob', svc: ['bogus'] })).status === 400);
   const up = (type, bytes, name = 'doc', extra = {}) => act(D.c, { action: 'uploadFile', jobId: rq.data.jobId, type, name, data: b64(bytes), ...extra });
   const u1 = await up('DGD', PDF, 'My DGD.pdf', { quiet: true });
@@ -197,7 +206,7 @@ try {
   console.log('Staff tools');
   const post = (body) => S.json('/api/portal-staff', { method: 'POST', body });
   check('short password refused', (await post({ action: 'createOrg', name: 'Test Co', password: 'short' })).status === 400);
-  const created = await post({ action: 'createOrg', name: 'Test Co', password: 'a-long-enough-pass', adminName: 'Sam', pin: '4321' });
+  const created = await post({ action: 'createOrg', name: 'Test Co', password: 'a-long-enough-pass', adminName: 'Sam', adminEmail: 'sam@testco-mail.com', pin: '4321' });
   check('company created', created.status === 200 && created.data.slug === 'test-co');
   check('duplicate ID refused', (await post({ action: 'createOrg', name: 'Test Co', password: 'a-long-enough-pass' })).status === 400);
   check('person added by staff', (await post({ action: 'addRep', orgId: 'test-co', name: 'Kim', pin: '2468' })).status === 200);
@@ -206,6 +215,15 @@ try {
   org.jobs.push({ id: 'HP-2611-900', rep: org.reps[0].id, item: 'Test', un: 'UN1950', cls: '2.1', pg: 'N/A', qty: '1', mode: 'Ground', from: 'LAX', to: 'PHX', ref: 'T-1', req: '', svc: ['dgd'], steps: ['Job received', 'Declaration signed, cleared to ship', 'Invoice sent'], done: 1, start: new Date().toISOString(), pending: false, fix: false, msgs: [], owner: 'Alex Walsh', pri: '', by: {}, notes: {}, ev: [], log: [], expiresAt: new Date(Date.now() + 1e10).toISOString() });
   const saved = await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] });
   check('staff save works', saved.status === 200 && saved.data.rev === org.rev + 1);
+  org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+  org.accountsEmail = 'ap@testco-mail.com';
+  org.notifs.unshift({ id: 'n-inv', to: 'client', job: 'HP-2611-900', text: 'HazPack added Invoice_I-2099-01-HP-001.pdf (invoice) on HP-2611-900.', date: new Date().toISOString(), read: {}, acct: true });
+  const before = mails.length;
+  check('staff can add a client alert', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200);
+  const inv = mails.slice(before);
+  check('an invoice alert emails the person with alerts on and copies accounts', inv.length === 1 && inv[0].to[0] === 'sam@testco-mail.com' && inv[0].cc?.[0] === 'ap@testco-mail.com' && /T-1/.test(inv[0].subject) && inv[0].reply_to === 'alerts@hazpack-qa.com', JSON.stringify(inv.map((m) => [m.to, m.cc, m.subject])));
+  org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+  check('saving again does not email the same alert twice', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200 && mails.length === before + 1);
   check('a stale save is refused with a conflict', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 409);
   org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
   check('saved job is there and PINs survived', org.jobs.length === 1 && !JSON.stringify(org).includes('Hash') && (await signIn('test-co', 'a-long-enough-pass', 'Sam', '4321')).session.status === 200);
@@ -246,7 +264,7 @@ try {
   failures.push(`crashed: ${e.stack}`);
   console.log(e);
 } finally {
-  server.kill();
+  server.kill(); mailer.close();
 }
 
 console.log('Production safety');
