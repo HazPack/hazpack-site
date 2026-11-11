@@ -34,9 +34,24 @@ marked "sample" on screen. They exist only locally (the `data/` folder is not co
 
 ## Before real clients can use it (not done yet)
 
-1. **Real storage.** `api/_lib/store.js` keeps data in a local file, which is fine for building but not for real client
-   records. Replace it with a database plus *private* file storage that offers the same functions
-   (`readDb`, `withDb`, `putFile`, `getFile`, `delFile`). Until then the production site answers "not set up yet" on purpose.
+1. **Real storage (Supabase).** Done in code (`api/_lib/store.js`). When `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set
+   (Vercel's Supabase integration adds them, for Production and Preview), records live in one Supabase table and files in a
+   private Storage bucket called `portal-files`. Without them the portal uses local files (development only).
+   One-time set-up: in Supabase open **SQL Editor** and run this once. It creates the table and closes it to Supabase's public web API:
+
+   ```sql
+   create table if not exists portal_state (
+     id integer primary key,
+     rev integer not null default 0,
+     data jsonb not null,
+     updated_at timestamptz not null default now()
+   );
+   alter table portal_state enable row level security;
+   ```
+
+   The portal creates the empty first row and the file bucket itself. With Supabase connected there is no sample data:
+   create companies from the staff screen (Clients, Add company). Preview and Production share one Supabase project until
+   you split them, so delete test companies before going live.
 2. **Vercel environment variables** (Production): `PORTAL_SESSION_SECRET` (a long random string),
    `PORTAL_STAFF_KEY` (the staff password), `CRON_SECRET` (a long random string).
 3. **Uploads** go through the function as base64 and are limited to 3 MB. Switch to direct-to-storage uploads if bigger photos are needed.
