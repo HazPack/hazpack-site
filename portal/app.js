@@ -1017,9 +1017,10 @@
       var host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-10000px;top:0'; host.innerHTML = paperHtml(e, true); document.body.appendChild(host);
       return new Promise(function (r) { setTimeout(r, 80); }).then(function () { return window.html2canvas(host.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true }); }).then(function (canvas) {
         host.remove();
-        var pdf = new window.jspdf.jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' }), img = canvas.toDataURL('image/png'), W = 8.5, H = 11, h = canvas.height * W / canvas.width, left = h, pos = 0;
-        pdf.addImage(img, 'PNG', 0, 0, W, h); left -= H;
-        while (left > 0.02) { pos -= H; pdf.addPage(); pdf.addImage(img, 'PNG', 0, pos, W, h); left -= H; }
+        var pdf = new window.jspdf.jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' }), img = canvas.toDataURL('image/jpeg', 0.85), W = 8.5, H = 11, h = canvas.height * W / canvas.width, left = h, pos = 0;
+        /* JPEG, stored once and reused on each page, keeps the file well under the 3 MB upload limit (a PNG was over 10 MB). */
+        pdf.addImage(img, 'JPEG', 0, 0, W, h, 'doc'); left -= H;
+        while (left > 0.02) { pos -= H; pdf.addPage(); pdf.addImage(img, 'JPEG', 0, pos, W, h, 'doc'); left -= H; }
         return pdf.output('blob');
       }, function (err) { host.remove(); throw err; });
     });
