@@ -1,0 +1,87 @@
+/* Polish ideas from the UI-library video (sandbox): quick search, rolling numbers, stacked messages, phone drawer. */
+
+/* ---- 1. Quick search ---- */
+.kbtn { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 8px 0 11px; margin-left: auto; border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--panel); color: var(--muted); font: inherit; font-size: 13.5px; cursor: pointer; transition: border-color .15s, color .15s; }
+.kbtn:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); color: var(--ink); }
+.kbtn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.kbtn kbd, .kbox kbd { font: 600 11px var(--font-sans); padding: 2px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--bg); color: var(--muted); }
+.topbar .kbtn + .btn, .topbar .kbtn + .ihb { margin-left: 0; }
+.kveil { position: fixed; inset: 0; z-index: 80; background: rgba(8, 15, 27, .42); backdrop-filter: blur(2px); display: grid; justify-items: center; align-items: start; padding: 12vh 16px 16px; animation: kFade .14s ease-out; }
+.kbox { width: min(620px, 100%); background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: var(--radius-xl); box-shadow: 0 24px 60px rgba(8, 15, 27, .35), 0 2px 6px rgba(8, 15, 27, .12); overflow: hidden; animation: kPop .18s cubic-bezier(.2, .9, .3, 1.2); }
+.kin { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.kin svg { width: 19px; height: 19px; flex: none; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+.kin input { flex: 1; border: 0; background: transparent; padding: 4px 0; font-size: 16.5px; outline: none; width: auto; }
+.kin input:focus-visible { outline: none; }
+.klist { max-height: min(56vh, 440px); overflow-y: auto; padding: 6px; scroll-padding: 34px 0 6px; }
+.kg { font: 700 11px var(--font-narrow); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 10px 10px 4px; }
+.ki { display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border: 0; border-radius: var(--radius-md); background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ki[aria-selected="true"] { background: var(--accent-soft); }
+.ki > svg { width: 17px; height: 17px; flex: none; fill: none; stroke: var(--muted); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ki[aria-selected="true"] > svg { stroke: var(--accent); }
+.ki .sdot { flex: none; margin: 0 4px; }
+.kt { display: grid; min-width: 0; flex: 1; }
+.kt b { font-weight: 600; font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kt small { color: var(--muted); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kt mark { background: none; color: var(--accent); font-weight: 800; }
+.kgo { flex: none; }
+.kempty { margin: 0; padding: 28px 12px; text-align: center; color: var(--muted); }
+.kfoot { display: flex; gap: 18px; padding: 9px 16px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); background: color-mix(in srgb, var(--bg) 60%, var(--panel)); }
+.kfoot span { display: inline-flex; gap: 4px; align-items: center; }
+@keyframes kFade { from { opacity: 0 } }
+@keyframes kPop { from { opacity: 0; transform: translateY(-6px) scale(.98) } }
+@media (max-width: 800px) {
+  .kbtn { width: 40px; height: 40px; padding: 0; justify-content: center; }
+  .kbtn span, .kbtn kbd, .kfoot { display: none; }
+  .kveil { padding-top: 10px; }
+  .kbox { border-radius: var(--radius-lg); }
+  .klist { max-height: 62vh; }
+}
+
+/* ---- 2. Rolling numbers ---- */
+.nr { display: inline-flex; vertical-align: top; }
+.nr-c { display: inline-block; }
+.nr-d { display: inline-block; height: 1.2em; line-height: 1.2em; overflow: hidden; vertical-align: top; }
+.nr-d > span { display: block; transform: translateY(calc(var(--d) * -1.2em)); text-align: center; }
+.nr-d.go > span { transition: transform .9s cubic-bezier(.22, 1, .36, 1) var(--delay, 0ms); }
+.stat .v { line-height: 1.2; display: block; }
+
+/* ---- 3. Stacked messages ---- */
+.toast { display: none !important; }
+#toasts { position: fixed; z-index: 90; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100% - 32px)); transform: translateX(-50%); height: 0; }
+#toasts::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 0; }
+#toasts.open::before { height: 260px; }
+.tst { --i: 0; --y: 0px; --dx: 0px; position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 14px; border-radius: 12px; background: var(--panel); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 10px 28px rgba(8, 15, 27, .16), 0 1px 3px rgba(8, 15, 27, .08); font-size: 14px; line-height: 1.35; touch-action: pan-y; user-select: none;
+  transform: translate(var(--dx), calc(var(--i) * -12px)) scale(calc(1 - var(--i) * .05)); opacity: 0; transition: transform .35s cubic-bezier(.21, 1.02, .73, 1), opacity .3s; z-index: calc(10 - var(--i)); }
+.tst.in { opacity: 1; }
+.tst:not(.in) { transform: translateY(110%); }
+.tst.hidden3 { opacity: 0; pointer-events: none; }
+#toasts.open .tst { transform: translate(var(--dx), calc(var(--y) * -1)); }
+#toasts.open .tst.hidden3 { opacity: 1; pointer-events: auto; }
+#toasts:not(.open) .tst.back span, #toasts:not(.open) .tst.back svg { opacity: 0; }
+.tst span { flex: 1; transition: opacity .2s; }
+.tst svg { width: 19px; height: 19px; flex: none; fill: none; stroke: var(--ok); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tst.bad svg { stroke: var(--bad); }
+.tst .tx { flex: none; width: 24px; height: 24px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; opacity: 0; transition: opacity .15s; }
+.tst:hover .tx, .tst .tx:focus-visible { opacity: 1; }
+.tst.drag { transition: none; }
+.tst.out { opacity: 0; transform: translateY(40%) scale(.96); }
+.tst.swiped { opacity: 0; transform: translateX(var(--sx)); }
+@media (max-width: 800px) { #toasts { bottom: calc(92px + env(safe-area-inset-bottom, 0px)); } .tst .tx { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tst, .nr-d.go > span { transition: opacity .2s !important; } }
+
+/* ---- 4. Phone drawer for a job ---- */
+#jsheet { position: fixed; inset: 0; z-index: 60; }
+.sh-veil { position: absolute; inset: 0; background: rgba(8, 15, 27, .45); transition: opacity .25s; }
+.sh { position: absolute; left: 0; right: 0; bottom: 0; max-height: calc(100% - 44px); display: flex; flex-direction: column; background: var(--bg); border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(8, 15, 27, .3); transition: transform .32s cubic-bezier(.32, .72, 0, 1); touch-action: none; }
+.sh.drag { transition: none; }
+.sh-grab { flex: none; display: grid; place-items: center; height: 26px; cursor: grab; touch-action: none; }
+.sh-grab i { width: 40px; height: 5px; border-radius: 3px; background: var(--line); }
+.sh-body { overflow-y: auto; overscroll-behavior: contain; padding: 0 14px calc(24px + env(safe-area-inset-bottom, 0px)); touch-action: pan-y; }
+.sh-body .back-m { display: none; }
+#jsheet.enter .sh { animation: shUp .38s cubic-bezier(.32, .72, 0, 1); }
+#jsheet.enter .sh-veil { animation: kFade .3s ease-out; }
+#jsheet.leave .sh { transform: translateY(100%) !important; transition: transform .24s cubic-bezier(.32, .72, 0, 1); }
+#jsheet.leave .sh-veil { opacity: 0 !important; }
+body.sheet-on { overflow: hidden; }
+@keyframes shUp { from { transform: translateY(100%) } }
+@media (prefers-reduced-motion: reduce) { #jsheet.enter .sh { animation: none; } }

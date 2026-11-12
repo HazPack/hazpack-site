@@ -295,3 +295,27 @@
   init('builder', 'b-', 'Watch it build');
   init('inspection-demo', 'i-', 'Watch it run');
 })();
+
+// Quiet polish: sections ease in as they scroll into view (skipped for reduced motion)
+(function () {
+  if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var groups = ['.section-head', '.cards', '.steps', '.values', '.badges', '.about-grid > div', '.split', '.cta-inner', '.reg-grid', '.cards-3'];
+  var items = [];
+  groups.forEach(function (sel) {
+    document.querySelectorAll('main ' + sel).forEach(function (g) {
+      var kids = /cards|steps|values|badges|reg-grid/.test(sel) ? g.children : [g];
+      Array.prototype.forEach.call(kids, function (el, i) {
+        if (el.closest('.hero') || el.classList.contains('rv')) return;
+        el.classList.add('rv'); el.style.setProperty('--rd', Math.min(i, 5) * 0.07 + 's'); items.push(el);
+      });
+    });
+  });
+  function show(el) { el.classList.add('in'); setTimeout(function () { el.classList.add('settled'); }, 700 + parseFloat(el.style.getPropertyValue('--rd')) * 1000); }
+  var io = new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { show(e.target); io.unobserve(e.target); } });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+  items.forEach(function (el) {
+    if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('in', 'settled'); else io.observe(el);
+  });
+  document.documentElement.classList.add('js-reveal');
+})();

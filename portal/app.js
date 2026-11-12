@@ -351,7 +351,7 @@
       '<button type="button" class="btn sm ghost" data-act="upload" data-job="' + esc(S.view === 'jobs' ? S.job || '' : '') + '">Upload a file</button>' + ihb('New job request', 'type="button" data-act="request"', 'sm') + '';
     var cmSeg = staff() && S.view === 'clients' ? '<div class="seg top" role="group" aria-label="Show companies as"><button type="button" data-act="cmMode" data-m="0" aria-pressed="' + !S.cmap + '">Table</button><button type="button" data-act="cmMode" data-m="1" aria-pressed="' + !!S.cmap + '">Map</button></div>' :
       !staff() && S.view === 'dashboard' ? '<div class="seg top wide" role="group" aria-label="Show the dashboard as"><button type="button" data-act="dMode" data-m="0" aria-pressed="' + !S.dmap + '">Dashboard</button><button type="button" data-act="dMode" data-m="1" aria-pressed="' + !!S.dmap + '">Company map</button></div>' : '';
-    return '<div class="topbar"><h1>' + TITLES[S.view] + '</h1>' + cmSeg + btns +
+    return '<div class="topbar"><h1>' + TITLES[S.view] + '</h1>' + cmSeg + kButton() + btns +
       (!staff() ? '<button type="button" class="bell" data-act="bell" aria-label="Notifications, ' + n + ' unread"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>' + (n ? '<span class="badge">' + n + '</span>' : '') + '</button>' : '') + '</div>' +
       (S.notif && !staff() ? notifPanel() : '');
   }
@@ -438,6 +438,7 @@
     return out.join('');
   }
   function detail(j) {
+    if (S.jobTab === 'flow' && !staff()) S.jobTab = 'overview';
     var a = pt(j.from), b = pt(j.to), t = S.jobTab, ok = routeOf(j);
     var files = S.org.files.filter(function (f) { return f.job === j.id; }).sort(function (x, y) { return y.date - x.date; });
     var body = '';
@@ -511,7 +512,7 @@
 
   function render() {
     document.body.classList.toggle('is-login', S.stage !== 'app'); queueSync();
-    document.body.classList.toggle('job-open', S.stage === 'app' && S.view === 'jobs' && S.mobileDetail);
+    document.body.classList.toggle('job-open', S.stage === 'app' && S.view === 'jobs' && S.mobileDetail && !sheetMode());
     var nb = document.getElementById('notebar'); nb.hidden = !(S.demo && S.stage === 'app'); nb.textContent = 'Sample data. Every company, person and file here is made up, and this copy resets from time to time.';
     if (S.stage === 'org') { app.innerHTML = orgView(); return; }
     if (S.stage === 'staff') { app.innerHTML = staffView(); return; }
@@ -525,7 +526,7 @@
     app.innerHTML = '<div class="shell">' + rail() + '<div class="work" style="position:relative">' + topbar() + '<main class="content">' + body + '</main></div>' + navDock() + '</div>';
     if (jlTop && (jl = document.getElementById('jlistWrap'))) jl.scrollTop = jlTop;
     if (foc) { var q = document.getElementById(foc); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
-    fitPaper(); cmDraw(); railAfter(); flipAfter(); dockAfter(); labelTables(); S.recAnim = false;
+    fitPaper(); cmDraw(); railAfter(); flipAfter(); dockAfter(); labelTables(); polishAfter(); S.recAnim = false;
   }
 
   /* ---------- helpers ---------- */
@@ -1194,7 +1195,8 @@
 
   /* ----- job tabs: messages, activity (staff), files with zip ----- */
   function tabList(j, files) {
-    var t = [['overview', 'Overview'], ['timeline', 'Timeline'], ['flow', 'Workflow'], ['files', 'Files (' + files.length + ')'], ['msgs', 'Messages (' + j.msgs.length + ')']];
+    /* The Workflow tab is for HazPack staff only; clients see Overview and Timeline instead. */
+    var t = [['overview', 'Overview'], ['timeline', 'Timeline']].concat(staff() ? [['flow', 'Workflow']] : [], [['files', 'Files (' + files.length + ')'], ['msgs', 'Messages (' + j.msgs.length + ')']]);
     if (staff()) t.push(['log', 'Activity']);
     return t;
   }
@@ -1420,7 +1422,7 @@
     return '<button type="button" class="btn ghost sm" data-act="qStep"' + a + ' title="Complete: ' + esc(j.steps[j.done]) + '">Complete step</button><button type="button" class="btn ghost sm" data-act="qFlag"' + a + '>Flag</button>';
   }
   function staffJobs() {
-    if (S.mobileDetail && S.job && getJob(S.job)) return detail(getJob(S.job));
+    if (S.mobileDetail && S.job && getJob(S.job) && !sheetMode()) return detail(getJob(S.job));
     return staffJobsView();
     var all = []; Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(function (j) { all.push(j); }); });
     var q = S.q.toLowerCase(), sc = S.sc || '', so = S.so || '';
@@ -1940,7 +1942,7 @@
 
   function act(a, ds) {
     var o = S.org, j;
-    if (ideasAct(a, ds) || billingAct(a, ds) || extrasAct(a, ds)) return;
+    if (polishAct(a, ds) || ideasAct(a, ds) || billingAct(a, ds) || extrasAct(a, ds)) return;
     switch (a) {
       case 'toOrg': apiCall('DELETE', '/api/portal-session', {}); S.stage = 'org'; S.org = null; S.orgErr = ''; render(); break;
       case 'toStaff': S.stage = 'staff'; S.orgErr = ''; render(); break;
@@ -2116,7 +2118,7 @@
   /* ---------- 13 Filter table ---------- */
   var FS = [['all', 'All'], ['Request received', 'Requested'], ['In progress', 'In progress'], ['Needs correction', 'Needs correction'], ['Cleared to ship', 'Cleared to ship'], ['Completed', 'Completed']];
   function clientJobsView() {
-    if (S.mobileDetail && S.job && getJob(S.job)) return detail(getJob(S.job));
+    if (S.mobileDetail && S.job && getJob(S.job) && !sheetMode()) return detail(getJob(S.job));
     var q = S.q.toLowerCase();
     var base = vis().filter(function (j) {
       if (S.fm === 'Air' && j.mode !== 'Air') return false; if (S.fm === 'Ground' && j.mode !== 'Ground') return false;
@@ -2313,7 +2315,6 @@
       dockItem('msg', 'Message HazPack' + (j.msgs.length ? ' (' + j.msgs.length + ')' : ''), 'data-act="dockTab" data-t="msgs"'),
       dgd ? dockItem('dgd', 'View DGD', 'data-act="view" data-id="' + dgd.id + '"') : dockItem('dgd', 'No DGD yet', 'disabled'),
       inv ? dockItem('inv', 'View invoice', 'data-act="view" data-id="' + inv.id + '"') : dockItem('inv', 'No invoice yet', 'disabled'),
-      dockItem('flow', 'Workflow', 'data-act="dockTab" data-t="flow"'),
       files ? dockItem('down', 'Download all (' + files + ')', 'data-act="zipJob" data-id="' + j.id + '"') : dockItem('down', 'No files yet', 'disabled')];
     return '<div class="dockwrap job"><nav class="dock" data-mag aria-label="Job actions">' + items.join('') + '</nav></div>';
   }
@@ -2488,6 +2489,243 @@
         on.forEach(function (r) { if (/quantity on dgd/i.test(r[0])) j.qty = r[2]; });
         clientAct({ action: 'sendMessage', jobId: j.id, text: 'Confirmed the correction: ' + on.map(function (r) { return r[0] + ' ' + r[1] + ' → ' + r[2]; }).join('; ') + '.' }, function () { toast('Sent to HazPack. They will reissue the paperwork.'); });
         return true;
+    }
+    return false;
+  }
+
+  /* ---------- polish ideas from the UI-library video (sandbox) ----------
+     1. Quick search (cmdk style): Cmd/Ctrl+K opens a box that finds pages, jobs, files, companies and quotes/invoices.
+     2. Rolling numbers (NumberFlow style): stat tiles roll to their new value instead of jumping.
+     3. Stacked messages (Sonner style): toasts stack, pause on hover, and can be swiped away.
+     4. Phone drawer (Vaul style): on a phone, a job opens in a sheet over the list that you can drag down to close. */
+
+  /* ---- 1. Quick search ---- */
+  var K = { open: false, q: '', i: 0, items: [] };
+  function kItems() {
+    var out = [];
+    document.querySelectorAll('.rail2 [data-act="nav"][data-v]').forEach(function (b) {
+      var v = b.dataset.v, label = TITLES[v] || b.textContent.trim();
+      if (!out.some(function (x) { return x.k === 'p' + v; })) out.push({ k: 'p' + v, g: 'Pages', t: label, s: 'Go to ' + label, ic: 'arrow', run: function () { act('nav', { v: v }); } });
+    });
+    if (staff()) {
+      Object.keys(ORGS).forEach(function (id) {
+        var o = ORGS[id];
+        out.push({ k: 'o' + id, g: 'Companies', t: o.name, s: o.jobs.filter(isOpen).length + ' open jobs', ic: 'org', run: function () { act('openOrg', { org: id }); } });
+        o.jobs.forEach(function (j) { out.push(kJob(j, o)); });
+        o.files.forEach(function (f) { out.push(kFile(f, o)); });
+      });
+      DOCS.forEach(function (x) { out.push({ k: 'd' + x.id, g: 'Quotes and invoices', t: x.docNum + ' · ' + (x.client || ''), s: (x.type || '') + (x.amount != null ? ' · ' + money(x.amount) : '') + (x.status ? ' · ' + x.status : ''), ic: 'doc', run: function () { act('nav', { v: 'billing' }); act('docOpen', { id: x.id }); } }); });
+    } else if (S.org) {
+      var ids = vis().map(function (j) { return j.id; });
+      vis().forEach(function (j) { out.push(kJob(j, S.org)); });
+      S.org.files.filter(function (f) { return ids.indexOf(f.job) > -1; }).forEach(function (f) { out.push(kFile(f, S.org)); });
+    }
+    return out;
+  }
+  function kJob(j, o) {
+    var s = jobStatus(j)[0], to = pt(j.to);
+    return { k: 'j' + j.id, g: 'Jobs', t: jn(j) + ' · ' + j.item, s: s + (staff() ? ' · ' + o.name : '') + (to ? ' · to ' + to.city : ''), x: (j.un || '') + ' ' + (j.ref || '') + ' ' + j.id, dot: STATUS_DOT[s], run: function () { kOpenJob(o, j.id, 'overview'); } };
+  }
+  function kFile(f, o) {
+    var j = o.jobs.filter(function (x) { return x.id === f.job; })[0];
+    return { k: 'f' + f.id, g: 'Files', t: f.name, s: f.type + ' · ' + (j ? jn(j) : '') + (staff() ? ' · ' + o.name : ''), ic: 'file', run: function () { kOpenJob(o, f.job, 'files'); } };
+  }
+  function kOpenJob(o, id, tab) {
+    if (staff()) act('openOrg', { org: o.id, job: id }); else act('job', { id: id });
+    S.jobTab = tab; render();
+  }
+  function kScore(it, q) {
+    if (!q) return it.g === 'Pages' ? 2 : it.g === 'Jobs' ? 1 : 0;
+    var t = it.t.toLowerCase(), hay = (it.t + ' ' + it.s + ' ' + (it.x || '')).toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+    if (!words.every(function (w) { return hay.indexOf(w) > -1; })) return -1;
+    return (t.indexOf(q) === 0 ? 30 : 0) + (t.indexOf(q) > -1 ? 15 : 0) + (it.g === 'Pages' ? 4 : it.g === 'Jobs' ? 3 : 1);
+  }
+  var KICO = {
+    arrow: '<path d="M5 12h14M13 6l6 6-6 6"/>', org: '<path d="M4 21V5l8-2v18M12 9h8v12M8 8h.01M8 12h.01M8 16h.01M16 13h.01M16 17h.01"/>',
+    file: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5"/>', doc: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'
+  };
+  function kOpen() {
+    if (S.stage !== 'app' || K.open) return;
+    K.open = true; K.q = ''; K.i = 0; K.items = kItems(); K.back = document.activeElement;
+    var el = document.createElement('div'); el.id = 'kbar'; el.className = 'kveil';
+    el.innerHTML = '<div class="kbox" role="dialog" aria-modal="true" aria-label="Quick search"><div class="kin"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>' +
+      '<input id="kq" type="text" autocomplete="off" spellcheck="false" placeholder="' + (staff() ? 'Search jobs, companies, files, invoices…' : 'Search jobs, files, pages…') + '" role="combobox" aria-expanded="true" aria-controls="klist" aria-autocomplete="list"><kbd>Esc</kbd></div>' +
+      '<div class="klist" id="klist" role="listbox"></div><div class="kfoot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>' + (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl') + '</kbd><kbd>K</kbd> anytime</span></div></div>';
+    document.body.appendChild(el);
+    el.addEventListener('mousedown', function (e) { if (e.target === el) kClose(); });
+    var inp = document.getElementById('kq');
+    inp.addEventListener('input', function () { K.q = inp.value; K.i = 0; kDraw(); });
+    inp.addEventListener('keydown', function (e) {
+      var n = K.shown.length;
+      if (e.key === 'ArrowDown') { e.preventDefault(); if (n) { K.i = (K.i + 1) % n; kDraw(true); } }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); if (n) { K.i = (K.i - 1 + n) % n; kDraw(true); } }
+      else if (e.key === 'Enter') { e.preventDefault(); kGo(K.i); }
+      else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); kClose(); }
+      else if (e.key === 'Tab') e.preventDefault();
+    });
+    document.getElementById('klist').addEventListener('click', function (e) { var b = e.target.closest('[data-ki]'); if (b) kGo(+b.dataset.ki); });
+    document.getElementById('klist').addEventListener('mousemove', function (e) { var b = e.target.closest('[data-ki]'); if (b && +b.dataset.ki !== K.i) { K.i = +b.dataset.ki; kDraw(true); } });
+    kDraw(); inp.focus();
+  }
+  function kDraw(keepList) {
+    var q = K.q.trim().toLowerCase();
+    if (!keepList) {
+      var sc = K.items.map(function (it) { return { it: it, s: kScore(it, q) }; }).filter(function (x) { return x.s >= 0; });
+      sc.sort(function (a, b) { return b.s - a.s; });
+      var groups = {}, order = [];
+      sc.forEach(function (x) { var g = x.it.g; if (!groups[g]) { groups[g] = []; order.push(g); } if (groups[g].length < (q ? 8 : 6)) groups[g].push(x.it); });
+      if (!q) order = ['Pages', 'Jobs'].filter(function (g) { return groups[g]; });
+      K.shown = []; K.order = order; K.groups = groups;
+      order.forEach(function (g) { groups[g].forEach(function (it) { K.shown.push(it); }); });
+    }
+    var list = document.getElementById('klist'), n = 0, html = '';
+    if (!K.shown.length) html = '<p class="kempty">Nothing matches “' + esc(K.q) + '”.</p>';
+    K.order.forEach(function (g) {
+      html += '<div class="kg" role="presentation">' + esc(q ? g : g === 'Jobs' ? 'Recent jobs' : g) + '</div>';
+      K.groups[g].forEach(function (it) {
+        var i = n++;
+        html += '<button type="button" class="ki" role="option" id="ki' + i + '" data-ki="' + i + '" aria-selected="' + (i === K.i) + '">' +
+          (it.dot ? '<i class="sdot ' + it.dot + '"></i>' : '<svg viewBox="0 0 24 24" aria-hidden="true">' + KICO[it.ic] + '</svg>') +
+          '<span class="kt"><b>' + kMark(it.t, q) + '</b><small>' + esc(it.s) + '</small></span>' + (i === K.i ? '<kbd class="kgo">↵</kbd>' : '') + '</button>';
+      });
+    });
+    list.innerHTML = html;
+    document.getElementById('kq').setAttribute('aria-activedescendant', K.shown.length ? 'ki' + K.i : '');
+    var cur = document.getElementById('ki' + K.i); if (cur) cur.scrollIntoView({ block: 'nearest' });
+  }
+  function kMark(t, q) {
+    if (!q) return esc(t);
+    var i = t.toLowerCase().indexOf(q); if (i < 0) return esc(t);
+    return esc(t.slice(0, i)) + '<mark>' + esc(t.slice(i, i + q.length)) + '</mark>' + esc(t.slice(i + q.length));
+  }
+  function kGo(i) { var it = K.shown[i]; if (!it) return; kClose(true); it.run(); }
+  function kClose(going) {
+    var el = document.getElementById('kbar'); if (el) el.remove(); K.open = false;
+    if (!going && K.back && document.contains(K.back)) K.back.focus();
+  }
+  document.addEventListener('keydown', function (e) {
+    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (K.open) kClose(); else kOpen(); }
+    else if (e.key === '/' && !K.open && S.stage === 'app' && !e.target.closest('input, textarea, select, [contenteditable]')) { e.preventDefault(); kOpen(); }
+  });
+  function kButton() {
+    return '<button type="button" class="kbtn" data-act="kOpen" aria-label="Quick search" title="Quick search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><span>Search</span><kbd>' + (/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl ') + 'K</kbd></button>';
+  }
+
+  /* ---- 2. Rolling numbers ---- */
+  var NUM = {}, numReduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function numAfter() {
+    document.querySelectorAll('.stat .v, .statline b, .statline .n').forEach(function (el) {
+      if (el.dataset.rolled) return;
+      var text = el.textContent.trim(); if (!/\d/.test(text) || text.length > 16) return;
+      var holder = el.closest('.stat, .statline > *'), lab = holder ? (holder.querySelector('.k, span:not(.v)') || {}).textContent || '' : '';
+      var key = S.view + '|' + (S.org ? S.org.id : '') + '|' + lab.trim() + '|' + Array.prototype.indexOf.call(el.parentNode.parentNode.children, el.parentNode);
+      var prev = NUM[key]; NUM[key] = text;
+      if (prev === text || numReduce.matches) return;
+      var from = prev == null ? text.replace(/\d/g, '0') : prev;
+      el.dataset.rolled = '1'; el.setAttribute('aria-label', text);
+      var a = from.split(''), b = text.split('');
+      while (a.length < b.length) a.unshift(/\d/.test(b[b.length - a.length - 1]) ? '0' : b[b.length - a.length - 1]);
+      var html = '';
+      b.forEach(function (ch, i) {
+        if (!/\d/.test(ch)) { html += '<span class="nr-c">' + esc(ch) + '</span>'; return; }
+        var start = /\d/.test(a[a.length - b.length + i]) ? +a[a.length - b.length + i] : 0;
+        html += '<span class="nr-d" data-to="' + ch + '" style="--d:' + start + ';--delay:' + (i * 35) + 'ms"><span>0<br>1<br>2<br>3<br>4<br>5<br>6<br>7<br>8<br>9</span></span>';
+      });
+      el.innerHTML = '<span class="nr" aria-hidden="true">' + html + '</span>';
+      el.getBoundingClientRect();
+      requestAnimationFrame(function () { el.querySelectorAll('.nr-d').forEach(function (d) { d.classList.add('go'); d.style.setProperty('--d', d.dataset.to); }); });
+    });
+  }
+
+  /* ---- 3. Stacked messages ---- */
+  var TS = { list: [], hover: false };
+  function toastBox() {
+    var box = document.getElementById('toasts');
+    if (!box) {
+      box = document.createElement('section'); box.id = 'toasts'; box.setAttribute('aria-live', 'polite'); box.setAttribute('aria-label', 'Messages');
+      box.addEventListener('mouseenter', function () { TS.hover = true; box.classList.add('open'); TS.list.forEach(function (t) { clearTimeout(t.timer); t.left -= Date.now() - t.started; }); });
+      box.addEventListener('mouseleave', function () { TS.hover = false; box.classList.remove('open'); TS.list.forEach(tArm); });
+      document.body.appendChild(box);
+    }
+    return box;
+  }
+  function tArm(t) { t.started = Date.now(); clearTimeout(t.timer); t.timer = setTimeout(function () { tGone(t); }, Math.max(800, t.left)); }
+  function tGone(t, dir) {
+    if (t.dead) return; t.dead = true; clearTimeout(t.timer);
+    t.el.classList.add(dir ? 'swiped' : 'out'); if (dir) t.el.style.setProperty('--sx', dir * 120 + '%');
+    setTimeout(function () { t.el.remove(); TS.list.splice(TS.list.indexOf(t), 1); tLayout(); if (!TS.list.length) { var b = document.getElementById('toasts'); if (b) b.classList.remove('open'); } }, 220);
+  }
+  function tLayout() {
+    var live = TS.list.filter(function (t) { return !t.dead; }), y = 0, gap = 8;
+    for (var i = live.length - 1, n = 0; i >= 0; i--, n++) {
+      var t = live[i]; t.el.style.setProperty('--i', n); t.el.style.setProperty('--y', y + 'px'); t.el.classList.toggle('hidden3', n > 2); t.el.classList.toggle('back', n > 0);
+      y += t.el.offsetHeight + gap;
+    }
+  }
+  toast = function (msg) {
+    var box = toastBox(), el = document.createElement('div'), bad = /could not|failed|error|incorrect|too many|not allowed|can't|cannot/i.test(msg);
+    el.className = 'tst' + (bad ? ' bad' : '');
+    el.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + (bad ? '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/>' : '<circle cx="12" cy="12" r="9"/><path d="m8 12.5 2.6 2.6L16 9.5"/>') + '</svg><span></span><button type="button" class="tx" aria-label="Dismiss">×</button>';
+    el.querySelector('span').textContent = msg;
+    var t = { el: el, left: Math.min(7000, 3600 + msg.length * 25) };
+    el.querySelector('.tx').addEventListener('click', function () { tGone(t); });
+    var sx = null, dx = 0;
+    el.addEventListener('pointerdown', function (e) { if (e.target.closest('.tx')) return; sx = e.clientX; dx = 0; el.setPointerCapture(e.pointerId); el.classList.add('drag'); });
+    el.addEventListener('pointermove', function (e) { if (sx == null) return; dx = e.clientX - sx; el.style.setProperty('--dx', dx + 'px'); el.style.opacity = String(Math.max(0, 1 - Math.abs(dx) / 260)); });
+    el.addEventListener('pointerup', function () { if (sx == null) return; sx = null; el.classList.remove('drag'); if (Math.abs(dx) > 80) tGone(t, dx > 0 ? 1 : -1); else { el.style.setProperty('--dx', '0px'); el.style.opacity = ''; } });
+    TS.list.push(t); box.appendChild(el); tLayout();
+    requestAnimationFrame(function () { el.classList.add('in'); });
+    if (!TS.hover) tArm(t);
+    if (TS.list.length > 6) tGone(TS.list[0]);
+  };
+
+  /* ---- 4. Phone drawer for a job ---- */
+  var phoneMQ = window.matchMedia('(max-width: 800px)');
+  function sheetMode() { return phoneMQ.matches; }
+  var SH = { was: false };
+  function sheetAfter() {
+    var old = document.getElementById('jsheet'), keep = old ? old.querySelector('.sh-body').scrollTop : 0;
+    var on = S.stage === 'app' && S.view === 'jobs' && S.mobileDetail && sheetMode() && S.job && getJob(S.job);
+    if (old) old.remove();
+    document.body.classList.toggle('sheet-on', !!on);
+    if (!on) { SH.was = false; return; }
+    var el = document.createElement('div'); el.id = 'jsheet';
+    el.innerHTML = '<div class="sh-veil" data-act="sheetClose"></div><div class="sh" role="dialog" aria-modal="true" aria-label="Job ' + esc(jn(getJob(S.job))) + '"><div class="sh-grab" aria-hidden="true"><i></i></div><div class="sh-body">' + detail(getJob(S.job)) + '</div></div>';
+    if (!SH.was) el.classList.add('enter');
+    document.body.appendChild(el);
+    el.querySelector('.sh-body').scrollTop = SH.was ? keep : 0;
+    SH.was = true;
+    var sh = el.querySelector('.sh'), body = el.querySelector('.sh-body');
+    sh.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'mouse' && !e.target.closest('.sh-grab')) return;
+      if (e.target.closest('button, a, input, select, textarea, .map, .mapcard') || (body.scrollTop > 0 && !e.target.closest('.sh-grab'))) return;
+      SH.y0 = e.clientY; SH.dy = 0; SH.t0 = Date.now(); sh.classList.add('drag');
+    });
+  }
+  window.addEventListener('pointermove', function (e) {
+    if (SH.y0 == null) return; var el = document.getElementById('jsheet'); if (!el) { SH.y0 = null; return; }
+    SH.dy = Math.max(0, e.clientY - SH.y0);
+    el.querySelector('.sh').style.transform = 'translateY(' + SH.dy + 'px)'; el.querySelector('.sh-veil').style.opacity = String(1 - Math.min(1, SH.dy / 400));
+  });
+  window.addEventListener('pointerup', function () {
+    if (SH.y0 == null) return; SH.y0 = null; var el = document.getElementById('jsheet'); if (!el) return;
+    var sh = el.querySelector('.sh'); sh.classList.remove('drag');
+    var fast = SH.dy / Math.max(1, Date.now() - SH.t0) > .6;
+    if (SH.dy > 130 || (fast && SH.dy > 30)) sheetClose(); else { sh.style.transform = ''; el.querySelector('.sh-veil').style.opacity = ''; }
+  });
+  function sheetClose() {
+    var el = document.getElementById('jsheet'); if (!el) { act('backList', {}); return; }
+    el.classList.add('leave'); el.querySelector('.sh').style.transform = '';
+    setTimeout(function () { SH.was = false; act('backList', {}); }, 240);
+  }
+  phoneMQ.addEventListener('change', function () { if (S.stage === 'app') render(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.getElementById('jsheet') && !document.getElementById('veil') && !K.open) sheetClose(); });
+
+  function polishAfter() { sheetAfter(); numAfter(); }
+  function polishAct(a, ds) {
+    switch (a) {
+      case 'kOpen': kOpen(); return true;
+      case 'sheetClose': sheetClose(); return true;
     }
     return false;
   }

@@ -74,12 +74,16 @@
             <li>49 CFR compliant</li>
           </ul>
         </div>
-        <div class="hero-card" aria-hidden="true">
-          <div class="hc-row"><span class="hc-dot"></span><span>Shipment intake</span><b>Received</b></div>
-          <div class="hc-row"><span class="hc-dot"></span><span>Classification review</span><b>In review</b></div>
-          <div class="hc-row"><span class="hc-dot off"></span><span>Packaging &amp; labels</span><b>Next</b></div>
-          <div class="hc-row"><span class="hc-dot off"></span><span>Documents ready</span><b>Next</b></div>
-          <p class="hc-note">Illustration of a typical workflow</p>
+        <div class="hero-card hero-map" id="heroMap" aria-hidden="true">
+          <div class="hm-map"></div>
+          <div class="hm-now"><b>Lithium ion batteries</b><span>UN3481 · Air · LAX → Singapore</span></div>
+          <ol class="hm-steps">
+            <li>Classified</li>
+            <li>Packed &amp; labeled</li>
+            <li>Inspected</li>
+            <li>DGD ready</li>
+          </ol>
+          <p class="hc-note">Illustration of shipments leaving Los Angeles</p>
         </div>
       </div>
     </section>
@@ -360,6 +364,8 @@
     </div>
   </footer>
 
+  <script src="/portal/map-data.js"></script>
+  <script src="/assets/routes.js"></script>
   <script src="/assets/script.js"></script>
 </body>
 </html>

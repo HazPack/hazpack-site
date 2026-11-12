@@ -418,3 +418,43 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
   .mag{transition:none!important}
   .ring{animation:none!important}
 }
+
+/* ---- Hero route map (homepage) ---- */
+.hero-map{padding:16px 16px 14px;display:grid;gap:12px}
+.hm-map{position:relative;border-radius:10px;overflow:hidden;background:rgba(6,14,27,.45);border:1px solid rgba(255,255,255,.1)}
+.hm-svg{display:block;width:100%;height:auto}
+.hm-land{fill:none;stroke:rgba(168,190,222,.6);stroke-width:2.2;stroke-linecap:round}
+.hm-arc{fill:none;stroke:var(--orange);stroke-width:1.6;stroke-linecap:round}
+.hm-route{transition:opacity .8s}
+.hm-route.done .hm-arc{stroke-opacity:.75}
+.hm-route.gone{opacity:0!important}
+.hm-end{fill:#fff;stroke:var(--orange);stroke-width:1.2}
+.hm-dot{fill:#fff;filter:drop-shadow(0 0 3px var(--orange))}
+.hm-pin{fill:var(--orange);stroke:#fff;stroke-width:1.2}
+.hm-ping{fill:none;stroke:var(--orange);stroke-width:1.2;transform-box:fill-box;transform-origin:center;animation:hmPing 2.2s ease-out infinite}
+@keyframes hmPing{from{transform:scale(1);opacity:.9}to{transform:scale(4.5);opacity:0}}
+.hm-lax{position:absolute;transform:translate(-50%,10px);font:700 .68rem var(--font-narrow);letter-spacing:.1em;color:#fff;background:rgba(15,33,57,.85);border:1px solid rgba(255,255,255,.2);padding:2px 6px;border-radius:5px}
+.hm-now{display:grid;gap:2px;min-height:2.6em}
+.hm-now b{font-size:1.02rem}
+.hm-now span{font-size:.86rem;color:#c3cfdf;font-variant-numeric:tabular-nums}
+.hm-now.in{animation:hmIn .45s ease-out}
+@keyframes hmIn{from{opacity:0;transform:translateY(4px)}}
+.hm-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.hm-steps li{position:relative;font:600 .74rem var(--font-narrow);letter-spacing:.04em;text-transform:uppercase;color:#93a6c1;padding-top:10px;transition:color .3s}
+.hm-steps li::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;border-radius:2px;background:rgba(255,255,255,.14);transition:background .3s}
+.hm-steps li.on{color:#fff}
+.hm-steps li.on::before{background:var(--orange)}
+.hm-steps li.now::before{background:linear-gradient(90deg,var(--orange),rgba(255,255,255,.14))}
+.hero-map .hc-note{margin:0}
+@media (max-width:960px){.hero-map{max-width:560px}}
+@media (prefers-reduced-motion:reduce){.hm-ping{animation:none}}
+
+/* ---- Quiet polish: sections ease in as you scroll ---- */
+.js-reveal .rv:not(.settled){transition:opacity .6s ease var(--rd,0s),transform .6s cubic-bezier(.2,.7,.2,1) var(--rd,0s)}
+.js-reveal .rv:not(.in){opacity:0;transform:translateY(14px)}
+.card .icon{transition:transform .25s cubic-bezier(.2,.7,.2,1),background .25s}
+.card:hover .icon{transform:translateY(-2px) rotate(-4deg)}
+.steps li{transition:transform .25s}
+.steps li:hover{transform:translateY(-3px)}
+.btn-primary{box-shadow:0 6px 18px rgba(243,122,33,.25)}
+.btn-primary:hover{box-shadow:0 10px 24px rgba(243,122,33,.33)}
