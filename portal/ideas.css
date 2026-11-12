@@ -145,38 +145,6 @@
 .dbox.on { background: var(--bad); border-color: var(--bad); color: #fff; } .dbox .ic { width: 13px; height: 13px; stroke-width: 3; }
 .dtbl-f { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 14px; font-size: 12.5px; }
 
-/* ---------- 16 Flowchart ---------- */
-.flow { background-color: var(--page); background-image: radial-gradient(var(--dotgrid) 1.2px, transparent 1.3px); background-size: 16px 16px; border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 26px 16px; overflow-x: auto; }
-.fcol { display: flex; flex-direction: column; align-items: center; min-width: 520px; }
-.ftag { font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px; margin-bottom: 6px; align-self: center; }
-.ftag.vio { background: var(--violet-soft); color: var(--violet); } .ftag.amb { background: var(--warn-soft); color: var(--warn); } .ftag.grn { background: var(--ok-soft); color: var(--ok); }
-.fbox { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 1px 3px rgba(15,33,57,.06); }
-.fbox.trig { display: flex; gap: 12px; align-items: center; padding: 11px 16px 11px 11px; min-width: 300px; }
-.fbox.trig .fbi { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--violet-soft); color: var(--violet); }
-.fbox.trig b { display: block; font-size: 14px; } .fbox.trig span { font-size: 12.5px; color: var(--muted); }
-.fl { display: block; width: 0; height: 22px; border-left: 1.5px solid var(--line); }
-.fl.s { height: 12px; }
-.fn { display: flex; align-items: center; gap: 9px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: 13px; min-width: 230px; }
-.fn-d { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: 0 0 auto; }
-.fn > span:not(.fn-d) { flex: 1; } .fn .fn-c { width: 15px; height: 15px; color: var(--ok); stroke-width: 2.4; }
-.fn.st-done .fn-d { background: var(--ok); }
-.fn.st-now { border-color: var(--info); box-shadow: 0 0 0 3px var(--info-soft); font-weight: 600; } .fn.st-now .fn-d { background: var(--info); }
-.fn.st-fix { border-color: var(--bad); box-shadow: 0 0 0 3px var(--bad-soft); font-weight: 600; } .fn.st-fix .fn-d { background: var(--bad); }
-.fn.st-next { color: var(--muted); }
-.fn.st-skip { color: var(--muted); border-style: dashed; background: transparent; text-decoration: line-through; text-decoration-color: var(--line); }
-.fbox.conds { padding: 8px 10px; display: grid; gap: 4px; }
-.cond { display: flex; align-items: center; gap: 6px; font-size: 12.5px; flex-wrap: wrap; }
-.cond .grip { width: 6px; height: 12px; background: radial-gradient(var(--muted) 1px, transparent 1.2px) 0 0 / 3px 4px; opacity: .6; }
-.cond .cw { color: var(--muted); min-width: 22px; }
-.tok { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; background: var(--page); font-weight: 500; }
-.fsplit { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 22px; position: relative; padding-top: 18px; }
-.fsplit::before { content: ''; position: absolute; top: -22px; left: 50%; height: 22px; border-left: 1.5px solid var(--line); }
-.fsplit::after { content: ''; position: absolute; top: 0; left: 25%; right: 25%; height: 18px; border: 1.5px solid var(--line); border-bottom: 0; border-radius: 10px 10px 0 0; }
-.fbr { display: flex; flex-direction: column; align-items: center; }
-.fbr .fn { min-width: 210px; }
-.fbr-l { font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 6px; padding: 1px 7px; border-radius: 6px; background: var(--panel); border: 1px solid var(--line); }
-.fbr-l.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
-.fbr.else { opacity: .85; }
 .ftbl-card td .prog { display: inline-block; vertical-align: middle; width: 64px; margin: 0 8px 0 0; }
 .ftbl-card td .pv { font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ftbl-card th { text-transform: none; letter-spacing: 0; background: transparent; }
@@ -354,14 +322,6 @@ body.has-dock .content { padding-bottom: 28px; }
   /* tabs: tighter so more fit before scrolling */
   .tabs { padding: 0 6px; } .tabs button { padding: 12px 9px; }
 
-  /* workflow chart: one column */
-  .flow { padding: 18px 12px; }
-  .fcol { min-width: 0; }
-  .fbox.trig, .fn, .fbr .fn { min-width: 0; width: 100%; }
-  .fbox.conds { width: 100%; }
-  .fsplit { grid-template-columns: minmax(0, 1fr); gap: 16px; width: 100%; padding-top: 0; }
-  .fsplit::after { display: none; }
-  .fsplit::before { top: -22px; }
 }
 /* phones: the bulk-action dock has to fit 375px, with up to six actions for staff */
 @media (max-width: 800px) {

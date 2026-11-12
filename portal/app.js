@@ -438,7 +438,7 @@
     return out.join('');
   }
   function detail(j) {
-    if (S.jobTab === 'flow' && !staff()) S.jobTab = 'overview';
+    if (S.jobTab === 'flow') S.jobTab = 'overview';
     var a = pt(j.from), b = pt(j.to), t = S.jobTab, ok = routeOf(j);
     var files = S.org.files.filter(function (f) { return f.job === j.id; }).sort(function (x, y) { return y.date - x.date; });
     var body = '';
@@ -452,7 +452,6 @@
       var items = j.ev.map(function (e) { return '<li class="' + (/^Correction needed/.test(e[1]) ? 'warn' : '') + '"><div><b>' + esc(clientText(e[1])) + '</b><span>' + fmt(e[0]) + '</span></div></li>'; });
       j.steps.forEach(function (n, i) { if (i >= j.done) items.push('<li class="todo"><div><b>' + esc(n) + '</b><span>Up next</span></div></li>'); });
       body = '<ul class="tl">' + items.join('') + '</ul>';
-    } else if (t === 'flow') { body = '<div class="pad">' + flowHtml(j) + '</div>';
     } else if (t === 'msgs') body = msgsBody(j); else if (t === 'log' && staff()) body = logBody(j); else body = filesBody(j, files);
     var sb = '';
     if (staff()) {
@@ -1195,8 +1194,7 @@
 
   /* ----- job tabs: messages, activity (staff), files with zip ----- */
   function tabList(j, files) {
-    /* The Workflow tab is for HazPack staff only; clients see Overview and Timeline instead. */
-    var t = [['overview', 'Overview'], ['timeline', 'Timeline']].concat(staff() ? [['flow', 'Workflow']] : [], [['files', 'Files (' + files.length + ')'], ['msgs', 'Messages (' + j.msgs.length + ')']]);
+    var t = [['overview', 'Overview'], ['timeline', 'Timeline'], ['files', 'Files (' + files.length + ')'], ['msgs', 'Messages (' + j.msgs.length + ')']];
     if (staff()) t.push(['log', 'Activity']);
     return t;
   }
@@ -2051,7 +2049,6 @@
     down: '<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
     msg: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"/>',
     dgd: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="m9 15 2 2 4-4"/>',
-    flow: '<rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 9v3a2 2 0 0 0 2 2h7a2 2 0 0 1 2 2v-1"/>',
     newreq: '<path d="M12 5v14M5 12h14"/>',
     undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     quote: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
@@ -2269,28 +2266,6 @@
         '<div class="ftbl-empty">' + emptyS('No jobs match', 'Try another status, search or filter.', '<button type="button" class="btn sm ghost" data-act="fclear">Clear filters</button>') + '</div>') + '</div>' + bulkDock() + '</div>';
   }
 
-  /* ---------- 16 Flowchart ---------- */
-  var SVC_STEPS = { class: [LB.cls], pack: [LB.pack], temp: [LB.temp], dry: [LB.dry], insp: [LB.insp], dgd: [LB.dgdp, LB.dgd], consult: [LB.consult], emerg: [LB.emerg] };
-  function flowHtml(j) {
-    var stOf = function (label) { var i = j.steps.indexOf(label); return j.pending || i < 0 ? 'next' : i < j.done ? 'done' : i === j.done ? (j.fix ? 'fix' : 'now') : 'next'; };
-    var node = function (label, cls) { var s = cls || stOf(label); return '<div class="fn st-' + s + '"><span class="fn-d"></span><span>' + esc(label) + '</span>' + (s === 'done' ? ico('check', 'fn-c') : '') + '</div>'; };
-    var tag = function (t, c) { return '<span class="ftag ' + c + '">' + t + '</span>'; };
-    var tok = function (t, dot) { return '<span class="tok">' + (dot ? '<i class="sdot ' + dot + '"></i>' : '') + esc(t) + '</span>'; };
-    var conds = j.svc.map(function (k, i) { return '<div class="cond"><span class="grip"></span><span class="cw">' + (i ? 'and' : 'If') + '</span>' + tok('job') + tok('services') + '<span class="cw">has</span>' + tok(SVC[k], 'warn') + '</div>'; }).join('') +
-      '<div class="cond"><span class="grip"></span><span class="cw">and</span>' + tok('job') + tok('transport') + '<span class="cw">is</span>' + tok(j.mode, 'info') + '</div>';
-    var yes = [], no = [];
-    Object.keys(SVC_STEPS).forEach(function (k) { SVC_STEPS[k].forEach(function (l) { if (j.steps.indexOf(l) > -1) { if (yes.indexOf(l) < 0) yes.push(l); } else if (no.indexOf(l) < 0) no.push(l); }); });
-    yes.sort(function (a, b) { return j.steps.indexOf(a) - j.steps.indexOf(b); });
-    var who = repName(j.rep), opened = j.ev.length ? fmtS(j.ev[0][0]) : '';
-    return '<div class="flow"><div class="fcol">' +
-      tag('Trigger', 'vio') + '<div class="fbox trig"><span class="fbi">' + ico('jobs') + '</span><div><b>Job request submitted</b><span>' + esc(who) + (opened ? ' · ' + opened : '') + ' · ' + esc(jn(j)) + '</span></div></div><i class="fl"></i>' +
-      node(LB.rec) + '<i class="fl"></i>' + node(LB.rev) + '<i class="fl"></i>' +
-      tag('If / Else', 'amb') + '<div class="fbox conds">' + conds + '</div>' +
-      '<div class="fsplit"><div class="fbr"><span class="fbr-l ok">Then</span>' + yes.map(function (l) { return node(l); }).join('<i class="fl s"></i>') + '</div>' +
-      '<div class="fbr else"><span class="fbr-l">Else, skipped</span>' + (no.length ? no.map(function (l) { return node(l, 'skip'); }).join('<i class="fl s"></i>') : '<span class="muted" style="font-size:12.5px">Nothing skipped</span>') + '</div></div>' +
-      '<i class="fl"></i>' + tag('End', 'grn') + node(LB.inv) + '</div></div>';
-  }
-
   /* ---------- Floating dock (ui.aceternity.com) ---------- */
   function dockItem(icon, label, attrs, cls) { return '<button type="button" class="dk' + (cls ? ' ' + cls : '') + '" aria-label="' + esc(label) + '" ' + attrs + '><span class="dk-tip" aria-hidden="true">' + esc(label) + '</span>' + ico(icon) + '</button>'; }
   function staffDock(j) {
@@ -2413,7 +2388,7 @@
   /* phones: every data table can fold into one card per row. Each cell gets its column name so CSS can show it as a small label. */
   function labelTables() {
     document.querySelectorAll('.content table').forEach(function (t) {
-      if (t.closest('.paper, .dtbl, .cal, .flow')) return;
+      if (t.closest('.paper, .dtbl, .cal')) return;
       var head = t.tHead && t.tHead.rows.length ? t.tHead.rows[t.tHead.rows.length - 1] : null; if (!head) return;
       var names = [].map.call(head.cells, function (c) { return c.classList.contains('cbc') ? '' : c.textContent.trim(); });
       t.classList.add('cardify');
