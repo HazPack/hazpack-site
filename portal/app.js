@@ -334,7 +334,7 @@
 
   /* ---------- shell ---------- */
   var TITLES = { dashboard: 'Dashboard', jobs: 'Jobs', files: 'Files', team: 'Team', billing: 'Billing', doc: 'Quote and invoice', staffhome: 'Home', invoices: 'Invoices', clients: 'Client companies' };
-  function rail() {
+  function railOld() {
     var o = S.org, items = [['dashboard', 'Dashboard', ''], ['jobs', 'Jobs', staff() ? allJobsCount() : vis().length], ['files', 'Files', visFiles().length], ['team', 'Team', (staff() || S.rep.admin) ? o.reps.length : 1]];
     if (!staff()) items.splice(3, 0, ['invoices', 'Invoices', clientInvoices().length]);
     if (staff()) { items.unshift(['staffhome', 'Home', needsCount()]); items.push(['billing', 'Billing', DOCS.length]); items.push(['clients', 'Clients', Object.keys(ORGS).length]); }
@@ -348,7 +348,7 @@
   function topbar() {
     var n = staff() ? 0 : unread().length;
     var btns = staff() ? '<button type="button" class="btn sm" data-act="upload" data-job="' + esc(S.view === 'jobs' ? S.job || '' : '') + '">Upload to client</button>' :
-      '<button type="button" class="btn sm ghost" data-act="upload" data-job="' + esc(S.view === 'jobs' ? S.job || '' : '') + '">Upload a file</button><button type="button" class="btn sm" data-act="request">New job request</button>';
+      '<button type="button" class="btn sm ghost" data-act="upload" data-job="' + esc(S.view === 'jobs' ? S.job || '' : '') + '">Upload a file</button>' + ihb('New job request', 'type="button" data-act="request"', 'sm') + '';
     var cmSeg = staff() && S.view === 'clients' ? '<div class="seg top" role="group" aria-label="Show companies as"><button type="button" data-act="cmMode" data-m="0" aria-pressed="' + !S.cmap + '">Table</button><button type="button" data-act="cmMode" data-m="1" aria-pressed="' + !!S.cmap + '">Map</button></div>' :
       !staff() && S.view === 'dashboard' ? '<div class="seg top wide" role="group" aria-label="Show the dashboard as"><button type="button" data-act="dMode" data-m="0" aria-pressed="' + !S.dmap + '">Dashboard</button><button type="button" data-act="dMode" data-m="1" aria-pressed="' + !!S.dmap + '">Company map</button></div>' : '';
     return '<div class="topbar"><h1>' + TITLES[S.view] + '</h1>' + cmSeg + btns +
@@ -392,13 +392,13 @@
     var wk = files.filter(function (f) { return TODAY - f.date <= 7 * 864e5; }).length;
     var first = staff() ? staffName() : S.rep.name.split(' ')[0];
     return '<section class="banner"><div><p class="eyebrow">' + esc(S.org.name) + '</p><h2>' + (staff() ? 'Viewing ' + esc(S.org.name) : 'Welcome back, ' + esc(first)) + '</h2><p>Here is where ' + (showWho() ? 'all jobs' : 'your jobs') + ' stand on ' + fmt(TODAY) + '.</p></div>' +
-      (fix.length ? '<button type="button" class="btn" data-act="job" data-id="' + fix[0].id + '">Review the job that needs correction</button>' : !staff() ? '<button type="button" class="btn" data-act="request">Start a new job request</button>' : '') + '</section>' +
+      (fix.length ? '<button type="button" class="btn" data-act="job" data-id="' + fix[0].id + '">Review the job that needs correction</button>' : !staff() ? ihb('Start a new job request', 'type="button" data-act="request"', 'lg') : '') + '</section>' +
       '<div class="stats"><div class="card stat' + (fix.length || quotesWaiting().length ? ' attn' : '') + '"><span class="k">Needs your attention</span><span class="v">' + (fix.length + quotesWaiting().length) + '</span><span class="s">' + (quotesWaiting().length ? 'corrections and quotes to approve' : 'awaiting a correction') + '</span></div>' +
       '<div class="card stat"><span class="k">Open jobs</span><span class="v">' + open.length + '</span><span class="s">being worked by HazPack</span></div>' +
       '<div class="card stat"><span class="k">Requests under review</span><span class="v">' + req.length + '</span><span class="s">waiting for HazPack to accept</span></div>' +
       '<div class="card stat"><span class="k">Files added this week</span><span class="v">' + wk + '</span><span class="s">declarations, reports, invoices</span></div></div>' +
       looseQuotesCard() + '<div class="card"><h2>Routes</h2><div class="pad">' + mapHtml(jobs.filter(isOpen), { label: 'Routes for open jobs', empty: 'Routes for open jobs appear here.', foot: ['Open jobs', 'Airports read from each declaration'] }) + '</div></div>' +
-      '<div class="card"><h2>Jobs</h2>' + (jobs.length ? jobTable(jobs.slice(0, 5)) : emptyS('No jobs yet', 'Start a job request and it appears here.', !staff() ? '<button type="button" class="btn sm" data-act="request">New job request</button>' : '')) + '</div>' +
+      '<div class="card"><h2>Jobs</h2>' + (jobs.length ? jobTable(jobs.slice(0, 5)) : emptyS('No jobs yet', 'Start a job request and it appears here.', !staff() ? '' + ihb('New job request', 'type="button" data-act="request"', 'sm') + '' : '')) + '</div>' +
       '<div class="two"><div class="card"><h2>Latest files</h2><ul class="list">' + (recentFiles.length ? recentFiles.map(fileRowCompact).join('') : '<li class="muted">No files yet.</li>') + '</ul></div>' +
       '<div class="card"><h2>Recent activity</h2><ul class="list">' + (feed.length ? feed.map(function (n) { return '<li><div class="t"><b style="font-weight:500">' + esc(clientText(n.text)) + '</b><span class="mono">' + esc(jnId(n.job)) + ' · ' + fmt(n.date) + '</span></div></li>'; }).join('') : '<li class="muted">No activity yet.</li>') + '</ul></div></div>';
   }
@@ -410,6 +410,7 @@
   }
   function jobsView() {
     if (staff()) return staffJobs();
+    return clientJobsView();
     var q = S.q.toLowerCase();
     var list = vis().filter(function (j) {
       if (S.f === 'air' && j.mode !== 'Air') return false; if (S.f === 'ground' && j.mode !== 'Ground') return false; if (S.f === 'attn' && !j.fix) return false; if (S.f === 'open' && !isOpen(j)) return false;
@@ -442,14 +443,15 @@
     var body = '';
     if (t === 'overview') {
       body = quoteBanner(j) + (j.pending && !staff() ? '<div class="pad" style="padding-bottom:0"><div class="alert" style="border-color:var(--info);background:var(--info-soft)"><b style="color:var(--info)">Request received.</b> HazPack is reviewing it and will open the job shortly. You will get a notification when that happens.' + withdrawBtn(j) + '</div></div>' : '') +
-        (j.fix && !staff() ? '<div class="pad" style="padding-bottom:0"><div class="alert"><b>Action needed.</b> ' + esc(j.fixNote || 'Something on this job needs a correction.') + ' This job cannot be cleared to ship until it is resolved. <button type="button" class="linkbtn" data-act="upload" data-job="' + j.id + '">Upload a corrected file</button></div></div>' : '') +
+        (j.fix && !staff() ? '<div class="pad" style="padding-bottom:0"><div class="alert"><b>Action needed.</b> ' + esc(j.fixNote || 'Something on this job needs a correction.') + ' This job cannot be cleared to ship until it is resolved. <button type="button" class="linkbtn" data-act="upload" data-job="' + j.id + '">Upload a corrected file</button></div></div>' + diffCard(j) : '') + (j.fix && staff() ? diffCard(j) : '') +
         '<dl class="dl"><div><dt>UN number</dt><dd><span class="un">' + esc(j.un || '—') + '</span></dd></div><div><dt>Hazard class</dt><dd>' + esc(j.cls) + '</dd></div><div><dt>Packing group</dt><dd>' + esc(j.pg) + '</dd></div><div><dt>Quantity</dt><dd>' + esc(j.qty || '—') + '</dd></div><div><dt>Transport</dt><dd>' + j.mode + '</dd></div><div><dt>Your reference</dt><dd class="mono">' + esc(j.ref || '—') + '</dd></div>' +
         '<div><dt>Requested by</dt><dd>' + esc(repName(j.rep)) + '</dd></div><div><dt>Services</dt><dd>' + j.svc.map(function (k) { return SVC[k]; }).join(', ') + '</dd></div><div><dt>Required by</dt><dd>' + (j.req ? fmt(isoDate(j.req)) : 'Not set') + '</dd></div>' +
-        '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl><div class="steps" aria-label="Job progress">' + stepNodes(j) + '</div>';
+        '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl>' + (staff() ? '' : '<div class="pad" style="padding-top:0">' + taskRows(j) + '</div>');
     } else if (t === 'timeline') {
       var items = j.ev.map(function (e) { return '<li class="' + (/^Correction needed/.test(e[1]) ? 'warn' : '') + '"><div><b>' + esc(clientText(e[1])) + '</b><span>' + fmt(e[0]) + '</span></div></li>'; });
       j.steps.forEach(function (n, i) { if (i >= j.done) items.push('<li class="todo"><div><b>' + esc(n) + '</b><span>Up next</span></div></li>'); });
       body = '<ul class="tl">' + items.join('') + '</ul>';
+    } else if (t === 'flow') { body = '<div class="pad">' + flowHtml(j) + '</div>';
     } else if (t === 'msgs') body = msgsBody(j); else if (t === 'log' && staff()) body = logBody(j); else body = filesBody(j, files);
     var sb = '';
     if (staff()) {
@@ -464,7 +466,7 @@
     return '<div style="display:grid;gap:14px"><button type="button" class="btn ghost sm back-m" data-act="backList">&larr; All jobs</button>' +
       '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + esc(jn(j)) + '</h2><div class="muted">' + esc(j.item) + '' + '</div></div>' + pill(j) + '</div>' + sb +
       mapHtml([j], { labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
-      tabsCard + '</div>';
+      tabsCard + jobDock(j) + '</div>';
   }
   var FOLDER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
   function filesView() {
@@ -520,10 +522,10 @@
     if (S.view === 'doc' && !ED) S.view = 'billing';
     var body = { dashboard: dashboard, jobs: jobsView, files: filesView, team: teamView, billing: billingView, doc: docView, staffhome: staffHome, invoices: invoicesView, clients: clientsView }[S.view]();
     var jl = document.getElementById('jlistWrap'), jlTop = jl ? jl.scrollTop : 0; /* keep the job list where it was */
-    app.innerHTML = '<div class="shell">' + rail() + '<div class="work" style="position:relative">' + topbar() + '<main class="content">' + body + '</main></div></div>';
+    app.innerHTML = '<div class="shell">' + rail() + '<div class="work" style="position:relative">' + topbar() + '<main class="content">' + body + '</main></div>' + navDock() + '</div>';
     if (jlTop && (jl = document.getElementById('jlistWrap'))) jl.scrollTop = jlTop;
     if (foc) { var q = document.getElementById(foc); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
-    fitPaper(); cmDraw();
+    fitPaper(); cmDraw(); railAfter(); flipAfter(); dockAfter(); labelTables(); S.recAnim = false;
   }
 
   /* ---------- helpers ---------- */
@@ -729,7 +731,7 @@
       '<label class="f" for="rq0">DGD (PDF, click or drop it here)<input id="rq0" type="file" accept="application/pdf,.pdf" required></label>' +
       '<div id="found" class="found" hidden></div>' +
       '<label class="f" for="rq9">Additional files (optional, click or drop)<input id="rq9" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"></label><p class="hint" style="margin-top:-6px">Photos, safety data sheets (SDS) or anything else that helps. You can also add files to the job later.</p>' +
-      '<p class="err" id="rqerr" role="alert"></p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="submit" class="btn" id="rqGo">Submit request</button></div></form>');
+      '<p class="err" id="rqerr" role="alert"></p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Submit request', 'type="submit" id="rqGo"', '') + '</div></form>');
     document.getElementById('rq0').addEventListener('change', function () {
       var f = this.files[0], box = document.getElementById('found'); reqDetect = null; if (!f) { box.hidden = true; return; }
       box.hidden = false; box.innerHTML = '<b>Reading your DGD</b><p class="muted" style="margin:0;font-size:13px">This takes a few seconds.</p>';
@@ -742,7 +744,7 @@
       var svc = [].slice.call(document.querySelectorAll('[data-svc]:checked')).map(function (c) { return c.dataset.svc; }), err = document.getElementById('rqerr');
       if (!svc.length) { err.textContent = 'Choose at least one service.'; document.getElementById('mselB').focus(); return; }
       var dgd = document.getElementById('rq0').files[0]; if (!dgd) { err.textContent = 'Upload your DGD.'; return; }
-      var go = document.getElementById('rqGo'); go.disabled = true; go.textContent = 'Submitting';
+      var go = document.getElementById('rqGo'); go.disabled = true; go.querySelectorAll('.ihb-t').forEach(function (t) { t.textContent = 'Submitting'; });
       Promise.resolve(reqDetect).then(function () {
         var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
         var item = v('rv1') || 'Shipment, details to be confirmed', dstP = parseAp(v('rv8'));
@@ -1192,7 +1194,7 @@
 
   /* ----- job tabs: messages, activity (staff), files with zip ----- */
   function tabList(j, files) {
-    var t = [['overview', 'Overview'], ['timeline', 'Timeline'], ['files', 'Files (' + files.length + ')'], ['msgs', 'Messages (' + j.msgs.length + ')']];
+    var t = [['overview', 'Overview'], ['timeline', 'Timeline'], ['flow', 'Workflow'], ['files', 'Files (' + files.length + ')'], ['msgs', 'Messages (' + j.msgs.length + ')']];
     if (staff()) t.push(['log', 'Activity']);
     return t;
   }
@@ -1419,6 +1421,7 @@
   }
   function staffJobs() {
     if (S.mobileDetail && S.job && getJob(S.job)) return detail(getJob(S.job));
+    return staffJobsView();
     var all = []; Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(function (j) { all.push(j); }); });
     var q = S.q.toLowerCase(), sc = S.sc || '', so = S.so || '';
     var list = all.filter(function (j) {
@@ -1500,14 +1503,13 @@
     var head = '<div class="ws-head"><div class="wh1"><button type="button" class="btn ghost sm" data-act="backList">&larr; All jobs</button><h2 class="mono">' + esc(jn(j)) + '</h2><span class="pill ' + s[1] + '">' + s[0] + '</span>' + priChip(j) + '<span class="ws-item">' + esc(j.item) + '</span></div>' +
       '<div class="wh2"><label class="mini-l">Owner<select id="owner" class="mini"><option value="">Unassigned</option>' + OWNERS.map(function (n) { return '<option' + (j.owner === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
       '<label class="mini-l">Priority<select id="prio" class="mini"><option value="">Auto' + (pr && !j.pri ? ' (' + pr[0] + ')' : '') + '</option>' + ['Urgent', 'High', 'Normal', 'Low'].map(function (n) { return '<option' + (j.pri === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
-      (j.pending ? '<button type="button" class="btn sm" data-act="accept" data-id="' + j.id + '">Accept request</button>' : cur ? '<button type="button" class="btn sm" data-act="stepNext" data-id="' + j.id + '" title="' + esc(cur) + '">Complete step</button>' : '') +
-      '<button type="button" class="btn ghost sm" data-act="docNew" data-m="Quote" data-org="' + o.id + '" data-job="' + j.id + '">New quote</button><button type="button" class="btn ghost sm" data-act="docNew" data-m="Invoice" data-org="' + o.id + '" data-job="' + j.id + '">New invoice</button></div></div>';
+      '</div></div>';
     var facts = '<div class="facts">' + fact('Client', esc(o.name)) + fact('Requested by', esc(r ? r.name : 'Former member')) + fact('Transport', j.mode) + fact('Route', ok ? j.from + ' &rarr; ' + j.to : j.toText ? esc(j.toText) : 'Not set') + fact('Reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') + fact('Required by', j.req ? fmt(isoDate(j.req)) : 'Not set') + '</div>';
     var accept = j.pending ? '<div class="alert" style="border-color:var(--info);background:var(--info-soft)"><b style="color:var(--info)">New request.</b> Check the details below, then accept it to open the job and start the first step.</div>' : '';
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     var mapbar = '<div class="mapbar"><span><b>Route</b> ' + (ok ? esc(a.city) + ' to ' + esc(b.city) + ' · ' + j.mode : j.toText ? 'to ' + esc(j.toText) : 'not set yet') + '</span><button type="button" class="linkbtn" data-act="mapToggle">' + (S.mapHide ? 'Show map' : 'Hide map') + '</button></div>';
-    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { ar: 4, labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
-      boardHtml(j) + tabsCard + drawerHtml(j) + '</div>';
+    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { ar: window.innerWidth <= 800 ? 2.1 : 4, labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
+      '<section class="board trboard">' + taskRows(j) + '</section>' + tabsCard + drawerHtml(j) + jobDock(j) + '</div>';
   }
 
   /* ----- calendar on Home ----- */
@@ -1841,8 +1843,8 @@
   function extrasChange(el) {
     if (el.id === 'js') { S.js = el.value; render(); return true; }
     if (el.id === 'cmOrg') { S.cmOrg = el.value; S.cmItem = null; S.cmFolder = null; render(); return true; }
-    if (el.id === 'sc') { S.sc = el.value; render(); return true; }
-    if (el.id === 'so') { S.so = el.value; render(); return true; }
+    if (el.id === 'sc') { flipBefore(); S.sc = el.value; render(); return true; }
+    if (el.id === 'so') { flipBefore(); S.so = el.value; render(); return true; }
     if (el.id === 'owner') { var jo = getJob(S.job); jo.owner = el.value; logEv(jo, staffName(), el.value ? 'Assigned the job to ' + el.value : 'Removed the job owner'); render(); toast(el.value ? 'Assigned to ' + el.value + '.' : 'Owner removed.'); return true; }
     if (el.id === 'prio') { var jp = getJob(S.job); jp.pri = el.value; logEv(jp, staffName(), el.value ? 'Set the priority to ' + el.value : 'Set the priority back to automatic'); render(); return true; }
     return false;
@@ -1912,12 +1914,13 @@
       });
     }
   });
-  document.addEventListener('input', function (e) { if (e.target.id === 'q') { S.q = e.target.value; render(); return; } billingInput(e.target); });
+  document.addEventListener('input', function (e) { if (e.target.id === 'q') { flipBefore(); S.q = e.target.value; render(); return; } billingInput(e.target); });
   document.addEventListener('change', function (e) {
     if (e.target.dataset && e.target.dataset.svc) { updateMsel(); return; }
     if (billingChange(e.target) || extrasChange(e.target)) return;
     if (e.target.id === 'ff') { S.ff = e.target.value; render(); }
-    if (e.target.id === 'fp') { S.fp = e.target.value; render(); }
+    if (e.target.id === 'fp') { flipBefore(); S.fp = e.target.value; render(); }
+    if (e.target.id === 'fm') { flipBefore(); S.fm = e.target.value; render(); }
     if (e.target.dataset && e.target.dataset.act === 'toggleAlert') { var r = repOf(e.target.dataset.id), on = e.target.checked; if (!staff()) { clientAct({ action: 'editRep', repId: r.id, notify: on }, function () { toast(r.name + ': email alerts ' + (on ? 'on' : 'off') + '.'); }); return; } r.notify = on; render(); toast(r.name + ': email alerts ' + (r.notify ? 'on' : 'off') + '.'); }
   });
   document.addEventListener('keydown', function (e) {
@@ -1937,7 +1940,7 @@
 
   function act(a, ds) {
     var o = S.org, j;
-    if (billingAct(a, ds) || extrasAct(a, ds)) return;
+    if (ideasAct(a, ds) || billingAct(a, ds) || extrasAct(a, ds)) return;
     switch (a) {
       case 'toOrg': apiCall('DELETE', '/api/portal-session', {}); S.stage = 'org'; S.org = null; S.orgErr = ''; render(); break;
       case 'toStaff': S.stage = 'staff'; S.orgErr = ''; render(); break;
@@ -1961,9 +1964,9 @@
       case 'nav': S.view = ds.v; S.notif = false; S.mobileDetail = false; render(); window.scrollTo(0, 0); break;
       case 'job':
         /* Picking a job from the list beside it (desktop): keep the search, filters and scroll position. Coming from anywhere else: start at the top. */
-        var inList = S.view === 'jobs' && !staff() && !!document.getElementById('jlistWrap') && window.innerWidth > 980;
+        var inList = S.view === 'jobs' && !staff();
         S.view = 'jobs'; S.job = ds.id; S.jobTab = 'overview'; S.mobileDetail = true; S.notif = false;
-        if (!inList) { S.f = 'all'; S.q = ''; S.fp = 'all'; }
+        if (!inList) { S.f = 'all'; S.q = ''; S.fp = 'all'; S.fs = 'all'; S.fm = 'all'; }
         render();
         if (!inList) window.scrollTo(0, 0);
         break;
@@ -2019,6 +2022,476 @@
     org.notifs.forEach(function (n) { if (n.to === 'staff' && n.job === j.id) n.read.staff = 1; });
     if (!quiet) { render(); toast('Job opened. The requester was notified.'); }
   }
+
+  /* =====================================================================
+     DESIGN IDEAS (local sandbox only). Patterns borrowed from beautifului.dev:
+     13 Filter table · 14 Sidebar nav · 06 Task rows · 11 Diff table · 16 Flowchart
+     ===================================================================== */
+  var IC = {
+    home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+    dash: '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+    jobs: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+    files: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',
+    inv: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+    team: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.4 3.2-5.5 6.5-5.5s5.9 2.1 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.8c2 .7 3.2 2.5 3.5 5.2"/>',
+    bill: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h3"/>',
+    clients: '<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M8 7h4M8 11h4M8 15h4M2 21h20"/>',
+    plus: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+    panel: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M9 4v16"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    chev: '<path d="m6 9 6 6 6-6"/>',
+    check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+    bolt: '<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+    flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/>',
+    back: '<path d="M19 12H5M11 6l-6 6 6 6"/>',
+    up: '<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
+    down: '<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
+    msg: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-5A8 8 0 1 1 21 12z"/>',
+    dgd: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="m9 15 2 2 4-4"/>',
+    flow: '<rect x="3" y="3" width="7" height="6" rx="1.5"/><rect x="14" y="15" width="7" height="6" rx="1.5"/><path d="M6.5 9v3a2 2 0 0 0 2 2h7a2 2 0 0 1 2 2v-1"/>',
+    newreq: '<path d="M12 5v14M5 12h14"/>',
+    undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+    quote: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
+    csv: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/>',
+    x: '<path d="M6 6l12 12M18 6 6 18"/>',
+    phone: '<rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>'
+  };
+  /* Interactive hover button (magicui.design): a dot grows to fill the button, the label slides out and comes back with an arrow */
+  function ihb(label, attrs, size) { return '<button ' + attrs + ' class="ihb' + (size ? ' ' + size : '') + '"><span class="ihb-a"><i class="ihb-dot"></i><span class="ihb-t">' + esc(label) + '</span></span><span class="ihb-b" aria-hidden="true"><span class="ihb-t">' + esc(label) + '</span><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></button>'; }
+  function ico(k, cls) { return '<svg class="ic' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" aria-hidden="true">' + IC[k] + '</svg>'; }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } }
+  S.railMin = lsGet('hp-rail-min') === '1'; S.recOpen = lsGet('hp-rec-closed') !== '1';
+  S.fs = 'all'; S.fm = 'all'; S.trMode = lsGet('hp-tr-mode') || 'caps'; S.trOpen = {}; S.diffOff = {};
+
+  /* ---------- 14 Sidebar nav ---------- */
+  var NAV_IC = { staffhome: 'home', dashboard: 'dash', jobs: 'jobs', files: 'files', invoices: 'inv', team: 'team', billing: 'bill', clients: 'clients' };
+  var STATUS_DOT = { 'Request received': 'info', 'In progress': 'warn', 'Needs correction': 'bad', 'Cleared to ship': 'ok', 'Completed': 'mute' };
+  function rail() {
+    var o = S.org, items = [['dashboard', 'Dashboard', ''], ['jobs', 'Jobs', staff() ? allJobsCount() : vis().length], ['files', 'Files', visFiles().length], ['team', 'Team', (staff() || S.rep.admin) ? o.reps.length : 1]];
+    if (!staff()) items.splice(3, 0, ['invoices', 'Invoices', clientInvoices().length]);
+    if (staff()) { items.unshift(['staffhome', 'Home', needsCount()]); items.push(['billing', 'Billing', DOCS.length]); items.push(['clients', 'Clients', Object.keys(ORGS).length]); }
+    var meName = staff() ? staffName() : S.rep.name, meSub = staff() ? 'Viewing ' + o.name : S.rep.title + (S.rep.admin ? ' · Admin' : '');
+    var cur = function (v) { return S.view === v || (v === 'billing' && S.view === 'doc'); };
+    var ni = function (attrs, icon, label, extra, on) { return '<button type="button" class="ni"' + attrs + (on ? ' aria-current="page"' : '') + ' title="' + esc(label) + '">' + ico(icon) + '<span class="nl">' + esc(label) + '</span>' + (extra || '') + '</button>'; };
+    var recent = vis().slice().sort(function (a, b) { return (b.ev.length ? b.ev[b.ev.length - 1][0] : b.start) - (a.ev.length ? a.ev[a.ev.length - 1][0] : a.start); }).slice(0, 7);
+    var recHtml = '<div class="rsec"><div class="rsec-h"><button type="button" class="rsec-t" data-act="recToggle" aria-expanded="' + S.recOpen + '">' + ico('chev', 'cv') + 'Recent jobs</button><button type="button" class="iconbtn" data-act="recSearch" title="Search jobs" aria-label="Search jobs">' + ico('search') + '</button></div>' +
+      (S.recOpen ? '<div class="rlist' + (S.recAnim ? ' anim' : '') + '">' + recent.map(function (j) { var s = jobStatus(j); return '<button type="button" class="ni rj" data-act="job" data-id="' + j.id + '"' + (S.view === 'jobs' && S.mobileDetail && S.job === j.id ? ' aria-current="page"' : '') + ' title="' + esc(jn(j) + ' · ' + s[0]) + '"><i class="sdot ' + STATUS_DOT[s[0]] + '"></i><span class="nl">' + esc(jn(j)) + '</span><span class="rj-s">' + esc(j.item) + '</span></button>'; }).join('') + '</div>' : '') + '</div>';
+    return '<aside class="rail rail2' + (S.railMin ? ' min' : '') + '">' +
+      '<div class="r2-top"><div class="brand"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><img class="logo-mark" src="/assets/favicon.svg" alt="HazPack"></div><span class="r2-btns">' + phoneBtn() + '<button type="button" class="iconbtn" data-act="railMin" aria-label="' + (S.railMin ? 'Expand' : 'Collapse') + ' sidebar" title="' + (S.railMin ? 'Expand' : 'Collapse') + ' sidebar">' + ico('panel') + '</button></span></div>' +
+      '<div class="r2-org" title="' + esc(o.name) + '"><span class="oav">' + esc(initials(o.name).slice(0, 2)) + '</span><span class="nl"><b>' + esc(o.name) + '</b><span>' + vis().length + ' ' + (vis().length === 1 ? 'job' : 'jobs') + (staff() || S.rep.admin ? ' across your team' : ' yours') + '</span></span></div>' +
+      '<div class="navzone" id="navzone"><i class="glide" aria-hidden="true"></i><i class="actbar" aria-hidden="true"></i>' +
+      (staff() ? '' : ni(' data-act="request"', 'plus', 'New job request', '', false)) +
+      '<nav class="nav2" aria-label="Portal sections">' + items.map(function (i) { return ni(' data-act="nav" data-v="' + i[0] + '"', NAV_IC[i[0]], i[1], i[2] !== '' ? '<span class="cnt">' + i[2] + '</span>' : '', cur(i[0])); }).join('') + '</nav>' +
+      recHtml + '</div>' +
+      '<div class="foot"><button type="button" class="iconbtn m-team" data-act="nav" data-v="team" aria-label="Team" title="Team"' + (S.view === 'team' ? ' aria-current="page"' : '') + '>' + ico('team') + '</button><div class="me"><span class="av">' + initials(meName) + '</span><div class="t"><b>' + esc(meName) + '</b><span>' + esc(meSub) + '</span></div><button type="button" class="linkbtn" data-act="lock" style="font-size:12.5px">Log out</button></div></div></aside>';
+  }
+  /* the hover highlight glides between items; the active bar slides from the last page's item to the new one */
+  var lastAct = null;
+  function railAfter() {
+    var z = document.getElementById('navzone'); if (!z) return;
+    var g = z.querySelector('.glide'), bar = z.querySelector('.actbar'), on = z.querySelector('.ni[aria-current=page]');
+    var place = function (el, node) { node.style.transform = 'translateY(' + node._y + 'px)'; node.style.height = el.offsetHeight + 'px'; };
+    if (on) {
+      var y = on.offsetTop, from = lastAct !== null ? lastAct : y;
+      bar.style.transition = 'none'; bar.style.height = on.offsetHeight + 'px'; bar.style.transform = 'translateY(' + from + 'px)'; bar.style.opacity = 1;
+      void bar.offsetWidth; bar.style.transition = '';
+      if (from !== y) bar.style.transform = 'translateY(' + y + 'px)';
+      lastAct = y;
+    } else { bar.style.opacity = 0; lastAct = null; }
+    z.addEventListener('mouseover', function (e) {
+      var el = e.target.closest('.ni'); if (!el || !z.contains(el)) return;
+      if (g.style.opacity !== '1') { g.style.transition = 'none'; g._y = el.offsetTop; place(el, g); void g.offsetWidth; g.style.transition = ''; }
+      g._y = el.offsetTop; place(el, g); g.style.opacity = 1;
+    });
+    z.addEventListener('mouseleave', function () { g.style.opacity = 0; });
+    var hov = z.querySelector('.ni:hover'); if (hov) { g.style.transition = 'none'; g._y = hov.offsetTop; place(hov, g); g.style.opacity = 1; void g.offsetWidth; g.style.transition = ''; }
+    /* looping animations (step spinner, correction ping) carry on from where they were instead of restarting */
+    var t = performance.now();
+    document.querySelectorAll('.tr-i .spin').forEach(function (el) { el.style.animationDelay = -(t % 1100) + 'ms'; });
+    document.querySelectorAll('.dk.alert').forEach(function (el) { el.style.setProperty('--ad', -(t % 1600) + 'ms'); });
+  }
+
+  /* ---------- 13 Filter table ---------- */
+  var FS = [['all', 'All'], ['Request received', 'Requested'], ['In progress', 'In progress'], ['Needs correction', 'Needs correction'], ['Cleared to ship', 'Cleared to ship'], ['Completed', 'Completed']];
+  function clientJobsView() {
+    if (S.mobileDetail && S.job && getJob(S.job)) return detail(getJob(S.job));
+    var q = S.q.toLowerCase();
+    var base = vis().filter(function (j) {
+      if (S.fm === 'Air' && j.mode !== 'Air') return false; if (S.fm === 'Ground' && j.mode !== 'Ground') return false;
+      if (showWho() && S.fp !== 'all' && j.rep !== S.fp) return false;
+      return !q || (j.id + j.item + j.un + j.ref + (pt(j.to) ? pt(j.to).city + j.to : '')).toLowerCase().indexOf(q) > -1;
+    });
+    var count = function (k) { return k === 'all' ? base.length : base.filter(function (j) { return jobStatus(j)[0] === k; }).length; };
+    var list = sortJobs(base.filter(function (j) { return S.fs === 'all' || jobStatus(j)[0] === S.fs; }));
+    var chips = FS.filter(function (c) { return c[0] === 'all' || count(c[0]) || S.fs === c[0]; }).map(function (c) {
+      return '<button type="button" class="fchip" data-act="fstat" data-s="' + esc(c[0]) + '" aria-pressed="' + (S.fs === c[0]) + '">' + (c[0] === 'all' ? '' : '<i class="sdot ' + STATUS_DOT[c[0]] + '"></i>') + esc(c[1]) + '<span class="n">' + count(c[0]) + '</span></button>';
+    }).join('');
+    var who = showWho() ? '<select id="fp" class="mini" aria-label="Filter by person"><option value="all">Everyone</option>' + S.org.reps.map(function (r) { return '<option value="' + r.id + '"' + (S.fp === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select>' : '';
+    var mode = '<select id="fm" class="mini" aria-label="Filter by transport"><option value="all">Any transport</option><option' + (S.fm === 'Air' ? ' selected' : '') + '>Air</option><option' + (S.fm === 'Ground' ? ' selected' : '') + '>Ground</option></select>';
+    var rows = list.map(function (j) {
+      var rt = routeOf(j) ? j.from + ' → ' + j.to : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—';
+      var on = !!S.sel[j.id];
+      return '<tr class="click' + (on ? ' sel' : '') + '" data-act="job" data-id="' + j.id + '" data-flip="job-' + j.id + '"><td class="cbc"><button type="button" class="cbx" role="checkbox" aria-checked="' + on + '" aria-label="Select ' + esc(jn(j)) + '" data-act="selRow" data-id="' + j.id + '">' + ico('check') + '</button></td><td><b class="mono">' + esc(jn(j)) + '</b></td><td class="ell">' + esc(j.item) + '</td><td class="mono nowrap">' + rt + '</td><td class="nowrap">' + (j.req ? fmtS(isoDate(j.req)) : '<span class="muted">—</span>') + '</td><td class="nowrap">' + progBar(j) + '</td><td>' + pill(j) + '</td>' + (showWho() ? '<td class="ell muted">' + esc(repName(j.rep)) + '</td>' : '') + '</tr>';
+    }).join('');
+    return '<div class="ftbl">' +
+      '<div class="ftbl-bar"><div class="fchips" role="group" aria-label="Filter by status">' + chips + '</div><div class="ftbl-tools"><label class="fsearch">' + ico('search') + '<input id="q" type="search" placeholder="Search jobs" value="' + esc(S.q) + '" aria-label="Search jobs"></label>' + mode + who + jobSortSel().replace('<select', '<select class="mini"') + '</div></div>' +
+      '<div class="ftbl-card">' + (list.length ? '<table><thead><tr><th class="cbc">' + selAllBox(list) + '</th><th>Job</th><th>Contents</th><th>Route</th><th>Required by</th><th>Progress</th><th>Status</th>' + (showWho() ? '<th>Requested by</th>' : '') + '</tr></thead><tbody>' + rows + '</tbody></table>' :
+        '<div class="ftbl-empty">' + emptyS('No jobs match', 'Try another status, search or filter.', '<button type="button" class="btn sm ghost" data-act="fclear">Clear filters</button>') + '</div>') + '</div>' + bulkDock() + '</div>';
+  }
+  /* rows that stay slide to their new place; new rows fade in */
+  var FLIP = null;
+  function flipBefore() { FLIP = {}; document.querySelectorAll('[data-flip]').forEach(function (el) { FLIP[el.getAttribute('data-flip')] = el.getBoundingClientRect().top; }); }
+  function flipAfter() {
+    var old = FLIP; FLIP = null; if (!old || !window.matchMedia('(prefers-reduced-motion: no-preference)').matches) return;
+    var had = Object.keys(old).length;
+    document.querySelectorAll('[data-flip]').forEach(function (el, i) {
+      var k = el.getAttribute('data-flip'), top = el.getBoundingClientRect().top;
+      if (old[k] !== undefined) { var d = old[k] - top; if (Math.abs(d) > 1) el.animate([{ transform: 'translateY(' + d + 'px)' }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' }); }
+      else if (had) el.animate([{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'none' }], { duration: 260, delay: Math.min(i, 8) * 25, easing: 'ease-out', fill: 'backwards' });
+    });
+  }
+
+  /* ---------- 06 Task rows ---------- */
+  function stepBy(j, label) { return j.by && j.by[label] && j.by[label].date ? j.by[label] : null; }
+  function stepDate(j, label) { var e = j.ev.filter(function (x) { return x[1] === label; })[0]; return e ? e[0] : null; }
+  function taskRows(j) {
+    var n = j.steps.length, done = Math.min(j.done, n);
+    var rows = j.steps.map(function (label, i) {
+      var st = j.pending ? 'next' : i < j.done ? 'done' : i === j.done ? (j.fix ? 'fix' : 'now') : 'next';
+      var files = stepFiles(j, label), when = stepDate(j, label), key = j.id + ':' + i, open = S.trOpen[key] === undefined ? (staff() && (st === 'now' || st === 'fix')) : !!S.trOpen[key];
+      var icon = st === 'done' ? '<span class="tr-i done">' + ico('check') + '</span>' : st === 'now' ? '<span class="tr-i now"><svg class="spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg><b>' + (i + 1) + '</b></span>' : st === 'fix' ? '<span class="tr-i fix">!</span>' : '<span class="tr-i next">' + (i + 1) + '</span>';
+      var chip = { done: ['Completed', 'ok'], now: ['In progress', 'info'], fix: ['Needs correction', 'bad'], next: ['Up next', 'low'] }[st];
+      var meta = files.length ? files.length + (files.length === 1 ? ' file' : ' files') : st === 'done' && when ? fmtS(when) : '';
+      var sub = [];
+      if (st === 'done') sub.push(['check', 'Completed by HazPack', when ? fmt(when) : '']);
+      if (st === 'now') sub.push(['bolt', 'HazPack is working on this step', 'now']);
+      if (st === 'fix') sub.push(['flag', j.fixNote || 'A correction is needed before this step can finish', staff() ? 'waiting on the client' : 'waiting on you']);
+      files.forEach(function (f) { sub.push(['files', f.name, fmtS(f.date), f.id]); });
+      if (st === 'next') sub.push(['box', 'Starts after ' + (i ? j.steps[i - 1].toLowerCase() : 'the job is opened'), '']);
+      var sa = '';
+      if (staff()) {
+        var h = STEP_HELP[label] || ['', null];
+        if (st === 'done' && stepBy(j, label)) sub[0] = ['check', 'Completed by ' + byName(stepBy(j, label).who), fmt(stepBy(j, label).date)];
+        if (j.notes && j.notes[label]) sub.push(['msg', 'Note: ' + j.notes[label], 'staff only']);
+        sa = (st === 'now' ? '<button type="button" class="btn sm" data-act="stepNext" data-id="' + j.id + '">Complete step</button>' : '') +
+          (st === 'done' && i === j.done - 1 && j.done > 1 ? '<button type="button" class="btn ghost sm" data-act="stepUndo" data-id="' + j.id + '">Undo this step</button>' : '') +
+          (h[1] && h[1][1] !== '__inv' ? '<button type="button" class="btn ghost sm" data-act="upload" data-job="' + j.id + '" data-type="' + h[1][1] + '" data-step="' + esc(label) + '">' + h[1][0] + '</button>' : '') +
+          (h[1] && h[1][1] === '__inv' ? '<button type="button" class="btn ghost sm" data-act="docNew" data-m="Invoice" data-org="' + S.org.id + '" data-job="' + j.id + '">Create invoice</button>' : '') +
+          '<button type="button" class="linkbtn" data-act="stepOpen" data-i="' + i + '">Details and notes</button>';
+      }
+      return '<div class="tr ' + st + (open ? ' open' : '') + '"><button type="button" class="tr-h" data-act="trToggle" data-k="' + key + '" aria-expanded="' + open + '">' + icon + '<span class="tr-l">' + esc(label) + '</span><span class="tr-m">' + meta + '</span><span class="pill ' + chip[1] + '">' + chip[0] + '</span>' + ico('chev', 'cv') + '</button>' +
+        '<div class="tr-b"><div class="tr-bi">' + sub.map(function (s) { return '<div class="tr-s">' + ico(s[0]) + '<span class="ell">' + esc(s[1]) + '</span><span class="muted">' + esc(s[2]) + '</span>' + (s[3] ? '<button type="button" class="linkbtn" data-act="view" data-id="' + s[3] + '">View</button>' : '') + '</div>'; }).join('') + (sa ? '<div class="tr-acts">' + sa + '</div>' : '') + '</div></div></div>';
+    }).join('');
+    return '<div class="trwrap ' + S.trMode + '"><div class="trhead"><div><b>Progress</b><span class="muted">' + (j.pending ? 'Waiting for HazPack to accept' : done + ' of ' + n + ' steps done') + '</span></div><div class="seg2" role="group" aria-label="Show progress as"><button type="button" data-act="trMode" data-m="caps" aria-pressed="' + (S.trMode === 'caps') + '">Capsules</button><button type="button" data-act="trMode" data-m="list" aria-pressed="' + (S.trMode === 'list') + '">List</button></div></div><div class="trs">' + rows + '</div></div>';
+  }
+
+  /* ---------- 11 Diff table ---------- */
+  /* Sample only: what HazPack would propose for the job flagged for correction. A real version would come from the staff "Flag for correction" form. */
+  var DEMO_DIFF = { 'HP-2610-031': { title: 'Declaration vs. package marking', rows: [['UN number', 'UN3373'], ['Proper shipping name', 'Biological substance, Category B'], ['Net quantity', '1.2 kg', '1.0 kg'], ['Quantity on DGD', '1 package, 1.2 kg', '1 package, 1.0 kg'], ['Packing instruction', 'P650']] } };
+  function diffOf(j) { return j.fix ? (j.fixDiff || DEMO_DIFF[j.id] || null) : null; }
+  function diffCard(j) {
+    var d = diffOf(j); if (!d) return '';
+    var ch = d.rows.filter(function (r) { return r.length > 2; }), on = ch.filter(function (r) { return !S.diffOff[j.id + r[0]]; });
+    if (staff()) {
+      var ro = d.rows.map(function (r) { return r.length < 3 ? '<tr><td class="muted">' + esc(r[0]) + '</td><td colspan="2">' + esc(r[1]) + '</td></tr>' : '<tr class="dif del ro"><td>' + esc(r[0]) + '</td><td colspan="2"><span class="dv">' + esc(r[1]) + '</span></td></tr><tr class="dif add ro"><td></td><td colspan="2"><span class="dv">' + esc(r[2]) + '</span></td></tr>'; }).join('');
+      return '<div class="pad" style="padding-bottom:0"><div class="dtbl"><div class="dtbl-h"><b>' + esc(d.title || 'Proposed correction') + '</b><span class="pill bad">Waiting on the client</span></div><table><thead><tr><th>Field</th><th colspan="2">Value</th></tr></thead><tbody>' + ro + '</tbody></table>' +
+        '<div class="dtbl-f"><span class="muted">' + ch.length + (ch.length === 1 ? ' change' : ' changes') + ' sent to the client to confirm</span><button type="button" class="btn sm ghost" data-act="fixOff" data-id="' + j.id + '">Resolve correction</button></div></div></div>';
+    }
+    var body = d.rows.map(function (r) {
+      if (r.length < 3) return '<tr><td class="muted">' + esc(r[0]) + '</td><td colspan="2">' + esc(r[1]) + '</td></tr>';
+      var off = !!S.diffOff[j.id + r[0]], box = '<span class="dbox' + (off ? '' : ' on') + '">' + (off ? '' : ico('check')) + '</span>';
+      return '<tr class="dif del' + (off ? ' off' : '') + '" data-act="diffRow" data-k="' + esc(j.id + r[0]) + '"><td>' + esc(r[0]) + '</td><td><span class="dv">' + esc(r[1]) + '</span></td><td class="dck">' + box + '</td></tr>' +
+        '<tr class="dif add' + (off ? ' off' : '') + '" data-act="diffRow" data-k="' + esc(j.id + r[0]) + '"><td></td><td><span class="dv">' + esc(r[2]) + '</span></td><td></td></tr>';
+    }).join('');
+    return '<div class="pad" style="padding-bottom:0"><div class="dtbl"><div class="dtbl-h"><b>' + esc(d.title || 'Proposed correction') + '</b><span class="muted">Click a changed row to keep or drop it</span></div>' +
+      '<table><thead><tr><th>Field</th><th>Value</th><th></th></tr></thead><tbody>' + body + '</tbody></table>' +
+      '<div class="dtbl-f"><span class="muted">' + ch.length + (ch.length === 1 ? ' change' : ' changes') + ' proposed · ' + on.length + ' selected</span><button type="button" class="btn sm" data-act="diffApply" data-id="' + j.id + '"' + (on.length ? '' : ' disabled') + '>Confirm ' + on.length + (on.length === 1 ? ' change' : ' changes') + '</button></div></div></div>';
+  }
+
+  /* staff: propose exact changes when flagging, so the client gets a diff table to confirm */
+  var DF_FIELDS = [['un', 'UN number'], ['item', 'Proper shipping name'], ['cls', 'Hazard class'], ['pg', 'Packing group'], ['qty', 'Quantity'], ['mode', 'Transport'], ['ref', 'Reference']];
+  var dfN = 0;
+  document.addEventListener('change', function (e) { if (e.target.classList && e.target.classList.contains('df-f')) { var o = e.target.selectedOptions[0]; e.target.parentNode.querySelector('.df-c').textContent = (o && o.dataset.cur) || ''; } });
+  function dfRow(j, k) {
+    var i = ++dfN, f = DF_FIELDS.filter(function (x) { return x[0] === k; })[0];
+    return '<div class="df-row" data-i="' + i + '"><select class="mini df-f" aria-label="Field">' + '<option value="">Choose a field</option>' + DF_FIELDS.map(function (x) { return '<option value="' + x[0] + '" data-cur="' + esc(j[x[0]] || '') + '"' + (x[0] === k ? ' selected' : '') + '>' + x[1] + '</option>'; }).join('') + '<option value="other" data-cur="">Something else</option></select>' +
+      '<span class="df-c" title="Now on the job">' + esc(f ? j[f[0]] || '' : '') + '</span><span class="df-ar">→</span><input type="text" class="df-n" placeholder="Corrected value" aria-label="Corrected value"><button type="button" class="iconbtn" data-act="dfDel" data-i="' + i + '" aria-label="Remove this change">' + ico('x') + '</button></div>';
+  }
+  function dfEditor(j) {
+    return '<div class="df"><div class="df-h"><b>Proposed changes</b><span class="muted">Optional. The client sees these as a before-and-after table and confirms them.</span></div><div id="dfRows">' + dfRow(j, 'qty') + '</div><button type="button" class="linkbtn" data-act="dfAdd" data-id="' + j.id + '">+ Add another change</button></div>';
+  }
+  function dfRead(j) {
+    var rows = [], used = {};
+    document.querySelectorAll('.df-row').forEach(function (r) {
+      var sel = r.querySelector('.df-f'), k = sel.value, nv = r.querySelector('.df-n').value.trim(); if (!k || !nv) return;
+      var label = k === 'other' ? 'Other' : sel.selectedOptions[0].textContent, cur = k === 'other' ? '—' : String(j[k] || '—');
+      if (nv !== cur) { rows.push([label, cur, nv]); used[k] = 1; }
+    });
+    if (!rows.length) return null;
+    var ctx = [['un', 'UN number'], ['item', 'Proper shipping name']].filter(function (x) { return !used[x[0]] && j[x[0]]; }).map(function (x) { return [x[1], j[x[0]]]; });
+    return { title: 'Proposed correction', rows: ctx.concat(rows) };
+  }
+
+  /* ---------- staff jobs: the same filter table, across every client company ---------- */
+  function staffJobsView() {
+    var all = []; Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(function (j) { all.push(j); }); });
+    var q = S.q.toLowerCase(), sc = S.sc || '', so = S.so || '';
+    var base = all.filter(function (j) {
+      var o = orgOfJob(j.id);
+      if (sc && o.id !== sc) return false;
+      if (so === 'none' && j.owner) return false; if (so && so !== 'none' && j.owner !== so) return false;
+      if (S.fm === 'Air' && j.mode !== 'Air') return false; if (S.fm === 'Ground' && j.mode !== 'Ground') return false;
+      return !q || (j.id + j.item + j.un + j.ref + o.name + j.owner).toLowerCase().indexOf(q) > -1;
+    });
+    var count = function (k) { return k === 'all' ? base.length : base.filter(function (j) { return jobStatus(j)[0] === k; }).length; };
+    var list = sortJobs(base.filter(function (j) { return S.fs === 'all' || jobStatus(j)[0] === S.fs; }));
+    var chips = FS.filter(function (c) { return c[0] === 'all' || count(c[0]) || S.fs === c[0]; }).map(function (c) {
+      return '<button type="button" class="fchip" data-act="fstat" data-s="' + esc(c[0]) + '" aria-pressed="' + (S.fs === c[0]) + '">' + (c[0] === 'all' ? '' : '<i class="sdot ' + STATUS_DOT[c[0]] + '"></i>') + esc(c[1]) + '<span class="n">' + count(c[0]) + '</span></button>';
+    }).join('');
+    var tools = '<label class="fsearch">' + ico('search') + '<input id="q" type="search" placeholder="Search jobs, clients, owners" value="' + esc(S.q) + '" aria-label="Search jobs"></label>' +
+      '<select id="sc" class="mini" aria-label="Client company"><option value="">All companies</option>' + Object.keys(ORGS).map(function (k) { return '<option value="' + k + '"' + (sc === k ? ' selected' : '') + '>' + esc(ORGS[k].name) + '</option>'; }).join('') + '</select>' +
+      '<select id="so" class="mini" aria-label="Owner"><option value="">All owners</option>' + OWNERS.map(function (n) { return '<option value="' + n + '"' + (so === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '<option value="none"' + (so === 'none' ? ' selected' : '') + '>Unassigned</option></select>' +
+      '<select id="fm" class="mini" aria-label="Filter by transport"><option value="all">Any transport</option><option' + (S.fm === 'Air' ? ' selected' : '') + '>Air</option><option' + (S.fm === 'Ground' ? ' selected' : '') + '>Ground</option></select>' + jobSortSel().replace('<select', '<select class="mini"');
+    var rows = list.map(function (j) {
+      var o = orgOfJob(j.id), on = !!S.sel[j.id];
+      return '<tr class="click' + (on ? ' sel' : '') + '" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '" data-flip="job-' + j.id + '"><td class="cbc"><button type="button" class="cbx" role="checkbox" aria-checked="' + on + '" aria-label="Select ' + esc(jn(j)) + '" data-act="selRow" data-id="' + j.id + '">' + ico('check') + '</button></td>' +
+        '<td><b class="mono">' + esc(jn(j)) + '</b><div class="sub2 ell">' + esc(j.item) + '</div></td><td><span class="ell" style="display:block;max-width:190px">' + esc(o.name) + '</span><div class="sub2">' + esc(repName2(o, j.rep)) + '</div></td><td class="nowrap">' + ownChip(j) + '</td><td>' + pill(j) + '</td><td class="nowrap">' + progBar(j) + '</td><td>' + priChip(j) + '</td><td class="nowrap">' + (j.req ? fmtS(isoDate(j.req)) : '<span class="muted">—</span>') + '</td><td class="qa-c"><span class="qa">' + qaButtons(o, j) + '</span></td></tr>';
+    }).join('');
+    var open = all.filter(isOpen).length, fix = all.filter(function (j) { return j.fix; }).length, req = all.filter(function (j) { return j.pending; }).length;
+    var stat = function (v, k) { return '<div class="sl"><b>' + v + '</b><span>' + k + '</span></div>'; };
+    return '<div class="statline">' + stat(all.length, 'Total jobs') + stat(open, 'Open') + stat(req, 'Requests to accept') + stat(fix, 'Needs correction') + '</div>' +
+      '<div class="ftbl"><div class="ftbl-bar"><div class="fchips" role="group" aria-label="Filter by status">' + chips + '</div><div class="ftbl-tools">' + tools + '</div></div>' +
+      '<div class="ftbl-card">' + (list.length ? '<table><thead><tr><th class="cbc">' + selAllBox(list) + '</th><th>Job</th><th>Client</th><th>Owner</th><th>Status</th><th>Progress</th><th>Priority</th><th>Required by</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' :
+        '<div class="ftbl-empty">' + emptyS('No jobs match', 'Try another status, search or filter.', '<button type="button" class="btn sm ghost" data-act="fclear">Clear filters</button>') + '</div>') + '</div>' + bulkDock() + '</div>';
+  }
+
+  /* ---------- 16 Flowchart ---------- */
+  var SVC_STEPS = { class: [LB.cls], pack: [LB.pack], temp: [LB.temp], dry: [LB.dry], insp: [LB.insp], dgd: [LB.dgdp, LB.dgd], consult: [LB.consult], emerg: [LB.emerg] };
+  function flowHtml(j) {
+    var stOf = function (label) { var i = j.steps.indexOf(label); return j.pending || i < 0 ? 'next' : i < j.done ? 'done' : i === j.done ? (j.fix ? 'fix' : 'now') : 'next'; };
+    var node = function (label, cls) { var s = cls || stOf(label); return '<div class="fn st-' + s + '"><span class="fn-d"></span><span>' + esc(label) + '</span>' + (s === 'done' ? ico('check', 'fn-c') : '') + '</div>'; };
+    var tag = function (t, c) { return '<span class="ftag ' + c + '">' + t + '</span>'; };
+    var tok = function (t, dot) { return '<span class="tok">' + (dot ? '<i class="sdot ' + dot + '"></i>' : '') + esc(t) + '</span>'; };
+    var conds = j.svc.map(function (k, i) { return '<div class="cond"><span class="grip"></span><span class="cw">' + (i ? 'and' : 'If') + '</span>' + tok('job') + tok('services') + '<span class="cw">has</span>' + tok(SVC[k], 'warn') + '</div>'; }).join('') +
+      '<div class="cond"><span class="grip"></span><span class="cw">and</span>' + tok('job') + tok('transport') + '<span class="cw">is</span>' + tok(j.mode, 'info') + '</div>';
+    var yes = [], no = [];
+    Object.keys(SVC_STEPS).forEach(function (k) { SVC_STEPS[k].forEach(function (l) { if (j.steps.indexOf(l) > -1) { if (yes.indexOf(l) < 0) yes.push(l); } else if (no.indexOf(l) < 0) no.push(l); }); });
+    yes.sort(function (a, b) { return j.steps.indexOf(a) - j.steps.indexOf(b); });
+    var who = repName(j.rep), opened = j.ev.length ? fmtS(j.ev[0][0]) : '';
+    return '<div class="flow"><div class="fcol">' +
+      tag('Trigger', 'vio') + '<div class="fbox trig"><span class="fbi">' + ico('jobs') + '</span><div><b>Job request submitted</b><span>' + esc(who) + (opened ? ' · ' + opened : '') + ' · ' + esc(jn(j)) + '</span></div></div><i class="fl"></i>' +
+      node(LB.rec) + '<i class="fl"></i>' + node(LB.rev) + '<i class="fl"></i>' +
+      tag('If / Else', 'amb') + '<div class="fbox conds">' + conds + '</div>' +
+      '<div class="fsplit"><div class="fbr"><span class="fbr-l ok">Then</span>' + yes.map(function (l) { return node(l); }).join('<i class="fl s"></i>') + '</div>' +
+      '<div class="fbr else"><span class="fbr-l">Else, skipped</span>' + (no.length ? no.map(function (l) { return node(l, 'skip'); }).join('<i class="fl s"></i>') : '<span class="muted" style="font-size:12.5px">Nothing skipped</span>') + '</div></div>' +
+      '<i class="fl"></i>' + tag('End', 'grn') + node(LB.inv) + '</div></div>';
+  }
+
+  /* ---------- Floating dock (ui.aceternity.com) ---------- */
+  function dockItem(icon, label, attrs, cls) { return '<button type="button" class="dk' + (cls ? ' ' + cls : '') + '" aria-label="' + esc(label) + '" ' + attrs + '><span class="dk-tip" aria-hidden="true">' + esc(label) + '</span>' + ico(icon) + '</button>'; }
+  function staffDock(j) {
+    var o = S.org, cur = !j.pending && isOpen(j) ? j.steps[j.done] : '', files = o.files.filter(function (f) { return f.job === j.id; }).length;
+    var items = [dockItem('back', 'All jobs', 'data-act="backList"'), '<i class="dk-sep"></i>',
+      j.pending ? dockItem('check', 'Accept request', 'data-act="accept" data-id="' + j.id + '"', 'primary') : cur ? dockItem('check', 'Complete: ' + cur, 'data-act="stepNext" data-id="' + j.id + '"', 'primary') : dockItem('check', 'All steps done', 'disabled'),
+      j.done > 1 && !j.pending ? dockItem('undo', 'Undo last step', 'data-act="stepUndo" data-id="' + j.id + '"') : dockItem('undo', 'Nothing to undo', 'disabled'),
+      j.fix ? dockItem('flag', 'Resolve correction', 'data-act="fixOff" data-id="' + j.id + '"', 'alert') : dockItem('flag', 'Flag for correction', 'data-act="dockFix" data-id="' + j.id + '"'),
+      '<i class="dk-sep"></i>',
+      dockItem('up', 'Upload to client', 'data-act="upload" data-job="' + j.id + '"'),
+      dockItem('quote', 'New quote', 'data-act="docNew" data-m="Quote" data-org="' + o.id + '" data-job="' + j.id + '"'),
+      dockItem('inv', 'New invoice', 'data-act="docNew" data-m="Invoice" data-org="' + o.id + '" data-job="' + j.id + '"'),
+      dockItem('msg', 'Messages' + (j.msgs.length ? ' (' + j.msgs.length + ')' : ''), 'data-act="dockTab" data-t="msgs"'),
+      files ? dockItem('down', 'Download all (' + files + ')', 'data-act="zipJob" data-id="' + j.id + '"') : dockItem('down', 'No files yet', 'disabled')];
+    return '<div class="dockwrap job staff"><nav class="dock" data-mag aria-label="Staff actions">' + items.join('') + '</nav></div>';
+  }
+  function jobDock(j) {
+    if (staff()) return staffDock(j);
+    var dgd = latest(j, 'DGD'), inv = latest(j, 'Invoice'), files = S.org.files.filter(function (f) { return f.job === j.id; }).length;
+    var items = [dockItem('back', 'All jobs', 'data-act="backList"'), '<i class="dk-sep"></i>',
+      j.fix ? dockItem('up', 'Upload correction', 'data-act="upload" data-job="' + j.id + '"', 'alert') : dockItem('up', 'Upload a file', 'data-act="upload" data-job="' + j.id + '"'),
+      dockItem('msg', 'Message HazPack' + (j.msgs.length ? ' (' + j.msgs.length + ')' : ''), 'data-act="dockTab" data-t="msgs"'),
+      dgd ? dockItem('dgd', 'View DGD', 'data-act="view" data-id="' + dgd.id + '"') : dockItem('dgd', 'No DGD yet', 'disabled'),
+      inv ? dockItem('inv', 'View invoice', 'data-act="view" data-id="' + inv.id + '"') : dockItem('inv', 'No invoice yet', 'disabled'),
+      dockItem('flow', 'Workflow', 'data-act="dockTab" data-t="flow"'),
+      files ? dockItem('down', 'Download all (' + files + ')', 'data-act="zipJob" data-id="' + j.id + '"') : dockItem('down', 'No files yet', 'disabled')];
+    return '<div class="dockwrap job"><nav class="dock" data-mag aria-label="Job actions">' + items.join('') + '</nav></div>';
+  }
+  function navDock() {
+    var it = [['dashboard', 'dash', 'Dashboard'], ['jobs', 'jobs', 'Jobs'], ['files', 'files', 'Files'], [staff() ? 'billing' : 'invoices', staff() ? 'bill' : 'inv', staff() ? 'Billing' : 'Invoices']];
+    var b = function (x) { var on = S.view === x[0] || (x[0] === 'billing' && S.view === 'doc'); return '<button type="button" class="dk dnav' + (on ? ' on' : '') + '" data-act="nav" data-v="' + x[0] + '"' + (on ? ' aria-current="page"' : '') + '>' + ico(x[1]) + '<span class="dk-l">' + x[2] + '</span></button>'; };
+    var mid = staff() ? b(['clients', 'clients', 'Clients']) : '<button type="button" class="dk plus" data-act="request" aria-label="New job request">' + ico('newreq') + '</button>';
+    return '<nav class="dock pdock" aria-label="Portal sections">' + b(it[0]) + b(it[1]) + mid + b(it[2]) + b(it[3]) + '</nav>';
+  }
+  /* desktop magnification: each icon grows with closeness to the pointer and eases toward its target (spring-like) */
+  var dockX = null;
+  function dockAfter() {
+    document.body.classList.toggle('has-dock', !!document.querySelector('.dockwrap.job'));
+    var d = document.querySelector('.dock[data-mag]'); if (!d || !window.matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) return;
+    var items = [].slice.call(d.querySelectorAll('.dk')), mx = dockX, raf = 0;
+    items.forEach(function (el) { el._s = 40; });
+    var tick = function () {
+      var moving = false;
+      items.forEach(function (el) {
+        var t = 40;
+        if (mx !== null) { var r = el.getBoundingClientRect(), dist = Math.abs(mx - (r.left + r.width / 2)); t = 40 + 26 * Math.max(0, Math.cos(Math.min(dist, 150) / 150 * Math.PI / 2)); }
+        el._s += (t - el._s) * 0.22; if (Math.abs(t - el._s) > 0.3) moving = true; else el._s = t;
+        el.style.width = el.style.height = el._s + 'px'; el.style.setProperty('--ic', (el._s * 0.48) + 'px');
+      });
+      raf = moving ? requestAnimationFrame(tick) : 0;
+    };
+    var kick = function () { if (!raf) raf = requestAnimationFrame(tick); };
+    d.addEventListener('mousemove', function (e) { mx = dockX = e.clientX; kick(); });
+    d.addEventListener('mouseleave', function () { mx = dockX = null; kick(); });
+    if (mx !== null && d.matches(':hover')) { items.forEach(function (el) { var r = el.getBoundingClientRect(), dist = Math.abs(mx - (r.left + r.width / 2)); el._s = 40 + 26 * Math.max(0, Math.cos(Math.min(dist, 150) / 150 * Math.PI / 2)); el.style.width = el.style.height = el._s + 'px'; el.style.setProperty('--ic', (el._s * 0.48) + 'px'); }); }
+    else dockX = null;
+  }
+
+  /* ---------- 4 Bulk actions: tick jobs in the table and a dock rises with what you can do to all of them ---------- */
+  S.sel = {};
+  function jobAny(id) { var o = staff() ? orgOfJob(id) : S.org; return o ? o.jobs.filter(function (j) { return j.id === id; })[0] : null; }
+  function filesOfJobs(ids) { var out = []; ids.forEach(function (id) { var o = staff() ? orgOfJob(id) : S.org; if (o) o.files.forEach(function (f) { if (f.job === id) out.push(f); }); }); return out; }
+  function selIds() { return Object.keys(S.sel).filter(function (id) { return S.sel[id] && jobAny(id); }); }
+  function selAllBox(list) {
+    var n = list.filter(function (j) { return S.sel[j.id]; }).length, st = !n ? 'false' : n === list.length ? 'true' : 'mixed';
+    return '<button type="button" class="cbx" role="checkbox" aria-checked="' + st + '" aria-label="Select all shown jobs" data-act="selAll" data-ids="' + list.map(function (j) { return j.id; }).join(',') + '">' + ico(st === 'mixed' ? 'newreq' : 'check') + '</button>';
+  }
+  var bulkWas = 0;
+  function bulkDock() {
+    var ids = selIds(), n = ids.length, fresh = n && !bulkWas; bulkWas = n;
+    if (!n) return '';
+    var files = filesOfJobs(ids).length;
+    return '<div class="bulkdock' + (fresh ? ' rise' : '') + '" role="region" aria-label="Actions for selected jobs"><nav class="dock" data-mag><span class="bk-n"><b>' + n + '</b> selected</span><i class="dk-sep"></i>' +
+      (files ? dockItem('down', 'Download files (' + files + ')', 'data-act="bulkZip"') : dockItem('down', 'No files on these jobs', 'disabled')) +
+      dockItem('csv', 'Export CSV', 'data-act="bulkCsv"') + (staff() ? dockItem('team', 'Assign owner', 'data-act="bulkOwner"') + dockItem('flag', 'Set priority', 'data-act="bulkPri"') + dockItem('msg', 'Message the clients', 'data-act="bulkMsg"') : dockItem('msg', 'Message HazPack about these', 'data-act="bulkMsg"')) +
+      '<i class="dk-sep"></i>' + dockItem('x', 'Clear selection', 'data-act="selClear"') + '</nav></div>';
+  }
+  function bulkZip(ids) {
+    var files = filesOfJobs(ids); if (!files.length) return;
+    toast('Preparing the zip');
+    loadScript('/portal/vendor/jszip.min.js', function () { return window.JSZip; }).then(function () {
+      var z = new window.JSZip(), used = {};
+      return Promise.all(files.map(function (f) { return ensureBlob(f); })).then(function (blobs) {
+        files.forEach(function (f, k) { var dir = String(jnId(f.job)).replace(/[^a-zA-Z0-9_-]+/g, '_') + '/', n = dir + f.name; if (used[n]) { var c = ++used[n], i = n.lastIndexOf('.'); n = (i > dir.length ? n.slice(0, i) : n) + ' (' + c + ')' + (i > dir.length ? n.slice(i) : ''); } else used[n] = 1; z.file(n, blobs[k]); });
+        return z.generateAsync({ type: 'blob' });
+      });
+    }).then(function (blob) { download('HazPack_' + ids.length + '_jobs_' + iso(TODAY) + '.zip', blob); }, function () { toast('Could not make the zip. Check your connection and try again.'); });
+  }
+  function bulkCsv(ids) {
+    var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
+    var st = staff(), rows = [['Job', 'HazPack ID'].concat(st ? ['Client', 'Owner', 'Priority'] : [], ['Contents', 'UN number', 'Class', 'Quantity', 'Transport', 'From', 'To', 'Required by', 'Status', 'Progress %', 'Requested by'])].concat(ids.map(jobAny).map(function (j) {
+      var o = st ? orgOfJob(j.id) : S.org, p = priorityOf(j);
+      return [jn(j), j.id].concat(st ? [o.name, j.owner || 'Unassigned', p ? p[0] : ''] : [], [j.item, j.un, j.cls, j.qty, j.mode, j.from, j.to || j.toText, j.req ? mdy(j.req) : '', jobStatus(j)[0], progOf(j), repName2(o, j.rep)]);
+    }));
+    download('HazPack_jobs_' + iso(TODAY) + '.csv', new Blob(['﻿' + rows.map(function (r) { return r.map(q).join(','); }).join('\n')], { type: 'text/csv;charset=utf-8' }));
+  }
+  function bulkMsgModal(ids) {
+    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Send a message"><h2>' + (staff() ? 'Message the clients' : 'Message HazPack') + '</h2><p class="muted" style="margin:0">Sent on each of these jobs: ' + ids.map(function (id) { return '<b class="mono">' + esc(jn(jobAny(id))) + '</b>'; }).join(', ') + '</p>' +
+      '<label class="f" for="bkText">Message<textarea id="bkText" rows="4" placeholder="Write a message"></textarea></label><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Send to ' + ids.length + (ids.length === 1 ? ' job' : ' jobs'), 'type="button" data-act="bulkMsgGo"', '') + '</div></div>');
+    document.getElementById('bkText').focus();
+  }
+
+  /* ---------- phone preview (sandbox only): the portal in a phone-sized frame ---------- */
+  var IN_FRAME = window.self !== window.top;
+  if (IN_FRAME) document.documentElement.classList.add('in-frame');
+  function phoneBtn() { return IN_FRAME ? '' : '<button type="button" class="iconbtn phonebtn" data-act="phoneOpen" aria-label="Phone view" title="Phone view">' + ico('phone') + '</button>'; }
+  function phoneOpen() {
+    var w = document.createElement('div'); w.className = 'phoneveil'; w.id = 'phoneveil';
+    w.innerHTML = '<div class="phonebar"><b>Phone preview</b><span class="muted">390 × 844 · it is the live portal, so taps work</span><div class="seg2"><button type="button" data-act="phoneTheme" data-t="" aria-pressed="true">Auto</button><button type="button" data-act="phoneTheme" data-t="light" aria-pressed="false">Light</button><button type="button" data-act="phoneTheme" data-t="dark" aria-pressed="false">Dark</button></div><button type="button" class="iconbtn" data-act="phoneClose" aria-label="Close phone preview">' + ico('x') + '</button></div>' +
+      '<div class="phone"><div class="notch"></div><iframe id="phoneframe" title="Portal on a phone" src="/portal/"></iframe></div>';
+    document.body.appendChild(w);
+    w.addEventListener('click', function (e) { if (e.target === w) phoneClose(); });
+    phoneFit();
+  }
+  /* scale the whole phone (not the page inside it) so the page keeps a true 390px width on short screens */
+  function phoneFit() { var p = document.querySelector('.phone'); if (p) p.style.zoom = Math.min(1, (window.innerHeight - 90) / 868, (window.innerWidth - 32) / 414); }
+  window.addEventListener('resize', phoneFit);
+  function phoneClose() { var w = document.getElementById("phoneveil"); if (w) w.remove(); render(); }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.getElementById('phoneveil')) phoneClose(); });
+
+  /* phones: every data table can fold into one card per row. Each cell gets its column name so CSS can show it as a small label. */
+  function labelTables() {
+    document.querySelectorAll('.content table').forEach(function (t) {
+      if (t.closest('.paper, .dtbl, .cal, .flow')) return;
+      var head = t.tHead && t.tHead.rows.length ? t.tHead.rows[t.tHead.rows.length - 1] : null; if (!head) return;
+      var names = [].map.call(head.cells, function (c) { return c.classList.contains('cbc') ? '' : c.textContent.trim(); });
+      t.classList.add('cardify');
+      [].forEach.call(t.tBodies, function (b) {
+        [].forEach.call(b.rows, function (r) {
+          var main = false;
+          [].forEach.call(r.cells, function (c, i) {
+            if (c.colSpan > 1) { c.classList.add('c-wide'); return; }
+            if (c.classList.contains('cbc')) return;
+            if (!main) { main = true; c.classList.add('c-main'); return; }
+            if (names[i]) c.setAttribute('data-label', names[i]); else c.classList.add('c-wide');
+          });
+        });
+      });
+    });
+  }
+
+  /* ---------- actions for the ideas ---------- */
+  function ideasAct(a, ds) {
+    switch (a) {
+      case 'dockTab': S.jobTab = ds.t; render(); var tb = document.querySelector('.jdetail .tabs, .content .tabs'); if (tb) tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); return true;
+      case 'phoneOpen': phoneOpen(); return true;
+      case 'phoneClose': phoneClose(); return true;
+      case 'phoneTheme':
+        var fr = document.getElementById('phoneframe'), de = fr && fr.contentDocument && fr.contentDocument.documentElement;
+        if (de) { if (ds.t) de.setAttribute('data-theme', ds.t); else de.removeAttribute('data-theme'); }
+        document.querySelectorAll('[data-act=phoneTheme]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === ds.t)); }); return true;
+      case 'fixOff': var fj = getJob(ds.id); if (fj) delete fj.fixDiff; return false;
+      case 'dfAdd': var tb2 = document.getElementById('dfRows'); tb2.insertAdjacentHTML('beforeend', dfRow(getJob(ds.id), '')); return true;
+      case 'dfDel': var tr2 = document.querySelector('.df-row[data-i="' + ds.i + '"]'); if (tr2) tr2.remove(); return true;
+      case 'dockFix':
+        openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Flag for correction"><h2>Flag for correction</h2><p class="muted" style="margin:0">The client sees this note and the job cannot be cleared to ship until it is resolved.</p><label class="f" for="fixnote2">What needs correcting<textarea id="fixnote2" rows="3" placeholder="For example: the net quantity on the declaration does not match the package marking"></textarea></label>' + dfEditor(getJob(ds.id)) + '<div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Flag the job', 'type="button" data-act="dockFixGo" data-id="' + ds.id + '"', '') + '</div></div>');
+        return true;
+      case 'dockFixGo':
+        var fx = getJob(ds.id), note2 = (document.getElementById('fixnote2').value || '').trim() || 'Something on this job needs a correction.', rows2 = dfRead(fx);
+        fx.fix = true; fx.fixNote = note2; if (rows2) fx.fixDiff = rows2; else delete fx.fixDiff;
+        addEv(fx, 'Correction needed: ' + note2); logEv(fx, staffName(), 'Flagged for correction: ' + note2 + (rows2 ? ' (' + rows2.rows.filter(function (r) { return r.length > 2; }).length + ' proposed changes)' : ''));
+        notify(fx.id, fx.id + ' needs a correction before it can be cleared to ship.', 'client'); closeModal(); render(); toast('Flagged. People who can see this job were notified.'); return true;
+      case 'selRow': flipBefore(); S.sel[ds.id] = !S.sel[ds.id]; render(); return true;
+      case 'selAll': var ids = ds.ids ? ds.ids.split(',') : [], all = ids.every(function (id) { return S.sel[id]; }); ids.forEach(function (id) { S.sel[id] = !all; }); render(); return true;
+      case 'selClear': S.sel = {}; render(); return true;
+      case 'bulkOwner': case 'bulkPri':
+        var isO = a === 'bulkOwner', opts = isO ? [['', 'Unassigned']].concat(OWNERS.map(function (n) { return [n, n]; })) : [['', 'Auto (from the required-by date)'], ['Urgent', 'Urgent'], ['High', 'High'], ['Normal', 'Normal'], ['Low', 'Low']];
+        openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="' + (isO ? 'Assign owner' : 'Set priority') + '"><h2>' + (isO ? 'Assign an owner' : 'Set priority') + '</h2><p class="muted" style="margin:0">For ' + selIds().length + ' selected ' + (selIds().length === 1 ? 'job' : 'jobs') + '.</p><label class="f" for="bkSel">' + (isO ? 'Owner' : 'Priority') + '<select id="bkSel">' + opts.map(function (x) { return '<option value="' + esc(x[0]) + '">' + esc(x[1]) + '</option>'; }).join('') + '</select></label><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Apply', 'type="button" data-act="bulkSetGo" data-k="' + (isO ? 'owner' : 'pri') + '"', '') + '</div></div>');
+        return true;
+      case 'bulkSetGo':
+        var v = document.getElementById('bkSel').value, k2 = ds.k, ids2 = selIds();
+        ids2.forEach(function (id) { var jj = jobAny(id); jj[k2] = v; logEv(jj, staffName(), (k2 === 'owner' ? 'Owner set to ' + (v || 'unassigned') : 'Priority set to ' + (v || 'auto'))); });
+        closeModal(); flipBefore(); render(); toast((k2 === 'owner' ? 'Owner' : 'Priority') + ' updated on ' + ids2.length + (ids2.length === 1 ? ' job.' : ' jobs.')); return true;
+      case 'bulkZip': bulkZip(selIds()); return true;
+      case 'bulkCsv': bulkCsv(selIds()); toast('Exported ' + selIds().length + ' jobs.'); return true;
+      case 'bulkMsg': bulkMsgModal(selIds()); return true;
+      case 'bulkMsgGo':
+        var text = document.getElementById('bkText').value.trim(), todo = selIds(), sent = 0;
+        if (!text) { toast('Write a message first.'); return true; }
+        closeModal();
+        if (staff()) {
+          todo.forEach(function (id) { var o = orgOfJob(id), jj = jobAny(id); jj.msgs.push({ from: 'staff', who: staffName(), text: text, date: new Date() }); logEv(jj, staffName(), 'Sent a message'); withOrg(o.id, function () { notify(jj.id, 'HazPack sent a message on ' + jj.id + '.', 'client'); }); });
+          toast('Message sent on ' + todo.length + (todo.length === 1 ? ' job.' : ' jobs.')); S.sel = {}; render(); return true;
+        }
+        (function next() { if (!todo.length) { toast('Message sent on ' + sent + (sent === 1 ? ' job.' : ' jobs.')); S.sel = {}; render(); return; } var id = todo.shift(); clientAct({ action: 'sendMessage', jobId: id, text: text }, function () { sent++; next(); }); })();
+        return true;
+      case 'railMin': S.railMin = !S.railMin; lsSet('hp-rail-min', S.railMin ? '1' : '0'); render(); return true;
+      case 'recToggle': S.recOpen = !S.recOpen; S.recAnim = S.recOpen; lsSet('hp-rec-closed', S.recOpen ? '0' : '1'); render(); return true;
+      case 'recSearch': S.view = 'jobs'; S.mobileDetail = false; render(); var q = document.getElementById('q'); if (q) q.focus(); return true;
+      case 'fstat': flipBefore(); S.fs = ds.s; render(); return true;
+      case 'fclear': flipBefore(); S.fs = 'all'; S.fm = 'all'; S.fp = 'all'; S.q = ''; S.sc = ''; S.so = ''; render(); return true;
+      case 'trToggle': S.trOpen[ds.k] = !S.trOpen[ds.k]; var el = document.querySelector('.tr-h[data-k="' + ds.k + '"]'); if (el) { el.parentNode.classList.toggle('open', S.trOpen[ds.k]); el.setAttribute('aria-expanded', String(S.trOpen[ds.k])); } return true;
+      case 'trMode': S.trMode = ds.m; lsSet('hp-tr-mode', ds.m); render(); return true;
+      case 'diffRow': S.diffOff[ds.k] = !S.diffOff[ds.k]; render(); return true;
+      case 'diffApply':
+        var j = getJob(ds.id), d = diffOf(j), on = d.rows.filter(function (r) { return r.length > 2 && !S.diffOff[j.id + r[0]]; });
+        on.forEach(function (r) { if (/quantity on dgd/i.test(r[0])) j.qty = r[2]; });
+        clientAct({ action: 'sendMessage', jobId: j.id, text: 'Confirmed the correction: ' + on.map(function (r) { return r[0] + ' ' + r[1] + ' → ' + r[2]; }).join('; ') + '.' }, function () { toast('Sent to HazPack. They will reissue the paperwork.'); });
+        return true;
+    }
+    return false;
+  }
+
   render();
   boot();
 })();
