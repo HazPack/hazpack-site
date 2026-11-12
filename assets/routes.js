@@ -75,22 +75,23 @@
     line.innerHTML = '<b>' + t[1] + '</b><span>' + t[2] + ' · ' + t[3] + ' · LAX → ' + b.city + '</span>';
     line.classList.remove('in'); void line.offsetWidth; line.classList.add('in');
   }
-  function stepsTo(n) { stepEls.forEach(function (li, i) { li.classList.toggle('on', i < n); li.classList.toggle('now', i === n); }); }
+  function stepsTo(n) { stepEls.forEach(function (li, i) { li.classList.toggle('on', i < n); }); }
 
   if (reduce) { TRIPS.forEach(function (t) { drawRoute(t, false); }); caption(TRIPS[0]); stepsTo(4); return; }
 
-  var i = 0, live = [], timer = null, running = false;
+  var i = 0, live = [], timer = null, running = false, stepT = [];
   function next() {
     var t = TRIPS[i++ % TRIPS.length];
-    caption(t); stepsTo(0);
-    [1, 2, 3, 4].forEach(function (n) { setTimeout(function () { stepsTo(n); }, 380 * n); });
+    /* Bars clear, then light up one after another, each a short beat after the last. */
+    caption(t); stepsTo(0); stepT.forEach(clearTimeout);
+    stepT = [1, 2, 3, 4].map(function (n) { return setTimeout(function () { stepsTo(n); }, 250 + 520 * n); });
     var g = drawRoute(t, true); live.push(g);
     if (live.length > 4) { var old = live.shift(); old.classList.add('gone'); setTimeout(function () { old.remove(); }, 800); }
     live.forEach(function (x, k) { x.style.opacity = String(.35 + .65 * (k + 1) / live.length); });
-    timer = setTimeout(next, 3200);
+    timer = setTimeout(next, 3800);
   }
   function start() { if (running) return; running = true; next(); }
-  function stop() { running = false; clearTimeout(timer); }
+  function stop() { running = false; clearTimeout(timer); stepT.forEach(clearTimeout); }
   /* Only animate while the map is on screen and the tab is visible. */
   var onScreen = true;
   if ('IntersectionObserver' in window) new IntersectionObserver(function (es) { onScreen = es[0].isIntersecting; if (onScreen && !document.hidden) start(); else stop(); }).observe(root);

@@ -441,10 +441,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
 @keyframes hmIn{from{opacity:0;transform:translateY(4px)}}
 .hm-steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .hm-steps li{position:relative;font:600 .74rem var(--font-narrow);letter-spacing:.04em;text-transform:uppercase;color:#93a6c1;padding-top:10px;transition:color .3s}
-.hm-steps li::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;border-radius:2px;background:rgba(255,255,255,.14);transition:background .3s}
+.hm-steps li::before,.hm-steps li::after{content:"";position:absolute;left:0;right:0;top:0;height:4px;border-radius:2px;background:rgba(255,255,255,.14)}
+.hm-steps li::after{background:var(--orange);transform:scaleX(0);transform-origin:left;transition:transform .2s ease-in}
 .hm-steps li.on{color:#fff}
-.hm-steps li.on::before{background:var(--orange)}
-.hm-steps li.now::before{background:linear-gradient(90deg,var(--orange),rgba(255,255,255,.14))}
+.hm-steps li.on::after{transform:scaleX(1);transition:transform .45s cubic-bezier(.2,.7,.2,1)}
 .hero-map .hc-note{margin:0}
 @media (max-width:960px){.hero-map{max-width:560px}}
 @media (prefers-reduced-motion:reduce){.hm-ping{animation:none}}
