@@ -2078,7 +2078,7 @@
     var recHtml = '<div class="rsec"><div class="rsec-h"><button type="button" class="rsec-t" data-act="recToggle" aria-expanded="' + S.recOpen + '">' + ico('chev', 'cv') + 'Recent jobs</button><button type="button" class="iconbtn" data-act="recSearch" title="Search jobs" aria-label="Search jobs">' + ico('search') + '</button></div>' +
       (S.recOpen ? '<div class="rlist' + (S.recAnim ? ' anim' : '') + '">' + recent.map(function (j) { var s = jobStatus(j); return '<button type="button" class="ni rj" data-act="job" data-id="' + j.id + '"' + (S.view === 'jobs' && S.mobileDetail && S.job === j.id ? ' aria-current="page"' : '') + ' title="' + esc(jn(j) + ' · ' + s[0]) + '"><i class="sdot ' + STATUS_DOT[s[0]] + '"></i><span class="nl">' + esc(jn(j)) + '</span><span class="rj-s">' + esc(j.item) + '</span></button>'; }).join('') + '</div>' : '') + '</div>';
     return '<aside class="rail rail2' + (S.railMin ? ' min' : '') + '">' +
-      '<div class="r2-top"><div class="brand"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><img class="logo-mark" src="/assets/favicon.svg" alt="HazPack"></div><span class="r2-btns">' + phoneBtn() + '<button type="button" class="iconbtn" data-act="railMin" aria-label="' + (S.railMin ? 'Expand' : 'Collapse') + ' sidebar" title="' + (S.railMin ? 'Expand' : 'Collapse') + ' sidebar">' + ico('panel') + '</button></span></div>' +
+      '<div class="r2-top"><div class="brand"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><img class="logo-mark" src="/assets/favicon.svg" alt="HazPack"></div><span class="r2-btns"><button type="button" class="iconbtn" data-act="railMin" aria-label="' + (S.railMin ? 'Expand' : 'Collapse') + ' sidebar" title="' + (S.railMin ? 'Expand' : 'Collapse') + ' sidebar">' + ico('panel') + '</button></span></div>' +
       '<div class="r2-org" title="' + esc(o.name) + '"><span class="oav">' + esc(initials(o.name).slice(0, 2)) + '</span><span class="nl"><b>' + esc(o.name) + '</b><span>' + vis().length + ' ' + (vis().length === 1 ? 'job' : 'jobs') + (staff() || S.rep.admin ? ' across your team' : ' yours') + '</span></span></div>' +
       '<div class="navzone" id="navzone"><i class="glide" aria-hidden="true"></i><i class="actbar" aria-hidden="true"></i>' +
       (staff() ? '' : ni(' data-act="request"', 'plus', 'New job request', '', false)) +
@@ -2367,24 +2367,6 @@
     document.getElementById('bkText').focus();
   }
 
-  /* ---------- phone preview (sandbox only): the portal in a phone-sized frame ---------- */
-  var IN_FRAME = window.self !== window.top;
-  if (IN_FRAME) document.documentElement.classList.add('in-frame');
-  function phoneBtn() { return IN_FRAME ? '' : '<button type="button" class="iconbtn phonebtn" data-act="phoneOpen" aria-label="Phone view" title="Phone view">' + ico('phone') + '</button>'; }
-  function phoneOpen() {
-    var w = document.createElement('div'); w.className = 'phoneveil'; w.id = 'phoneveil';
-    w.innerHTML = '<div class="phonebar"><b>Phone preview</b><span class="muted">390 × 844 · it is the live portal, so taps work</span><div class="seg2"><button type="button" data-act="phoneTheme" data-t="" aria-pressed="true">Auto</button><button type="button" data-act="phoneTheme" data-t="light" aria-pressed="false">Light</button><button type="button" data-act="phoneTheme" data-t="dark" aria-pressed="false">Dark</button></div><button type="button" class="iconbtn" data-act="phoneClose" aria-label="Close phone preview">' + ico('x') + '</button></div>' +
-      '<div class="phone"><div class="notch"></div><iframe id="phoneframe" title="Portal on a phone" src="/portal/"></iframe></div>';
-    document.body.appendChild(w);
-    w.addEventListener('click', function (e) { if (e.target === w) phoneClose(); });
-    phoneFit();
-  }
-  /* scale the whole phone (not the page inside it) so the page keeps a true 390px width on short screens */
-  function phoneFit() { var p = document.querySelector('.phone'); if (p) p.style.zoom = Math.min(1, (window.innerHeight - 90) / 868, (window.innerWidth - 32) / 414); }
-  window.addEventListener('resize', phoneFit);
-  function phoneClose() { var w = document.getElementById("phoneveil"); if (w) w.remove(); render(); }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && document.getElementById('phoneveil')) phoneClose(); });
-
   /* phones: every data table can fold into one card per row. Each cell gets its column name so CSS can show it as a small label. */
   function labelTables() {
     document.querySelectorAll('.content table').forEach(function (t) {
@@ -2410,12 +2392,6 @@
   function ideasAct(a, ds) {
     switch (a) {
       case 'dockTab': S.jobTab = ds.t; render(); var tb = document.querySelector('.jdetail .tabs, .content .tabs'); if (tb) tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); return true;
-      case 'phoneOpen': phoneOpen(); return true;
-      case 'phoneClose': phoneClose(); return true;
-      case 'phoneTheme':
-        var fr = document.getElementById('phoneframe'), de = fr && fr.contentDocument && fr.contentDocument.documentElement;
-        if (de) { if (ds.t) de.setAttribute('data-theme', ds.t); else de.removeAttribute('data-theme'); }
-        document.querySelectorAll('[data-act=phoneTheme]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-t') === ds.t)); }); return true;
       case 'fixOff': var fj = getJob(ds.id); if (fj) delete fj.fixDiff; return false;
       case 'dfAdd': var tb2 = document.getElementById('dfRows'); tb2.insertAdjacentHTML('beforeend', dfRow(getJob(ds.id), '')); return true;
       case 'dfDel': var tr2 = document.querySelector('.df-row[data-i="' + ds.i + '"]'); if (tr2) tr2.remove(); return true;
