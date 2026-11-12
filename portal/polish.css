@@ -85,3 +85,18 @@
 body.sheet-on { overflow: hidden; }
 @keyframes shUp { from { transform: translateY(100%) } }
 @media (prefers-reduced-motion: reduce) { #jsheet.enter .sh { animation: none; } }
+
+/* ---- Corrections: the flag, the client's answer, and staff review ---- */
+.dtbl.fx.in { border-color: color-mix(in srgb, var(--info) 45%, var(--line)); box-shadow: 0 0 0 3px var(--info-soft); }
+.fx-note { margin: 0; padding: 10px 14px; font-size: 14px; border-bottom: 1px solid var(--line); }
+.fx-tag { text-align: right; white-space: nowrap; }
+.fx-reply { padding: 12px 14px; border-top: 1px solid var(--line); background: color-mix(in srgb, var(--info-soft) 55%, transparent); display: grid; gap: 6px; }
+.fx-who { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.fx-who svg { width: 16px; height: 16px; fill: none; stroke: var(--info); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.fx-text { margin: 0; padding: 8px 12px; border-left: 3px solid var(--info); background: var(--panel); border-radius: 0 8px 8px 0; white-space: pre-wrap; }
+.fx-line { margin: 0; font-size: 13.5px; }
+.fx-form { padding: 12px 14px 4px; border-top: 1px solid var(--line); }
+.fx-form textarea { resize: vertical; }
+.dtbl.fx .dtbl-f { gap: 10px; flex-wrap: wrap; }
+.alert.fx-sent { border-color: var(--info); background: var(--info-soft); }
+.alert.fx-sent b { color: var(--info); }

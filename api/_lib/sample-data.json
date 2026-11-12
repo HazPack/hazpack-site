@@ -255,6 +255,7 @@
      "start": "2026-10-29T07:00:00.000Z",
      "fix": true,
      "fixNote": "Our inspection found that the net quantity on the declaration does not match the package marking. Confirm the correct quantity and we will reissue the declaration.",
+     "fixDiff": { "title": "Declaration vs. package marking", "rows": [["UN number", "UN3373"], ["Proper shipping name", "Biological substance, Category B"], ["Net quantity", "1.2 kg", "1.0 kg"], ["Quantity on DGD", "1 package, 1.2 kg", "1 package, 1.0 kg"], ["Packing instruction", "P650"]] },
      "msgs": [
       {
        "from": "staff",

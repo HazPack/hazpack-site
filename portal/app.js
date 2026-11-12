@@ -69,7 +69,7 @@
   function unread() { var ids = vis().map(function (j) { return j.id; }); return S.org.notifs.filter(function (n) { return n.to === 'client' && nvis(n, ids) && !n.read[S.rep.id]; }); }
   function doneStep(j, label) { var i = j.steps.indexOf(label); return i > -1 && j.done > i; }
   function jobStatus(j) {
-    if (j.pending) return ['Request received', 'info']; if (j.fix) return ['Needs correction', 'bad']; if (j.done >= j.steps.length) return ['Completed', 'info'];
+    if (j.pending) return ['Request received', 'info']; if (j.fix) return j.fixReply ? ['Correction received', 'info'] : ['Needs correction', 'bad']; if (j.done >= j.steps.length) return ['Completed', 'info'];
     if (doneStep(j, LB.dgd)) return ['Cleared to ship', 'ok']; return ['In progress', 'warn'];
   }
   function isOpen(j) { return j.done < j.steps.length; }
@@ -260,7 +260,7 @@
       if (busy) { poll(); return; }
       apiCall('GET', '/api/portal-state').then(function (r) {
         if (r.status === 401) { signedOut('Please sign in again.'); return; }
-        if (r.ok && !dirty()) { var orgs = r.data.orgs || [r.data.org], chg = orgs.length !== Object.keys(ORGS).length || orgs.some(function (o) { return REV[o.id] !== o.rev; }); if (chg) { adopt(r.data); render(); } }
+        if (r.ok && !dirty()) { var orgs = r.data.orgs || [r.data.org], chg = orgs.length !== Object.keys(ORGS).length || orgs.some(function (o) { return REV[o.id] !== o.rev; }); if (chg) { var seen = staffNotifIds(); adopt(r.data); render(); staffNews(seen); } }
         poll();
       });
     }, 30000);
@@ -352,8 +352,8 @@
     var cmSeg = staff() && S.view === 'clients' ? '<div class="seg top" role="group" aria-label="Show companies as"><button type="button" data-act="cmMode" data-m="0" aria-pressed="' + !S.cmap + '">Table</button><button type="button" data-act="cmMode" data-m="1" aria-pressed="' + !!S.cmap + '">Map</button></div>' :
       !staff() && S.view === 'dashboard' ? '<div class="seg top wide" role="group" aria-label="Show the dashboard as"><button type="button" data-act="dMode" data-m="0" aria-pressed="' + !S.dmap + '">Dashboard</button><button type="button" data-act="dMode" data-m="1" aria-pressed="' + !!S.dmap + '">Company map</button></div>' : '';
     return '<div class="topbar"><h1>' + TITLES[S.view] + '</h1>' + cmSeg + kButton() + btns +
-      (!staff() ? '<button type="button" class="bell" data-act="bell" aria-label="Notifications, ' + n + ' unread"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>' + (n ? '<span class="badge">' + n + '</span>' : '') + '</button>' : '') + '</div>' +
-      (S.notif && !staff() ? notifPanel() : '');
+      (staff() ? staffBell() : '') + (!staff() ? '<button type="button" class="bell" data-act="bell" aria-label="Notifications, ' + n + ' unread"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>' + (n ? '<span class="badge">' + n + '</span>' : '') + '</button>' : '') + '</div>' +
+      (S.notif ? (staff() ? staffNotifPanel() : notifPanel()) : '');
   }
   function notifPanel() {
     var ids = vis().map(function (j) { return j.id; });
@@ -444,7 +444,7 @@
     var body = '';
     if (t === 'overview') {
       body = quoteBanner(j) + (j.pending && !staff() ? '<div class="pad" style="padding-bottom:0"><div class="alert" style="border-color:var(--info);background:var(--info-soft)"><b style="color:var(--info)">Request received.</b> HazPack is reviewing it and will open the job shortly. You will get a notification when that happens.' + withdrawBtn(j) + '</div></div>' : '') +
-        (j.fix && !staff() ? '<div class="pad" style="padding-bottom:0"><div class="alert"><b>Action needed.</b> ' + esc(j.fixNote || 'Something on this job needs a correction.') + ' This job cannot be cleared to ship until it is resolved. <button type="button" class="linkbtn" data-act="upload" data-job="' + j.id + '">Upload a corrected file</button></div></div>' + diffCard(j) : '') + (j.fix && staff() ? diffCard(j) : '') +
+        (j.fix ? fixPanel(j) : '') +
         '<dl class="dl"><div><dt>UN number</dt><dd><span class="un">' + esc(j.un || '—') + '</span></dd></div><div><dt>Hazard class</dt><dd>' + esc(j.cls) + '</dd></div><div><dt>Packing group</dt><dd>' + esc(j.pg) + '</dd></div><div><dt>Quantity</dt><dd>' + esc(j.qty || '—') + '</dd></div><div><dt>Transport</dt><dd>' + j.mode + '</dd></div><div><dt>Your reference</dt><dd class="mono">' + esc(j.ref || '—') + '</dd></div>' +
         '<div><dt>Requested by</dt><dd>' + esc(repName(j.rep)) + '</dd></div><div><dt>Services</dt><dd>' + j.svc.map(function (k) { return SVC[k]; }).join(', ') + '</dd></div><div><dt>Required by</dt><dd>' + (j.req ? fmt(isoDate(j.req)) : 'Not set') + '</dd></div>' +
         '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl>' + (staff() ? '' : '<div class="pad" style="padding-top:0">' + taskRows(j) + '</div>');
@@ -1245,7 +1245,7 @@
   }
 
   /* ----- jobs list sorting ----- */
-  var JOB_ORDER = { 'Needs correction': 0, 'Request received': 1, 'In progress': 2, 'Cleared to ship': 3, 'Completed': 4 };
+  var JOB_ORDER = { 'Correction received': 0, 'Needs correction': 0, 'Request received': 1, 'In progress': 2, 'Cleared to ship': 3, 'Completed': 4 };
   function sortJobs(list) {
     var k = S.js || 'new';
     return list.slice().sort(function (a, b) {
@@ -1303,7 +1303,9 @@
       return li('<span class="mono">' + esc(jn(j)) + '</span> · ' + esc(o.name), esc(j.item) + ' · ' + j.mode + (routeOf(j) ? ' · ' + j.from + ' to ' + j.to : '') + (r ? ' · ' + esc(r.name) : '') + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : ''),
         '<button type="button" class="btn sm" data-act="acceptOrg" data-org="' + o.id + '" data-id="' + j.id + '">Accept</button><button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '">Open</button>');
     }).join('');
-    var fixLi = n.fix.map(function (p) { return li('<span class="mono">' + p[1].id + '</span> · ' + esc(p[0].name), esc(p[1].fixNote || 'Needs a correction'), '<button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + p[0].id + '" data-job="' + p[1].id + '">Open</button>'); }).join('');
+    var fixSorted = n.fix.slice().sort(function (a, b) { return (b[1].fixReply ? 1 : 0) - (a[1].fixReply ? 1 : 0); });
+    var fixLi = fixSorted.map(function (p) { var r = p[1].fixReply; return li('<span class="mono">' + p[1].id + '</span> · ' + esc(p[0].name) + (r ? ' <span class="pill info">Correction received</span>' : ''), r ? esc(r.by) + ' responded ' + fmtS(new Date(r.date)) + ' · ' + esc(p[1].fixNote || 'Needs a correction') : esc(p[1].fixNote || 'Needs a correction'), '<button type="button" class="btn ' + (r ? '' : 'ghost ') + 'sm" data-act="openOrg" data-org="' + p[0].id + '" data-job="' + p[1].id + '">' + (r ? 'Review' : 'Open') + '</button>'); }).join('');
+    var fixIn = n.fix.filter(function (p) { return p[1].fixReply; }).length;
     var docLi = function (x, tag) { return li('<span class="mono">' + esc(x.docNum) + '</span> · ' + esc(docOrgName(x)), money(docTotal(x)) + (x.type === 'Invoice' ? ' · due ' + mdy(dueOf(x)) : ' · quote of ' + mdy(x.date)) + (tag ? ' · ' + tag : ''), '<button type="button" class="btn ghost sm" data-act="docOpen" data-id="' + x.id + '">Open</button>'); };
     var invLi = n.od.map(function (x) { return docLi(x, 'overdue ' + (-daysTo(dueOf(x))) + ' days'); }).join('') + n.dueSoon.map(function (x) { return docLi(x, 'due in ' + daysTo(dueOf(x)) + ' days'); }).join('');
     var qLi = n.qs.map(function (x) { return docLi(x, ''); }).join('');
@@ -1313,9 +1315,9 @@
     var card = function (title, html, empty) { return '<div class="card"><h2>' + title + '</h2><ul class="list">' + (html || none(empty)) + '</ul></div>'; };
     var stat = function (k, v, s, cls) { return '<div class="card stat' + (cls || '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span><span class="s">' + s + '</span></div>'; };
     return '<section class="banner"><div><p class="eyebrow">HazPack staff</p><h2>Needs attention</h2><p>Across every client company, on ' + fmt(TODAY) + '.</p></div></section>' +
-      '<div class="stats">' + stat('New requests', n.req.length, 'waiting to be accepted', n.req.length ? ' attn' : '') + stat('Needs correction', n.fix.length, 'waiting on a client', n.fix.length ? ' attn' : '') + stat('Overdue invoices', money(odTotal), n.od.length + (n.od.length === 1 ? ' invoice' : ' invoices'), n.od.length ? ' attn' : '') + stat('Open quotes', n.qs.length, 'waiting for an answer') + '</div>' +
+      '<div class="stats">' + stat('New requests', n.req.length, 'waiting to be accepted', n.req.length ? ' attn' : '') + stat('Needs correction', n.fix.length, fixIn ? fixIn + ' ready to review' : 'waiting on a client', fixIn ? ' attn' : '') + stat('Overdue invoices', money(odTotal), n.od.length + (n.od.length === 1 ? ' invoice' : ' invoices'), n.od.length ? ' attn' : '') + stat('Open quotes', n.qs.length, 'waiting for an answer') + '</div>' +
       calendarCard() + '<div class="card"><h2>New requests</h2><ul class="list">' + requestItems(n.req) + '</ul></div>' +
-      '<div class="two">' + card('Waiting on clients', fixLi, 'No corrections outstanding') + card('Invoices to chase', invLi, 'Nothing overdue or due this week') + '</div>' +
+      '<div class="two">' + card('Corrections', fixLi, 'No corrections outstanding') + card('Invoices to chase', invLi, 'Nothing overdue or due this week') + '</div>' +
       '<div class="two">' + card('Quotes waiting for an answer', qLi, 'No open quotes') + card('Needed within a week', soonLi, 'No required-by dates coming up') + '</div>' +
       card('Recent client activity', actLi, 'Nothing yet');
   }
@@ -1477,7 +1479,7 @@
     var done = j.pending ? 0 : j.done, c = { todo: [], prog: [], done: [] };
     j.steps.forEach(function (s, i) { if (i < done) c.done.push(i); else if (i === done && !j.pending) c.prog.push(i); else c.todo.push(i); });
     var col = function (title, items, state, extra) { return '<div class="bcol"><div class="bch"><b>' + title + '</b><span class="cnt">' + (extra ? 1 : items.length) + '</span></div><div class="bcards">' + (extra || items.map(function (i) { return taskCard(j, i, state); }).join('') || '<div class="bempty">Nothing here</div>') + '</div></div>'; };
-    var blocked = j.fix ? '<div class="tcard blocked"><div class="tt"><b>Correction needed</b></div><p>' + esc(j.fixNote || 'Something on this job needs a correction.') + '</p><div class="tf"><span class="tmeta">Waiting on the client</span></div><div class="tb"><button type="button" class="btn sm" data-act="fixOff" data-id="' + j.id + '">Resolve correction</button></div></div>' : '';
+    var blocked = j.fix ? '<div class="tcard blocked"><div class="tt"><b>Correction needed</b></div><p>' + esc(j.fixNote || 'Something on this job needs a correction.') + '</p><div class="tf"><span class="tmeta">' + (j.fixReply ? 'Client responded' : 'Waiting on the client') + '</span></div><div class="tb"><button type="button" class="btn sm" data-act="fixOff" data-id="' + j.id + '">Resolve correction</button></div></div>' : '';
     var flag = !j.fix && !j.pending && isOpen(j) ? '<span class="flagf"><input id="fixnote" type="text" placeholder="What needs correcting" aria-label="Correction note"><button type="button" class="btn ghost sm" data-act="fixOn" data-id="' + j.id + '">Flag for correction</button></span>' : '';
     return '<section class="board"><div class="bh"><div><h3>Task board</h3><p class="muted">' + (j.pending ? 'Accept the request to start the first step.' : Math.min(done, j.steps.length) + ' of ' + j.steps.length + ' steps done.') + '</p></div><div class="bhr"><span class="pcell">' + progBar(j) + '</span>' + flag + '</div></div>' +
       '<div class="bcols' + (j.fix ? ' four' : '') + '">' + col('Up next', c.todo, 'todo') + col('In progress', c.prog, 'cur') + col('Done', c.done, 'done') + (j.fix ? col('Blocked', [], 'blocked', blocked) : '') + '</div></section>';
@@ -1940,7 +1942,7 @@
 
   function act(a, ds) {
     var o = S.org, j;
-    if (polishAct(a, ds) || ideasAct(a, ds) || billingAct(a, ds) || extrasAct(a, ds)) return;
+    if (fixAct(a, ds) || polishAct(a, ds) || ideasAct(a, ds) || billingAct(a, ds) || extrasAct(a, ds)) return;
     switch (a) {
       case 'toOrg': apiCall('DELETE', '/api/portal-session', {}); S.stage = 'org'; S.org = null; S.orgErr = ''; render(); break;
       case 'toStaff': S.stage = 'staff'; S.orgErr = ''; render(); break;
@@ -1995,7 +1997,7 @@
       case 'stepUndo':
         j = getJob(ds.id); if (j.done > 1) { var lab = j.steps[j.done - 1]; for (var i = j.ev.length - 1; i >= 0; i--) if (j.ev[i][1] === lab) { j.ev.splice(i, 1); break; } j.done--; if (j.by) delete j.by[lab]; logEv(j, staffName(), 'Undid: ' + lab); render(); } break;
       case 'fixOn':
-        j = getJob(ds.id); var note = (document.getElementById('fixnote').value || '').trim() || 'Something on this job needs a correction.'; j.fix = true; j.fixNote = note; addEv(j, 'Correction needed: ' + note); logEv(j, staffName(), 'Flagged for correction: ' + note);
+        j = getJob(ds.id); var note = (document.getElementById('fixnote').value || '').trim() || 'Something on this job needs a correction.'; j.fix = true; j.fixNote = note; delete j.fixReply; addEv(j, 'Correction needed: ' + note); logEv(j, staffName(), 'Flagged for correction: ' + note);
         notify(j.id, j.id + ' needs a correction before it can be cleared to ship.', 'client'); render(); toast('Flagged. People who can see this job were notified.'); break;
       case 'fixOff': j = getJob(ds.id); j.fix = false; addEv(j, 'Correction resolved'); logEv(j, staffName(), 'Resolved the correction'); notify(j.id, 'The correction on ' + j.id + ' is resolved.', 'client'); render(); break;
       case 'openOrg': S.org = ORGS[ds.org]; S.rep = S.org.reps.filter(function (r) { return r.admin; })[0]; S.view = ds.job ? 'jobs' : 'dashboard'; S.job = ds.job || null; S.mobileDetail = !!ds.job; render(); break;
@@ -2066,7 +2068,7 @@
 
   /* ---------- 14 Sidebar nav ---------- */
   var NAV_IC = { staffhome: 'home', dashboard: 'dash', jobs: 'jobs', files: 'files', invoices: 'inv', team: 'team', billing: 'bill', clients: 'clients' };
-  var STATUS_DOT = { 'Request received': 'info', 'In progress': 'warn', 'Needs correction': 'bad', 'Cleared to ship': 'ok', 'Completed': 'mute' };
+  var STATUS_DOT = { 'Correction received': 'info', 'Request received': 'info', 'In progress': 'warn', 'Needs correction': 'bad', 'Cleared to ship': 'ok', 'Completed': 'mute' };
   function rail() {
     var o = S.org, items = [['dashboard', 'Dashboard', ''], ['jobs', 'Jobs', staff() ? allJobsCount() : vis().length], ['files', 'Files', visFiles().length], ['team', 'Team', (staff() || S.rep.admin) ? o.reps.length : 1]];
     if (!staff()) items.splice(3, 0, ['invoices', 'Invoices', clientInvoices().length]);
@@ -2113,7 +2115,7 @@
   }
 
   /* ---------- 13 Filter table ---------- */
-  var FS = [['all', 'All'], ['Request received', 'Requested'], ['In progress', 'In progress'], ['Needs correction', 'Needs correction'], ['Cleared to ship', 'Cleared to ship'], ['Completed', 'Completed']];
+  var FS = [['all', 'All'], ['Request received', 'Requested'], ['In progress', 'In progress'], ['Needs correction', 'Needs correction'], ['Correction received', 'Correction received'], ['Cleared to ship', 'Cleared to ship'], ['Completed', 'Completed']];
   function clientJobsView() {
     if (S.mobileDetail && S.job && getJob(S.job) && !sheetMode()) return detail(getJob(S.job));
     var q = S.q.toLowerCase();
@@ -2161,12 +2163,12 @@
       var st = j.pending ? 'next' : i < j.done ? 'done' : i === j.done ? (j.fix ? 'fix' : 'now') : 'next';
       var files = stepFiles(j, label), when = stepDate(j, label), key = j.id + ':' + i, open = S.trOpen[key] === undefined ? (staff() && (st === 'now' || st === 'fix')) : !!S.trOpen[key];
       var icon = st === 'done' ? '<span class="tr-i done">' + ico('check') + '</span>' : st === 'now' ? '<span class="tr-i now" title="Step ' + (i + 1) + ' of ' + j.steps.length + '"><svg class="spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" pathLength="100" style="stroke-dasharray:' + Math.round((i + 1) / j.steps.length * 100) + ' 100"/></svg><b>' + (i + 1) + '</b></span>' : st === 'fix' ? '<span class="tr-i fix">!</span>' : '<span class="tr-i next">' + (i + 1) + '</span>';
-      var chip = { done: ['Completed', 'ok'], now: ['In progress', 'info'], fix: ['Needs correction', 'bad'], next: ['Up next', 'low'] }[st];
+      var chip = { done: ['Completed', 'ok'], now: ['In progress', 'info'], fix: j.fixReply ? ['Correction received', 'info'] : ['Needs correction', 'bad'], next: ['Up next', 'low'] }[st];
       var meta = files.length ? files.length + (files.length === 1 ? ' file' : ' files') : st === 'done' && when ? fmtS(when) : '';
       var sub = [];
       if (st === 'done') sub.push(['check', 'Completed by HazPack', when ? fmt(when) : '']);
       if (st === 'now') sub.push(['bolt', 'HazPack is working on this step', 'now']);
-      if (st === 'fix') sub.push(['flag', j.fixNote || 'A correction is needed before this step can finish', staff() ? 'waiting on the client' : 'waiting on you']);
+      if (st === 'fix') sub.push(['flag', j.fixNote || 'A correction is needed before this step can finish', j.fixReply ? (staff() ? 'client responded, ready to review' : 'sent to HazPack') : staff() ? 'waiting on the client' : 'waiting on you']);
       files.forEach(function (f) { sub.push(['files', f.name, fmtS(f.date), f.id]); });
       if (st === 'next') sub.push(['box', 'Starts after ' + (i ? j.steps[i - 1].toLowerCase() : 'the job is opened'), '']);
       var sa = '';
@@ -2392,7 +2394,7 @@
   function ideasAct(a, ds) {
     switch (a) {
       case 'dockTab': S.jobTab = ds.t; render(); var tb = document.querySelector('.jdetail .tabs, .content .tabs'); if (tb) tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); return true;
-      case 'fixOff': var fj = getJob(ds.id); if (fj) delete fj.fixDiff; return false;
+      case 'fixOff': var fj = getJob(ds.id); if (fj) { delete fj.fixDiff; delete fj.fixReply; } return false;
       case 'dfAdd': var tb2 = document.getElementById('dfRows'); tb2.insertAdjacentHTML('beforeend', dfRow(getJob(ds.id), '')); return true;
       case 'dfDel': var tr2 = document.querySelector('.df-row[data-i="' + ds.i + '"]'); if (tr2) tr2.remove(); return true;
       case 'dockFix':
@@ -2400,7 +2402,7 @@
         return true;
       case 'dockFixGo':
         var fx = getJob(ds.id), note2 = (document.getElementById('fixnote2').value || '').trim() || 'Something on this job needs a correction.', rows2 = dfRead(fx);
-        fx.fix = true; fx.fixNote = note2; if (rows2) fx.fixDiff = rows2; else delete fx.fixDiff;
+        fx.fix = true; fx.fixNote = note2; delete fx.fixReply; if (rows2) fx.fixDiff = rows2; else delete fx.fixDiff;
         addEv(fx, 'Correction needed: ' + note2); logEv(fx, staffName(), 'Flagged for correction: ' + note2 + (rows2 ? ' (' + rows2.rows.filter(function (r) { return r.length > 2; }).length + ' proposed changes)' : ''));
         notify(fx.id, fx.id + ' needs a correction before it can be cleared to ship.', 'client'); closeModal(); render(); toast('Flagged. People who can see this job were notified.'); return true;
       case 'selRow': flipBefore(); S.sel[ds.id] = !S.sel[ds.id]; render(); return true;
@@ -2435,11 +2437,7 @@
       case 'trToggle': S.trOpen[ds.k] = !S.trOpen[ds.k]; var el = document.querySelector('.tr-h[data-k="' + ds.k + '"]'); if (el) { el.parentNode.classList.toggle('open', S.trOpen[ds.k]); el.setAttribute('aria-expanded', String(S.trOpen[ds.k])); } return true;
       case 'trMode': S.trMode = ds.m; lsSet('hp-tr-mode', ds.m); render(); return true;
       case 'diffRow': S.diffOff[ds.k] = !S.diffOff[ds.k]; render(); return true;
-      case 'diffApply':
-        var j = getJob(ds.id), d = diffOf(j), on = d.rows.filter(function (r) { return r.length > 2 && !S.diffOff[j.id + r[0]]; });
-        on.forEach(function (r) { if (/quantity on dgd/i.test(r[0])) j.qty = r[2]; });
-        clientAct({ action: 'sendMessage', jobId: j.id, text: 'Confirmed the correction: ' + on.map(function (r) { return r[0] + ' ' + r[1] + ' → ' + r[2]; }).join('; ') + '.' }, function () { toast('Sent to HazPack. They will reissue the paperwork.'); });
-        return true;
+      case 'diffApply': case 'fixSend': fixSend(ds.id); return true;
     }
     return false;
   }
@@ -2677,6 +2675,79 @@
     switch (a) {
       case 'kOpen': kOpen(); return true;
       case 'sheetClose': sheetClose(); return true;
+    }
+    return false;
+  }
+
+  /* ---------- corrections: the client answers a flag, staff review and resolve ----------
+     Flagged job → client confirms HazPack's proposed changes, uploads a corrected file and/or writes what they fixed →
+     server marks it "Correction received", updates the confirmed job fields and alerts staff (bell, toast, email) →
+     staff review it on the job and click "Accept and resolve". */
+  function fixPanel(j) {
+    var d = j.fixDiff || (typeof DEMO_DIFF !== 'undefined' ? DEMO_DIFF[j.id] : null), r = j.fixReply, note = esc(j.fixNote || 'Something on this job needs a correction.');
+    var ch = d ? d.rows.filter(function (x) { return x.length > 2; }) : [];
+    var fileLinks = function (fs) { return (fs || []).map(function (f) { return '<button type="button" class="linkbtn" data-act="view" data-id="' + esc(f.id) + '">' + esc(f.name) + '</button>'; }).join(', '); };
+    var head = function (pill) { return '<div class="dtbl-h"><b>' + (d && d.title ? esc(d.title) : 'Correction') + '</b>' + pill + '</div>'; };
+    if (staff()) {
+      var got = r ? r.changes || [] : [], gotL = got.map(function (x) { return x[0]; });
+      var rows = d ? d.rows.map(function (x) {
+        if (x.length < 3) return '<tr><td class="muted">' + esc(x[0]) + '</td><td colspan="2">' + esc(x[1]) + '</td></tr>';
+        var ok = gotL.indexOf(x[0]) > -1, tag = r ? (ok ? '<span class="pill ok">Confirmed</span>' : '<span class="pill">Not confirmed</span>') : '';
+        return '<tr class="dif del ro"><td>' + esc(x[0]) + '</td><td colspan="2"><span class="dv">' + esc(x[1]) + '</span></td></tr><tr class="dif add ro"><td></td><td><span class="dv">' + esc(x[2]) + '</span></td><td class="fx-tag">' + tag + '</td></tr>';
+      }).join('') : '';
+      var reply = r ? '<div class="fx-reply"><div class="fx-who">' + ico('msg') + '<b>' + esc(r.by) + '</b><span class="muted">responded ' + fmt(new Date(r.date)) + '</span></div>' +
+        (r.text ? '<p class="fx-text">' + esc(r.text) + '</p>' : '') +
+        (got.length ? '<p class="muted fx-line">Confirmed ' + got.length + (got.length === 1 ? ' change' : ' changes') + '. The job details below already show the corrected values.</p>' : '') +
+        (r.files && r.files.length ? '<p class="fx-line">Corrected ' + (r.files.length === 1 ? 'file' : 'files') + ': ' + fileLinks(r.files) + '</p>' : '') + '</div>' : '';
+      return '<div class="pad" style="padding-bottom:0"><div class="dtbl fx' + (r ? ' in' : '') + '">' + head(r ? '<span class="pill info">Correction received</span>' : '<span class="pill bad">Waiting on the client</span>') +
+        '<p class="fx-note"><span class="muted">You asked:</span> ' + note + '</p>' + (rows ? '<table><thead><tr><th>Field</th><th colspan="2">Value</th></tr></thead><tbody>' + rows + '</tbody></table>' : '') + reply +
+        '<div class="dtbl-f"><span class="muted">' + (r ? 'Check it, then resolve so the job can carry on.' : 'The client has been told. You will get an alert when they respond.') + '</span><button type="button" class="btn sm' + (r ? '' : ' ghost') + '" data-act="fixOff" data-id="' + j.id + '">' + (r ? 'Accept and resolve' : 'Resolve anyway') + '</button></div></div></div>';
+    }
+    if (r) {
+      return '<div class="pad" style="padding-bottom:0"><div class="alert fx-sent"><b>Correction sent.</b> You sent it on ' + fmt(new Date(r.date)) + '. HazPack is checking it and will clear the job once it is right.' +
+        (r.changes && r.changes.length ? ' You confirmed: ' + r.changes.map(function (x) { return esc(x[0]) + ' ' + esc(x[2]); }).join('; ') + '.' : '') +
+        (r.files && r.files.length ? ' Files: ' + fileLinks(r.files) + '.' : '') +
+        ' <button type="button" class="linkbtn" data-act="upload" data-job="' + j.id + '">Send another file</button></div></div>';
+    }
+    var on = ch.filter(function (x) { return !S.diffOff[j.id + x[0]]; });
+    var body = d ? d.rows.map(function (x) {
+      if (x.length < 3) return '<tr><td class="muted">' + esc(x[0]) + '</td><td colspan="2">' + esc(x[1]) + '</td></tr>';
+      var off = !!S.diffOff[j.id + x[0]], box = '<span class="dbox' + (off ? '' : ' on') + '">' + (off ? '' : ico('check')) + '</span>';
+      return '<tr class="dif del' + (off ? ' off' : '') + '" data-act="diffRow" data-k="' + esc(j.id + x[0]) + '"><td>' + esc(x[0]) + '</td><td><span class="dv">' + esc(x[1]) + '</span></td><td class="dck">' + box + '</td></tr>' +
+        '<tr class="dif add' + (off ? ' off' : '') + '" data-act="diffRow" data-k="' + esc(j.id + x[0]) + '"><td></td><td><span class="dv">' + esc(x[2]) + '</span></td><td></td></tr>';
+    }).join('') : '';
+    return '<div class="pad" style="padding-bottom:0"><div class="alert"><b>Action needed.</b> ' + note + ' This job cannot be cleared to ship until it is resolved.</div></div>' +
+      '<div class="pad" style="padding-bottom:0"><div class="dtbl fx">' + head('<span class="muted">' + (ch.length ? 'Tick the changes that are right' : 'Tell HazPack what you fixed') + '</span>') +
+      (body ? '<table><thead><tr><th>Field</th><th>Value</th><th></th></tr></thead><tbody>' + body + '</tbody></table>' : '') +
+      '<div class="fx-form"><label class="f" for="fixtext">' + (ch.length ? 'Anything else HazPack should know (optional)' : 'What did you correct?') + '<textarea id="fixtext" rows="2" placeholder="For example: the correct net quantity is 1.0 kg; the new declaration is attached."></textarea></label></div>' +
+      '<div class="dtbl-f"><button type="button" class="btn sm ghost" data-act="upload" data-job="' + j.id + '">Upload a corrected file</button><button type="button" class="btn sm" data-act="fixSend" data-id="' + j.id + '">' + (ch.length ? 'Send ' + on.length + (on.length === 1 ? ' change' : ' changes') + ' to HazPack' : 'Send to HazPack') + '</button></div></div></div>';
+  }
+  function fixSend(id) {
+    var j = getJob(id), d = j && (j.fixDiff || (typeof DEMO_DIFF !== 'undefined' ? DEMO_DIFF[j.id] : null)), ta = document.getElementById('fixtext'), text = ta ? ta.value.trim() : '';
+    var keep = d ? d.rows.filter(function (x) { return x.length > 2 && !S.diffOff[j.id + x[0]]; }).map(function (x) { return x[0]; }) : [];
+    if (!text && !keep.length) { toast('Tick a change or write what you corrected first.'); if (ta) ta.focus(); return; }
+    clientAct({ action: 'submitFix', jobId: id, keep: keep, text: text }, function () { toast('Sent to HazPack. They will check it and clear the job.'); });
+  }
+
+  /* staff bell: client activity across every company */
+  function staffNotifs() { var out = []; Object.keys(ORGS).forEach(function (k) { ORGS[k].notifs.forEach(function (n) { if (n.to === 'staff') out.push([ORGS[k], n]); }); }); return out.sort(function (a, b) { return b[1].date - a[1].date; }); }
+  function staffUnread() { return staffNotifs().filter(function (x) { return !x[1].read.staff; }); }
+  function staffNotifIds() { var m = {}; staffNotifs().forEach(function (x) { m[x[1].id] = 1; }); return m; }
+  function staffNews(seen) { if (!staff()) return; var fresh = staffNotifs().filter(function (x) { return !seen[x[1].id]; }); fresh.slice(0, 3).reverse().forEach(function (x) { toast(x[0].name + ': ' + clientText(x[1].text)); }); }
+  function staffBell() { var n = staffUnread().length; return '<button type="button" class="bell" data-act="bell" aria-label="Client activity, ' + n + ' unread"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>' + (n ? '<span class="badge">' + n + '</span>' : '') + '</button>'; }
+  function staffNotifPanel() {
+    var list = staffNotifs().slice(0, 40);
+    return '<div class="npanel" role="dialog" aria-label="Client activity"><header><b>Client activity</b><button type="button" class="linkbtn" data-act="sReadAll">Mark all read</button></header><ul>' +
+      (list.length ? list.map(function (x) { var o = x[0], n = x[1]; return '<li class="' + (n.read.staff ? '' : 'unread') + '"><button type="button" data-act="sOpenNotif" data-org="' + o.id + '" data-id="' + n.id + '"><span>' + esc(clientText(n.text)) + '</span><small class="mono">' + esc(o.name) + ' · ' + fmt(n.date) + '</small></button></li>'; }).join('') : '<li style="padding:16px" class="muted">Nothing yet.</li>') + '</ul></div>';
+  }
+  function fixAct(a, ds) {
+    switch (a) {
+      case 'sReadAll': staffNotifs().forEach(function (x) { x[1].read.staff = 1; }); render(); return true;
+      case 'sOpenNotif':
+        var o = ORGS[ds.org], n = o && o.notifs.filter(function (x) { return x.id === ds.id; })[0]; if (!n) return true;
+        n.read.staff = 1; S.notif = false;
+        if (n.job && o.jobs.some(function (j) { return j.id === n.job; })) act('openOrg', { org: o.id, job: n.job }); else render();
+        return true;
     }
     return false;
   }

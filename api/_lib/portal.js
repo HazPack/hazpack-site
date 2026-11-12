@@ -211,6 +211,9 @@ function makeJob(db, rep, f) {
   return j;
 }
 
+// Job fields a confirmed correction can change, by the row name HazPack used when flagging.
+const FIX_FIELDS = { 'un number': 'un', 'proper shipping name': 'item', 'hazard class': 'cls', 'packing group': 'pg', quantity: 'qty', 'quantity on dgd': 'qty', transport: 'mode', reference: 'ref' };
+
 // ---- what a signed-in person can do ----
 const CLIENT_ACTIONS = {
   requestJob(db, org, rep, b) {
@@ -245,11 +248,37 @@ const CLIENT_ACTIONS = {
     if (!CLIENT_FILE_TYPES.includes(b.type)) return fail('Choose a file type.');
     const r = await storeUpload(org, { jobId: j.id, type: b.type, name: b.name, data: b.data, note: b.note, by: `${rep.name}, ${org.name}`, step: b.step });
     if (r.error) return r;
-    if (!(b.quiet && j.pending)) {
+    if (j.fix) {
+      // A file sent while the job is flagged counts as the client's answer to the correction.
+      const prev = j.fixReply || { by: rep.name, text: '', changes: [], files: [] };
+      j.fixReply = { ...prev, by: rep.name, date: nowIso(), files: [...(prev.files || []), { id: r.file.id, name: r.file.name }].slice(-20) };
+      (j.ev ||= []).push([nowIso(), 'Corrected file sent to HazPack']);
+      logEv(j, rep.name, `Sent a corrected file: ${r.file.name}`);
+      notify(org, j.id, `${rep.name} of ${org.name} sent a corrected file (${r.file.name}) for ${j.id}. It is ready for you to review.`, 'staff');
+    } else if (!(b.quiet && j.pending)) {
       logEv(j, rep.name, `Uploaded ${r.file.name} (${b.type})`);
       notify(org, j.id, `${rep.name} uploaded ${r.file.name} to ${j.id}.`, 'staff');
     }
     return { fileId: r.file.id };
+  },
+  // The client answers a "Needs correction" flag: confirms the changes HazPack proposed and/or says what they fixed.
+  // Only changes HazPack itself proposed (j.fixDiff) can be applied; the client can keep or drop each one.
+  submitFix(db, org, rep, b) {
+    const j = org.jobs.find((x) => x.id === b.jobId);
+    if (!j || !canSee(rep, j)) return fail('Job not found.');
+    if (!j.fix) return fail('This job no longer needs a correction.');
+    const text = clean(b.text, 2000);
+    const keep = new Set((Array.isArray(b.keep) ? b.keep : []).map((k) => String(k)));
+    const rows = j.fixDiff && Array.isArray(j.fixDiff.rows) ? j.fixDiff.rows.filter((r) => Array.isArray(r) && r.length > 2) : [];
+    const changes = rows.filter((r) => keep.has(String(r[0]))).map((r) => [clean(r[0], 80), clean(r[1], 200), clean(r[2], 200)]);
+    const prev = j.fixReply || { files: [] };
+    if (!text && !changes.length && !(prev.files || []).length) return fail('Confirm a change, upload a file, or say what you corrected.');
+    for (const [label, , to] of changes) { const k = FIX_FIELDS[label.toLowerCase()]; if (k && (k !== 'mode' || ['Air', 'Ground', 'Ocean'].includes(to))) j[k] = to; }
+    j.fixReply = { by: rep.name, date: nowIso(), text: text || prev.text || '', changes: changes.length ? changes : prev.changes || [], files: prev.files || [] };
+    (j.ev ||= []).push([nowIso(), 'Correction sent to HazPack']);
+    logEv(j, rep.name, 'Sent the correction' + (changes.length ? ` (confirmed ${changes.length} change${changes.length === 1 ? '' : 's'})` : ''));
+    notify(org, j.id, `${rep.name} of ${org.name} sent the correction for ${j.id}. It is ready for you to review.`, 'staff');
+    return {};
   },
   // Accept or decline a quote HazPack sent. Accepting a quote with no job yet opens a new job request.
   decideQuote(db, org, rep, b) {

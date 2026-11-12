@@ -179,6 +179,19 @@ try {
   check('withdrawn job and its files are gone', !afterW.data.org.jobs.some((j) => j.id === rq.data.jobId) && !afterW.data.org.files.some((f) => f.job === rq.data.jobId));
   check('cannot withdraw a job HazPack already opened', (await act(D.c, { action: 'withdrawJob', jobId: 'HP-2611-014' })).status === 400);
 
+  console.log('Corrections');
+  check('cannot send a correction for a job that is not flagged', (await act(D.c, { action: 'submitFix', jobId: 'HP-2611-014', text: 'Fixed' })).status === 400);
+  check('an empty correction is refused', (await act(P2.c, { action: 'submitFix', jobId: 'HP-2610-031', keep: [], text: ' ' })).status === 400);
+  const fixMailsBefore = mails.length;
+  const fx = await act(P2.c, { action: 'submitFix', jobId: 'HP-2610-031', keep: ['Quantity on DGD', 'Reference', 'Packing instruction'], text: 'Remeasured: 1.0 kg.' });
+  const fxJob = fx.data.state && fx.data.state.org.jobs.find((j) => j.id === 'HP-2610-031');
+  check('the job owner can send a correction', fx.status === 200 && fxJob.fixReply && fxJob.fixReply.by === 'Priya Nair' && fxJob.fix === true);
+  check('a confirmed change updates the job', fxJob.qty === '1 package, 1.0 kg');
+  check('only changes HazPack proposed are applied', fxJob.fixReply.changes.length === 1 && fxJob.ref === 'PO-48090');
+  check('a correction emails HazPack', mails.slice(fixMailsBefore).some((m) => m.to[0] === 'alerts@hazpack-qa.com' && /sent the correction/.test(m.subject)));
+  const fxStaff = (await S.json('/api/portal-staff')).data.orgs.find((o) => o.id === 'pacific');
+  check('staff see the correction and an alert', fxStaff.jobs.find((j) => j.id === 'HP-2610-031').fixReply.text === 'Remeasured: 1.0 kg.' && fxStaff.notifs.some((n) => n.to === 'staff' && /sent the correction/.test(n.text)));
+
   const quoteFile = afterW.data.org.files.find((f) => f.docId && /awaiting/.test(f.note));
   check('a quote is waiting', Boolean(quoteFile));
   check('declining a quote needs no name', true);
