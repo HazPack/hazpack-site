@@ -2163,7 +2163,7 @@
     var rows = j.steps.map(function (label, i) {
       var st = j.pending ? 'next' : i < j.done ? 'done' : i === j.done ? (j.fix ? 'fix' : 'now') : 'next';
       var files = stepFiles(j, label), when = stepDate(j, label), key = j.id + ':' + i, open = S.trOpen[key] === undefined ? (staff() && (st === 'now' || st === 'fix')) : !!S.trOpen[key];
-      var icon = st === 'done' ? '<span class="tr-i done">' + ico('check') + '</span>' : st === 'now' ? '<span class="tr-i now"><svg class="spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg><b>' + (i + 1) + '</b></span>' : st === 'fix' ? '<span class="tr-i fix">!</span>' : '<span class="tr-i next">' + (i + 1) + '</span>';
+      var icon = st === 'done' ? '<span class="tr-i done">' + ico('check') + '</span>' : st === 'now' ? '<span class="tr-i now" title="Step ' + (i + 1) + ' of ' + j.steps.length + '"><svg class="spin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" pathLength="100" style="stroke-dasharray:' + Math.round((i + 1) / j.steps.length * 100) + ' 100"/></svg><b>' + (i + 1) + '</b></span>' : st === 'fix' ? '<span class="tr-i fix">!</span>' : '<span class="tr-i next">' + (i + 1) + '</span>';
       var chip = { done: ['Completed', 'ok'], now: ['In progress', 'info'], fix: ['Needs correction', 'bad'], next: ['Up next', 'low'] }[st];
       var meta = files.length ? files.length + (files.length === 1 ? ' file' : ' files') : st === 'done' && when ? fmtS(when) : '';
       var sub = [];
