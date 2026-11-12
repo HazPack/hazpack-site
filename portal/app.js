@@ -347,7 +347,7 @@
   }
   function topbar() {
     var n = staff() ? 0 : unread().length;
-    var btns = staff() ? '<button type="button" class="btn sm" data-act="upload" data-job="' + esc(S.view === 'jobs' ? S.job || '' : '') + '">Upload to client</button>' :
+    var btns = staff() ? (S.view === 'clients' ? '<button type="button" class="btn sm ghost" data-act="tariff" title="The price list used for any company without its own rates">Standard rates</button>' : '') + '<button type="button" class="btn sm" data-act="upload" data-job="' + esc(S.view === 'jobs' ? S.job || '' : '') + '">Upload to client</button>' :
       '<button type="button" class="btn sm ghost" data-act="upload" data-job="' + esc(S.view === 'jobs' ? S.job || '' : '') + '">Upload a file</button>' + ihb('New job request', 'type="button" data-act="request"', 'sm') + '';
     var cmSeg = staff() && S.view === 'clients' ? '<div class="seg top" role="group" aria-label="Show companies as"><button type="button" data-act="cmMode" data-m="0" aria-pressed="' + !S.cmap + '">Table</button><button type="button" data-act="cmMode" data-m="1" aria-pressed="' + !!S.cmap + '">Map</button></div>' :
       !staff() && S.view === 'dashboard' ? '<div class="seg top wide" role="group" aria-label="Show the dashboard as"><button type="button" data-act="dMode" data-m="0" aria-pressed="' + !S.dmap + '">Dashboard</button><button type="button" data-act="dMode" data-m="1" aria-pressed="' + !!S.dmap + '">Company map</button></div>' : '';
@@ -837,7 +837,7 @@
   /* ----- editor state ----- */
   function rateFor(org, id) { var o = org && org.rates && org.rates[id]; return (o !== undefined && o !== null && o !== '') ? o : tRow(id).rate; }
   function customRates(org) { return org && org.rates ? Object.keys(org.rates).length : 0; }
-  function ratesNote(org) { return org ? (customRates(org) ? 'Using the ' + esc(org.name) + ' rates (' + customRates(org) + ' custom). ' : 'No custom rates for ' + esc(org.name) + ', so standard rates apply. ') : ''; }
+  function ratesNote(org) { return org ? (customRates(org) ? 'Using the ' + esc(org.name) + ' rates (' + customRates(org) + ' custom). ' : 'No custom rates for ' + esc(org.name) + ', so standard rates apply. ') + 'Change rates on the Clients page. ' : ''; }
   function blankRows(org) { return TARIFF.map(function (t) { return { id: t.id, label: t.label, note: t.note, unit: t.unit, rate: rateFor(org, t.id), active: !!ON0[t.id], qty: 1, noteOverride: '' }; }); }
   /* Billing details saved on the client company fill the Bill to section. Without them, the requester's name and email are used. */
   function personBill(org, rep) { var b = org.billing || {}; return { company: org.name, name: rep.name, email: rep.email, phone: rep.phone || b.phone || '', addr: rep.addr || b.addr || '', city: rep.city || b.city || '' }; }
@@ -1004,7 +1004,7 @@
     var mode = e.id ? '<span class="pill info">' + e.type + ' ' + esc(e.docNum) + '</span>' : '<div class="seg" role="group" aria-label="Document type"><button type="button" data-act="edMode" data-m="Quote" aria-pressed="' + !inv + '">Quote</button><button type="button" data-act="edMode" data-m="Invoice" aria-pressed="' + inv + '">Invoice</button></div>';
     return '<div class="card pad"><div class="edbar"><button type="button" class="btn ghost sm" data-act="docBack">&larr; Billing</button>' + mode + (e.id ? '<span style="flex:1"></span><button type="button" class="btn ghost sm dng" data-act="docDel" data-id="' + e.id + '">' + (armDel === e.id ? 'Click again to delete' : 'Delete this document') + '</button>' : '') + '</div>' +
       '<div class="edbar" style="margin-top:12px"><label class="f">Client company<select data-act="edOrg">' + orgs + '</select></label><label class="f">Contact<select data-act="edRep"' + (org ? '' : ' disabled') + '>' + reps + '</select></label><label class="f">Job<select data-act="edJob"' + (org ? '' : ' disabled') + '>' + jobs + '</select></label></div>' +
-      '<div class="edbar" style="margin-top:12px"><label class="f" style="max-width:150px">Total pieces<input type="number" min="1" data-ed="split" value="' + esc(e.split) + '" placeholder="e.g. 25"></label><button type="button" class="btn ghost sm" data-act="edSplit">Split into tiers</button><button type="button" class="btn ghost sm" data-act="tariff">Standard rates</button>' + (org ? '<button type="button" class="btn ghost sm" data-act="clientRates" data-org="' + e.orgId + '">Client rates</button>' : '') + (e.id && e.type === 'Quote' ? '<button type="button" class="btn ghost sm" data-act="docToInvoice" data-id="' + e.id + '">Make invoice from this quote</button>' : '') + (org && e.repId ? '<button type="button" class="btn ghost sm" data-act="edSaveRep">Save Bill to for this person</button>' : '') + '<span style="flex:1"></span>' +
+      '<div class="edbar" style="margin-top:12px"><label class="f" style="max-width:150px">Total pieces<input type="number" min="1" data-ed="split" value="' + esc(e.split) + '" placeholder="e.g. 25"></label><button type="button" class="btn ghost sm" data-act="edSplit">Split into tiers</button>' + (e.id && e.type === 'Quote' ? '<button type="button" class="btn ghost sm" data-act="docToInvoice" data-id="' + e.id + '">Make invoice from this quote</button>' : '') + (org && e.repId ? '<button type="button" class="btn ghost sm" data-act="edSaveRep" title="Next time you pick this contact, the Bill to section fills in with these details">Remember billing details for ' + esc(((ORGS[e.orgId] || { reps: [] }).reps.filter(function (r) { return r.id === e.repId; })[0] || { name: 'this contact' }).name.split(' ')[0]) + '</button>' : '') + '<span style="flex:1"></span>' +
       '<button type="button" class="btn ghost sm" data-act="edSave">Save</button><button type="button" class="btn ghost sm" data-act="edPdf">Download PDF</button><button type="button" class="btn sm" data-act="edSend">Send to client</button></div>' +
       '<p class="muted" style="margin:10px 0 0;font-size:13px">' + ratesNote(org) + (!e.jobId && !inv ? 'With no job chosen, a sent quote goes to the company admins and opens a new job request when accepted. ' : '') + 'Sending attaches the PDF to the job as ' + (inv ? 'an invoice' : 'a file') + ' and notifies the people who can see that job. Inspection and label tiers use the piece count above.</p></div>' +
       '<div class="paperwrap">' + paperHtml(e, false) + '</div>';
@@ -2064,7 +2064,7 @@
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private window */ } }
   S.railMin = lsGet('hp-rail-min') === '1'; S.recOpen = lsGet('hp-rec-closed') !== '1';
-  S.fs = 'all'; S.fm = 'all'; S.trMode = lsGet('hp-tr-mode') || 'caps'; S.trOpen = {}; S.diffOff = {};
+  S.fs = 'all'; S.fm = 'all'; S.trOpen = {}; S.diffOff = {};
 
   /* ---------- 14 Sidebar nav ---------- */
   var NAV_IC = { staffhome: 'home', dashboard: 'dash', jobs: 'jobs', files: 'files', invoices: 'inv', team: 'team', billing: 'bill', clients: 'clients' };
@@ -2185,7 +2185,7 @@
       return '<div class="tr ' + st + (open ? ' open' : '') + '"><button type="button" class="tr-h" data-act="trToggle" data-k="' + key + '" aria-expanded="' + open + '">' + icon + '<span class="tr-l">' + esc(label) + '</span><span class="tr-m">' + meta + '</span><span class="pill ' + chip[1] + '">' + chip[0] + '</span>' + ico('chev', 'cv') + '</button>' +
         '<div class="tr-b"><div class="tr-bi">' + sub.map(function (s) { return '<div class="tr-s">' + ico(s[0]) + '<span class="ell">' + esc(s[1]) + '</span><span class="muted">' + esc(s[2]) + '</span>' + (s[3] ? '<button type="button" class="linkbtn" data-act="view" data-id="' + s[3] + '">View</button>' : '') + '</div>'; }).join('') + (sa ? '<div class="tr-acts">' + sa + '</div>' : '') + '</div></div></div>';
     }).join('');
-    return '<div class="trwrap ' + S.trMode + '"><div class="trhead"><div><b>Progress</b><span class="muted">' + (j.pending ? 'Waiting for HazPack to accept' : done + ' of ' + n + ' steps done') + '</span></div><div class="seg2" role="group" aria-label="Show progress as"><button type="button" data-act="trMode" data-m="caps" aria-pressed="' + (S.trMode === 'caps') + '">Capsules</button><button type="button" data-act="trMode" data-m="list" aria-pressed="' + (S.trMode === 'list') + '">List</button></div></div><div class="trs">' + rows + '</div></div>';
+    return '<div class="trwrap caps"><div class="trhead"><div><b>Progress</b><span class="muted">' + (j.pending ? 'Waiting for HazPack to accept' : done + ' of ' + n + ' steps done') + '</span></div></div><div class="trs">' + rows + '</div></div>';
   }
 
   /* ---------- 11 Diff table ---------- */
@@ -2435,7 +2435,6 @@
       case 'fstat': flipBefore(); S.fs = ds.s; render(); return true;
       case 'fclear': flipBefore(); S.fs = 'all'; S.fm = 'all'; S.fp = 'all'; S.q = ''; S.sc = ''; S.so = ''; render(); return true;
       case 'trToggle': S.trOpen[ds.k] = !S.trOpen[ds.k]; var el = document.querySelector('.tr-h[data-k="' + ds.k + '"]'); if (el) { el.parentNode.classList.toggle('open', S.trOpen[ds.k]); el.setAttribute('aria-expanded', String(S.trOpen[ds.k])); } return true;
-      case 'trMode': S.trMode = ds.m; lsSet('hp-tr-mode', ds.m); render(); return true;
       case 'diffRow': S.diffOff[ds.k] = !S.diffOff[ds.k]; render(); return true;
       case 'diffApply': case 'fixSend': fixSend(ds.id); return true;
     }
