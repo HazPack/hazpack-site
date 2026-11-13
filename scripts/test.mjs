@@ -54,7 +54,8 @@ const mails = [];
 const mailer = createServer((req, res) => { let b = ''; req.on('data', (d) => { b += d; }); req.on('end', () => { mails.push({ auth: req.headers.authorization, ...JSON.parse(b) }); res.end('{"id":"x"}'); }); });
 await new Promise((r) => mailer.listen(4402, r));
 const MAIL_ENV = { RESEND_API_KEY: 'test-key', RESEND_API_URL: 'http://localhost:4402/emails', PORTAL_STAFF_EMAIL: 'alerts@hazpack-qa.com', PORTAL_URL: 'https://portal.hazpack-qa.com/portal' };
-const server = await startServer(4401, { CRON_SECRET: 'testcron', PORTAL_DATA_DIR: dataDir, ...MAIL_ENV });
+const BANK_ENV = { PORTAL_BANK_ACCOUNT: '000000001234', PORTAL_BANK_ACH_ROUTING: '000000011', PORTAL_BANK_WIRE_ROUTING: '000000022' };
+const server = await startServer(4401, { CRON_SECRET: 'testcron', PORTAL_DATA_DIR: dataDir, ...MAIL_ENV, ...BANK_ENV });
 const base = 'http://localhost:4401';
 const act = (c, body) => c.json('/api/portal-act', { method: 'POST', body });
 async function signIn(slug, password, name, pin) {
@@ -218,6 +219,8 @@ try {
 
   console.log('Staff tools');
   const post = (body) => S.json('/api/portal-staff', { method: 'POST', body });
+  const bank = (await S.json('/api/portal-staff')).data.bank;
+  check('staff get the bank details from settings', bank && bank.acct === '000000001234' && bank.ach === '000000011' && bank.wire === '000000022' && bank.bank === 'Chase Bank');
   check('short password refused', (await post({ action: 'createOrg', name: 'Test Co', password: 'short' })).status === 400);
   const created = await post({ action: 'createOrg', name: 'Test Co', password: 'a-long-enough-pass', adminName: 'Sam', adminEmail: 'sam@testco-mail.com', pin: '4321' });
   check('company created', created.status === 200 && created.data.slug === 'test-co');
@@ -297,6 +300,7 @@ try {
   check('cookie is Secure on Vercel', /; Secure/.test(l.res.lastCookie));
   check('"dev" is not a staff key on Vercel', (await c.json('/api/portal-staff-login', { method: 'POST', body: { key: 'dev' } })).status === 401);
   check('configured staff key works', (await c.json('/api/portal-staff-login', { method: 'POST', body: { key: 'preview-key' } })).status === 200);
+  check('no bank details until they are set', (await c.json('/api/portal-staff')).data.bank === null);
 } finally { demo.kill(); }
 
 await rm(dataDir, { recursive: true, force: true });

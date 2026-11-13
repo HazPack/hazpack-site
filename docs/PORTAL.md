@@ -19,7 +19,7 @@ The portal screen is the design prototype (`portal/app.js`, `portal/portal.css`)
 - Files are only served through `/api/portal-file` after the sign-in check, and a member can only open files on their own jobs.
 - Records are removed 5 months after they are created (`/api/portal-purge`, run daily by the cron in `vercel.json`).
 - Passwords and PINs are stored only as salted hashes. Five wrong attempts lock that company or person for 15 minutes.
-- Libraries the page needs (pdf.js, html2canvas, jsPDF, JSZip) are served from `portal/vendor/`, never from another site.
+- Libraries the page needs (pdf.js, jsPDF, JSZip) are served from `portal/vendor/`, never from another site.
 
 ## Try it on your computer
 
@@ -57,8 +57,12 @@ marked "sample" on screen. They exist only locally (the `data/` folder is not co
 3. **Uploads** go through the function as base64 and are limited to 3 MB. Switch to direct-to-storage uploads if bigger photos are needed.
 4. **Content Security Policy.** The portal's inline styles need `style-src 'unsafe-inline'` (scripts stay `'self'` only). Review once before launch.
 5. **The "Client Portal" button is in the site menu** (between Resources and Request a Quote, on every page). Merging this branch to `main` makes it live, so only merge when everything above is done.
-6. Bank numbers on invoices are placeholders ("Added when live"). Put the real ones in before sending real invoices.
-7. Quote and invoice PDFs are page images (text is not selectable). Replace with real text PDFs before launch.
+6. **Bank details on invoices** come from Vercel settings, so they never appear in this public repository. Add these
+   (Production, and Preview if you want them on test invoices): `PORTAL_BANK_ACCOUNT`, `PORTAL_BANK_ACH_ROUTING`,
+   `PORTAL_BANK_WIRE_ROUTING`, and optionally `PORTAL_BANK_NAME` (default "Chase Bank") and `PORTAL_BANK_ACCOUNT_NAME`
+   (default "HazPack Compliance Solutions LLC"). Until all three numbers are set, invoices say "For bank transfer details,
+   email accounts@hazpackcompliance.com", and the editor shows a staff note. Only staff ever receive these values.
+7. Quote and invoice PDFs are drawn as real text (selectable and searchable, about 25 KB each). Only the logo is a picture.
 8. Confirm the retention rule (each record is kept 5 months from when it was created) and who should see the staff page.
 
 ## Email alerts

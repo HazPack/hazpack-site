@@ -9,7 +9,7 @@
 // small list of actions in CLIENT_ACTIONS below, each of which checks what that person may do.
 import { randomUUID } from 'node:crypto';
 import { hashSecret, verifySecret, DUMMY_HASH } from './crypto.js';
-import { FILE_TYPES, CLIENT_FILE_TYPES, SERVICES, RETENTION_MONTHS, MAX_FILE_BYTES, MAX_FAILS, LOCK_MS } from './config.js';
+import { FILE_TYPES, CLIENT_FILE_TYPES, SERVICES, RETENTION_MONTHS, MAX_FILE_BYTES, MAX_FAILS, LOCK_MS, bankDetails } from './config.js';
 import { withDb, readDb, putFile, getFile, delFile } from './store.js';
 import { notifIds, newMail, sendMail, mailOn } from './mail.js';
 
@@ -120,7 +120,7 @@ function bumpSeq(seq, docs) {
 export async function staffData() {
   const db = await readDb();
   const seq = { ...(db.meta?.sentSeq || {}) };
-  return { orgs: db.orgs.map(pubOrg), docs: db.docs, tariff: db.tariff || null, seq, mail: mailOn(), staff: true };
+  return { orgs: db.orgs.map(pubOrg), docs: db.docs, tariff: db.tariff || null, seq, mail: mailOn(), bank: bankDetails(), staff: true };
 }
 
 // Returns file info only if it belongs to the signed-in person's company (and a job they can see).

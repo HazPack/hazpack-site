@@ -32,6 +32,15 @@ export function sessionSecret() {
   throw new NotConfigured('PORTAL_SESSION_SECRET is not set.');
 }
 
+// Bank details printed on invoices. They live in Vercel settings, never in this public repository.
+// Until the account number and both routing numbers are set, invoices tell clients to ask accounts@ for them.
+export function bankDetails() {
+  const v = (k) => String(process.env[k] || '').trim();
+  const acct = v('PORTAL_BANK_ACCOUNT'), ach = v('PORTAL_BANK_ACH_ROUTING'), wire = v('PORTAL_BANK_WIRE_ROUTING');
+  if (!acct || !ach || !wire) return null;
+  return { bank: v('PORTAL_BANK_NAME') || 'Chase Bank', name: v('PORTAL_BANK_ACCOUNT_NAME') || 'HazPack Compliance Solutions LLC', acct, ach, wire };
+}
+
 // Password the HazPack team types on the staff page.
 export function staffKey() {
   if (process.env.PORTAL_STAFF_KEY) return process.env.PORTAL_STAFF_KEY;

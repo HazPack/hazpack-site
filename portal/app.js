@@ -180,7 +180,7 @@
   function adopt(data) {
     var keepOrg = S.org && S.org.id, keepRep = S.rep && S.rep.id;
     ORGS = {}; (data.orgs || [data.org]).forEach(function (o) { reviveOrg(o); ORGS[o.id] = o; REV[o.id] = o.rev; });
-    DOCS = data.docs || []; SEQ = data.seq || {}; MAIL_ON = !!data.mail;
+    DOCS = data.docs || []; SEQ = data.seq || {}; MAIL_ON = !!data.mail; if ('bank' in data) BANK = data.bank || null;
     Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(upgradeSteps); });
     if (data.tariff && data.tariff.length) TARIFF = data.tariff;
     if (data.me) ME = data.me;
@@ -771,8 +771,9 @@
      Ported from the standalone "HazPack Quote and Invoice" page. Lives inside the portal closure, so it
      shares ORGS, S, esc, openModal, toast and download. Injected into portal.js by build.py. */
   var STAFF_NAMES = { 'James Whitty': 'DG Specialist / Owner', 'Alex Walsh': 'DG Specialist / Owner' };
-  /* Bank numbers are placeholders in the prototype. In the real build they come from server settings. */
-  var BANK = { bank: 'Chase Bank', name: 'HazPack Compliance Solutions LLC', acct: 'Added when live', ach: 'Added when live', wire: 'Added when live' };
+  /* Bank details come from the server's settings (PORTAL_BANK_* in Vercel), never from this public code.
+     Until they are set, invoices ask the client to email accounts@ for them. */
+  var BANK = null, ACCOUNTS_EMAIL = 'accounts@hazpackcompliance.com';
   var TARIFF0 = [
     { id: 'attend', label: 'Attendance', note: 'Site visit / call-out', unit: 'per visit', rate: 55 },
     { id: 'dgd', label: 'DGD', note: 'Dangerous Goods Declaration prepared & certified', unit: 'per DGD', rate: 65 },
@@ -923,8 +924,8 @@
     var tail = '';
     if (inv) {
       tail = '<div class="sec"><h5>Payment terms</h5><table class="pt tm"><thead><tr><th class="l">Payment window</th><th>Late fee</th><th class="l">Notes</th></tr></thead><tbody><tr><td>Within 15 days of invoice date</td><td class="c">0.0%</td><td><i>No late fee, standard terms.</i></td></tr><tr><td>Days 16 through 30</td><td class="c o">1.5%</td><td><i>1.5% late fee applied to subtotal.</i></td></tr><tr><td>Day 31 onwards</td><td class="c o">2.0%</td><td><i>2.0% late fee applied to subtotal.</i></td></tr></tbody></table></div>' +
-        '<div class="sec"><h5>ACH / electronic payment <em>(preferred)</em></h5><table class="pt ach"><thead><tr><th class="l">Bank</th><th class="l">Account name</th><th class="l">Account #</th><th class="l">ACH routing</th><th class="l">Wire routing</th></tr></thead><tbody><tr><td><b>' + esc(BANK.bank) + '</b></td><td><b>' + esc(BANK.name) + '</b></td><td><b>' + esc(BANK.acct) + '</b></td><td><b>' + esc(BANK.ach) + '</b></td><td><b>' + esc(BANK.wire) + '</b></td></tr></tbody></table></div>' +
-        '<div class="sec"><h5>Remittance and general terms</h5><ul><li>Payment due within 15 days of invoice date. Late fees apply per the schedule above, assessed on the outstanding balance.</li><li>Remittance email: <b>accounts@hazpackcompliance.com</b> &middot; AR contact: James Whitty, +1 (310) 425-3712.</li><li>Quantity and rate reference the original quote unless otherwise noted. Any per-line override is shown in the Qty column.</li><li>Disputes must be raised in writing within 7 days of invoice receipt.</li></ul></div>';
+        '<div class="sec"><h5>ACH / electronic payment <em>(preferred)</em></h5>' + (BANK ? '<table class="pt ach"><thead><tr><th class="l">Bank</th><th class="l">Account name</th><th class="l">Account #</th><th class="l">ACH routing</th><th class="l">Wire routing</th></tr></thead><tbody><tr><td><b>' + esc(BANK.bank) + '</b></td><td><b>' + esc(BANK.name) + '</b></td><td><b>' + esc(BANK.acct) + '</b></td><td><b>' + esc(BANK.ach) + '</b></td><td><b>' + esc(BANK.wire) + '</b></td></tr></tbody></table>' : '<p class="nobank">For bank transfer details, email <b>' + ACCOUNTS_EMAIL + '</b>.' + (print ? '' : ' <span>(Staff note: add PORTAL_BANK_ACCOUNT, PORTAL_BANK_ACH_ROUTING and PORTAL_BANK_WIRE_ROUTING in Vercel to print them here.)</span>') + '</p>') + '</div>' +
+        '<div class="sec"><h5>Remittance and general terms</h5><ul><li>Payment due within 15 days of invoice date. Late fees apply per the schedule above, assessed on the outstanding balance.</li><li>Remittance email: <b>' + ACCOUNTS_EMAIL + '</b> &middot; AR contact: James Whitty, +1 (310) 425-3712.</li><li>Quantity and rate reference the original quote unless otherwise noted. Any per-line override is shown in the Qty column.</li><li>Disputes must be raised in writing within 7 days of invoice receipt.</li></ul></div>';
     }
     var sig = inv ? '<div class="sigs"><div><b>Approved for payment</b><p>Signature: ________________________ &nbsp; Date: __________</p></div><div><b>Issued by HazPack Compliance Solutions</b><p>' + staffSel('issuedBy', e.issuedBy, print) + ' &middot; ' + esc(STAFF_NAMES[e.issuedBy] || 'DG Specialist / Owner') + '</p><p>Signature: ________________________ &nbsp; Date: __________</p></div></div>' : '';
     return '<div class="paper' + (print ? ' print' : '') + '"><div class="p-head"><img src="' + LOGO_L + '" alt="HazPack Compliance"><div class="co"><b>HazPack Compliance Solutions LLC</b>Dangerous Goods Compliance &amp; Inspection Services<br>' + esc(FROM_EMAIL) + ' &nbsp;|&nbsp; +1 (310) 425-3712<br>www.hazpackcompliance.com &nbsp;|&nbsp; Los Angeles, CA<em class="cert">IATA DGR Certified &nbsp;&middot;&nbsp; IMDG Certified &nbsp;&middot;&nbsp; 49 CFR Certified</em></div></div>' +
@@ -1018,17 +1019,185 @@
     scriptP[url] = new Promise(function (res, rej) { var s = document.createElement('script'); s.src = url; s.onload = res; s.onerror = function () { delete scriptP[url]; rej(new Error('load')); }; document.head.appendChild(s); });
     return scriptP[url];
   }
+  /* The PDF is drawn as real text (selectable and searchable), following the same layout as the paper on screen.
+     Only the logo is a picture. Standard PDF fonts cover Latin-1, so other characters are swapped for plain ones. */
+  var logoP = null;
+  function logoPng() {
+    if (!logoP) logoP = new Promise(function (res) {
+      var im = new Image();
+      im.onload = function () { try { var c = document.createElement('canvas'); c.width = 652; c.height = 206; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); res(c.toDataURL('image/png')); } catch (err) { res(null); } };
+      im.onerror = function () { logoP = null; res(null); };
+      im.src = LOGO_L;
+    });
+    return logoP;
+  }
+  function pdfText(v) {
+    return String(v == null ? '' : v).replace(/[‐-―−]/g, '-').replace(/[‘’‚]/g, "'").replace(/[“”„]/g, '"').replace(/…/g, '...').replace(/[•●]/g, '-').replace(/[  -​ ]/g, ' ').replace(/[^\x09\x0a\x0d\x20-\x7e\xa1-\xff]/g, '?');
+  }
   function docPdf(e) {
-    return Promise.all([loadScript('/portal/vendor/html2canvas.min.js', function () { return window.html2canvas; }), loadScript('/portal/vendor/jspdf.umd.min.js', function () { return window.jspdf; })]).then(function () {
-      var host = document.createElement('div'); host.style.cssText = 'position:fixed;left:-10000px;top:0'; host.innerHTML = paperHtml(e, true); document.body.appendChild(host);
-      return new Promise(function (r) { setTimeout(r, 80); }).then(function () { return window.html2canvas(host.firstElementChild, { scale: 2, backgroundColor: '#ffffff', useCORS: true }); }).then(function (canvas) {
-        host.remove();
-        var pdf = new window.jspdf.jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait' }), img = canvas.toDataURL('image/jpeg', 0.85), W = 8.5, H = 11, h = canvas.height * W / canvas.width, left = h, pos = 0;
-        /* JPEG, stored once and reused on each page, keeps the file well under the 3 MB upload limit (a PNG was over 10 MB). */
-        pdf.addImage(img, 'JPEG', 0, 0, W, h, 'doc'); left -= H;
-        while (left > 0.02) { pos -= H; pdf.addPage(); pdf.addImage(img, 'JPEG', 0, pos, W, h, 'doc'); left -= H; }
-        return pdf.output('blob');
-      }, function (err) { host.remove(); throw err; });
+    return Promise.all([loadScript('/portal/vendor/jspdf.umd.min.js', function () { return window.jspdf; }), logoPng()]).then(function (got) {
+      var logo = got[1], inv = e.type === 'Invoice', s = sums(e.rows, e.custom, e.disc, e.late);
+      var pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait', compress: true });
+      var PW = 612, PH = 792, ML = 32, CW = PW - 2 * ML, TOP = 30, FOOT_H = 26, FOOT_Y = PH - 24 - FOOT_H, BOTTOM = FOOT_Y - 10;
+      var NAVY = [27, 42, 74], ORANGE = [244, 123, 32], GRAY = [107, 114, 128], LINE = [208, 211, 220], INK = [26, 26, 46], WHITE = [255, 255, 255];
+      var y = TOP;
+      var font = function (size, style, color) { pdf.setFont('helvetica', style || 'normal'); pdf.setFontSize(size); pdf.setTextColor.apply(pdf, color || INK); };
+      var text = function (v, x, yy, opt) { pdf.text(pdfText(v), x, yy, opt); };
+      var wrap = function (v, w) { var t = pdfText(v); return t ? pdf.splitTextToSize(t, w) : ['']; };
+      var widthOf = function (v, cs) { var t = pdfText(v); return pdf.getTextWidth(t) + (cs || 0) * Math.max(0, t.length - 1); };
+      var fillRect = function (x, yy, w, h, c) { pdf.setFillColor.apply(pdf, c); pdf.rect(x, yy, w, h, 'F'); };
+      var hline = function (x1, x2, yy, c, lw) { pdf.setDrawColor.apply(pdf, c || LINE); pdf.setLineWidth(lw || 0.75); pdf.line(x1, yy, x2, yy); };
+      var newPage = function () { pdf.addPage(); y = TOP; };
+      var need = function (h) { if (y + h > BOTTOM) { newPage(); return true; } return false; };
+      var heading = function (label, extra) {
+        font(8, 'bold', NAVY); var t = label.toUpperCase(); text(t, ML, y + 7, { charSpace: 0.4 });
+        if (extra) { var w = widthOf(t, 0.4); font(8, 'italic', ORANGE); text(extra, ML + w + 4, y + 7); }
+        y += 11;
+      };
+
+      /* A simple table: cols = [{ h: header, w: width, a: 'l'|'c'|'r' }], rows = arrays of cells { t, s: style, c: color, z: size }.
+         Long cells wrap; a row that does not fit starts a new page and repeats the header. */
+      function table(cols, rows) {
+        var head = function () {
+          fillRect(ML, y, CW, 14, NAVY); font(7.5, 'bold', WHITE);
+          var x = ML; cols.forEach(function (c) { var tx = c.a === 'r' ? x + c.w - 5 : c.a === 'c' ? x + c.w / 2 : x + 5; text(c.h, tx, y + 9.6, { align: c.a === 'r' ? 'right' : c.a === 'c' ? 'center' : 'left' }); x += c.w; });
+          y += 14;
+        };
+        need(14 + 18); head();
+        rows.forEach(function (row) {
+          var lines = row.map(function (cell, i) { font(cell.z || 8.5, cell.s, cell.c); return wrap(cell.t, cols[i].w - 10); });
+          var h = Math.max.apply(null, lines.map(function (l, i) { return l.length * ((row[i].z || 8.5) * 1.18); })) + 6;
+          if (need(h)) head();
+          var x = ML;
+          row.forEach(function (cell, i) {
+            var c = cols[i], z = cell.z || 8.5; font(z, cell.s, cell.c);
+            var tx = c.a === 'r' ? x + c.w - 5 : c.a === 'c' ? x + c.w / 2 : x + 5;
+            lines[i].forEach(function (ln, k) { text(ln, tx, y + 3 + z * 0.9 + k * z * 1.18, { align: c.a === 'r' ? 'right' : c.a === 'c' ? 'center' : 'left' }); });
+            x += c.w;
+          });
+          y += h; hline(ML, ML + CW, y);
+        });
+        y += 9;
+      }
+
+      /* ---- header ---- */
+      var LW = 104, LH = LW * 458 / 1449;
+      if (logo) pdf.addImage(logo, 'PNG', ML, y + 4, LW, LH, 'logo', 'FAST'); else { font(16, 'bold', NAVY); text('HazPack Compliance', ML, y + 24); }
+      var R = ML + CW;
+      font(12, 'bold', NAVY); text('HazPack Compliance Solutions LLC', R, y + 10, { align: 'right' });
+      font(8, 'normal', GRAY);
+      text('Dangerous Goods Compliance & Inspection Services', R, y + 20, { align: 'right' });
+      text(FROM_EMAIL + '  |  +1 (310) 425-3712', R, y + 29.5, { align: 'right' });
+      text('www.hazpackcompliance.com  |  Los Angeles, CA', R, y + 39, { align: 'right' });
+      font(7.5, 'bold', ORANGE); text('IATA DGR Certified  ·  IMDG Certified  ·  49 CFR Certified', R, y + 49, { align: 'right', charSpace: 0.2 });
+      y += 55; hline(ML, R, y, NAVY, 1.9); y += 10;
+
+      /* ---- title ---- */
+      var title = inv ? 'INVOICE' : 'QUOTE'; font(18, 'bold', NAVY);
+      var tw = widthOf(title, 3), tx0 = ML + (CW - tw) / 2;
+      text(title, tx0, y + 15, { charSpace: 3 }); hline(tx0, tx0 + tw, y + 20, ORANGE, 1.9); y += 30;
+
+      /* ---- bill to / document details ---- */
+      var boxRows = function (pairs, w) { font(8.5); return pairs.map(function (p) { return { k: p[0], v: wrap(p[1], w - 72), o: p[2] }; }); };
+      var bw2 = 210, bw1 = CW - bw2 - 9;
+      var bill = boxRows([['Name', e.name], ['Company', e.company], ['Address', e.addr], ['City / State', e.city], ['Email', e.email], ['Phone', e.phone], ['BKG #', e.bkg]], bw1);
+      var det = boxRows([['Doc #', e.docNum], ['Date', mdy(e.date)]].concat(inv ? [['Due date', longDate(dueOf(e)), true], ['Payment rcvd', e.payRcvd]] : []).concat([['Prepared by', e.preparedBy]]), bw2);
+      var rowsH = function (rs) { return rs.reduce(function (a, r) { return a + Math.max(1, r.v.length) * 10 + 1.5; }, 0); };
+      var bh = 12 + 5 + Math.max(rowsH(bill), rowsH(det)) + 3;
+      var box = function (x, w, label, rs) {
+        pdf.setDrawColor.apply(pdf, LINE); pdf.setLineWidth(0.75); pdf.rect(x, y, w, bh, 'S');
+        fillRect(x, y, w, 12, NAVY); font(7.5, 'bold', WHITE); text(label.toUpperCase(), x + 7, y + 8.5, { charSpace: 0.75 });
+        var yy = y + 12 + 5;
+        rs.forEach(function (r) {
+          font(7.5, 'normal', GRAY); text(r.k, x + 7, yy + 7.5);
+          if (r.o) font(8.5, 'bold', ORANGE); else font(8.5, 'normal', INK);
+          r.v.forEach(function (ln, k) { text(ln, x + 64, yy + 7.5 + k * 10); });
+          yy += Math.max(1, r.v.length) * 10 + 1.5;
+        });
+      };
+      box(ML, bw1, 'Bill to', bill); box(ML + bw1 + 9, bw2, 'Document details', det); y += bh + 10;
+
+      /* ---- services ---- */
+      var n = 0, svc = e.rows.filter(function (r) { return r.active; }).map(function (r) {
+        n++;
+        return [{ t: n, z: 7.5, c: GRAY }, { t: r.label, s: 'bold' }, { t: r.noteOverride || r.note, s: 'italic', z: 7.5, c: GRAY }, { t: r.qty }, { t: r.unit, z: 7.5, c: GRAY }, { t: money(r.rate) }, { t: money(r.qty * r.rate), s: 'bold' }];
+      });
+      table([{ h: '#', w: 20, a: 'c' }, { h: 'Service', w: 136, a: 'l' }, { h: 'Notes', w: 176, a: 'l' }, { h: 'Qty', w: 34, a: 'c' }, { h: 'Unit', w: 58, a: 'c' }, { h: 'Rate', w: 58, a: 'r' }, { h: 'Line total', w: 66, a: 'r' }], svc);
+      if (e.custom.length) {
+        need(11 + 32); heading('Additional lines');
+        table([{ h: 'Description', w: 190, a: 'l' }, { h: 'Notes', w: 150, a: 'l' }, { h: 'Qty', w: 40, a: 'c' }, { h: 'Unit', w: 50, a: 'c' }, { h: 'Rate', w: 55, a: 'r' }, { h: 'Line total', w: 63, a: 'r' }],
+          e.custom.map(function (c) { return [{ t: c.desc }, { t: c.note, s: 'italic', z: 7.5, c: GRAY }, { t: c.qty }, { t: c.unit }, { t: money(c.rate) }, { t: money(c.qty * c.rate), s: 'bold' }]; }));
+      }
+
+      /* ---- totals ---- */
+      var tots = [['Subtotal', money(s.sub)], ['Discount ' + (e.disc || '0') + '%', s.d > 0 ? '-' + money(s.d) : '-']];
+      if (e.late) tots.push(['Late fee (' + lateRate(e.late) + '%)', money(s.lf)]);
+      need(tots.length * 15 + 20);
+      var TW = 220, VW = 84, TX = R - TW;
+      tots.forEach(function (t) {
+        font(9, 'normal', INK); text(t[0], R - VW - 8, y + 10.5, { align: 'right' }); font(9, 'bold', INK); text(t[1], R - 8, y + 10.5, { align: 'right' });
+        pdf.setDrawColor.apply(pdf, LINE); pdf.setLineWidth(0.75); pdf.line(R - VW, y, R - VW, y + 15); hline(TX, R, y + 15); y += 15;
+      });
+      fillRect(TX, y, TW, 19, NAVY); font(11, 'bold', WHITE); text('TOTAL DUE (USD)', R - VW - 8, y + 13, { align: 'right' }); text(money(s.total), R - 8, y + 13, { align: 'right' });
+      y += 19 + 10;
+
+      /* ---- invoice terms ---- */
+      if (inv) {
+        need(11 + 32); heading('Payment terms');
+        table([{ h: 'Payment window', w: 200, a: 'l' }, { h: 'Late fee', w: 80, a: 'c' }, { h: 'Notes', w: CW - 280, a: 'l' }], [
+          [{ t: 'Within 15 days of invoice date' }, { t: '0.0%' }, { t: 'No late fee, standard terms.', s: 'italic', z: 7.5, c: GRAY }],
+          [{ t: 'Days 16 through 30' }, { t: '1.5%', s: 'bold', c: ORANGE }, { t: '1.5% late fee applied to subtotal.', s: 'italic', z: 7.5, c: GRAY }],
+          [{ t: 'Day 31 onwards' }, { t: '2.0%', s: 'bold', c: ORANGE }, { t: '2.0% late fee applied to subtotal.', s: 'italic', z: 7.5, c: GRAY }]]);
+        need(11 + 32); heading('ACH / electronic payment', '(preferred)');
+        if (BANK) {
+          var bc = CW / 5;
+          table([{ h: 'Bank', w: bc, a: 'l' }, { h: 'Account name', w: bc, a: 'l' }, { h: 'Account #', w: bc, a: 'l' }, { h: 'ACH routing', w: bc, a: 'l' }, { h: 'Wire routing', w: bc, a: 'l' }],
+            [[{ t: BANK.bank, s: 'bold' }, { t: BANK.name, s: 'bold' }, { t: BANK.acct, s: 'bold' }, { t: BANK.ach, s: 'bold' }, { t: BANK.wire, s: 'bold' }]]);
+        } else {
+          font(8.5, 'normal', INK); text('For bank transfer details, email ' + ACCOUNTS_EMAIL + '.', ML, y + 8); y += 18;
+        }
+        var terms = ['Payment due within 15 days of invoice date. Late fees apply per the schedule above, assessed on the outstanding balance.',
+          'Remittance email: ' + ACCOUNTS_EMAIL + '  ·  AR contact: James Whitty, +1 (310) 425-3712.',
+          'Quantity and rate reference the original quote unless otherwise noted. Any per-line override is shown in the Qty column.',
+          'Disputes must be raised in writing within 7 days of invoice receipt.'];
+        need(11 + 26); heading('Remittance and general terms');
+        terms.forEach(function (t) {
+          font(8, 'normal', INK); var ls = wrap(t, CW - 12); need(ls.length * 11.5);
+          pdf.setFillColor.apply(pdf, INK); pdf.circle(ML + 3, y + 5.2, 1.1, 'F');
+          ls.forEach(function (ln, k) { text(ln, ML + 10, y + 8 + k * 11.5); }); y += ls.length * 11.5;
+        });
+        y += 8;
+      }
+
+      /* ---- notes ---- */
+      font(8.5, 'italic', GRAY); var nl = e.notes ? wrap(e.notes, CW) : [];
+      need(11 + Math.max(1, nl.length) * 11 + 6); heading('Notes');
+      nl.forEach(function (ln) { need(11); font(8.5, 'italic', GRAY); text(ln, ML, y + 8); y += 11; });
+      y += nl.length ? 8 : 6;
+
+      /* ---- signatures (invoice) ---- */
+      if (inv) {
+        need(52); var half = (CW - 18) / 2, sigLine = 'Signature: ________________________    Date: __________';
+        font(8.5, 'bold', NAVY); text('Approved for payment', ML, y + 8); text('Issued by HazPack Compliance Solutions', ML + half + 18, y + 8);
+        font(8, 'normal', GRAY); text(sigLine, ML, y + 22);
+        font(8.5, 'bold', INK); text(e.issuedBy + '  ·  ' + (STAFF_NAMES[e.issuedBy] || 'DG Specialist / Owner'), ML + half + 18, y + 22);
+        font(8, 'normal', GRAY); text(sigLine, ML + half + 18, y + 36);
+        y += 46;
+      }
+
+      /* ---- footer and page numbers on every page ---- */
+      var pages = pdf.getNumberOfPages();
+      for (var p = 1; p <= pages; p++) {
+        pdf.setPage(p);
+        pdf.setFillColor.apply(pdf, NAVY); pdf.roundedRect(ML, FOOT_Y, CW, FOOT_H, 2, 2, 'F');
+        var a = 'HazPack Compliance Solutions LLC', b = '  |  ' + FROM_EMAIL + '  |  +1 (310) 425-3712  |  www.hazpackcompliance.com';
+        font(7.5, 'bold', WHITE); var wa = widthOf(a); font(7.5, 'normal', WHITE); var wb = widthOf(b), fx = ML + (CW - wa - wb) / 2;
+        font(7.5, 'bold', WHITE); text(a, fx, FOOT_Y + 10.5); font(7.5, 'normal', WHITE); text(b, fx + wa, FOOT_Y + 10.5);
+        font(7, 'normal', [190, 196, 210]); text('IATA DGR Certified  ·  IMDG Certified  ·  49 CFR Certified  ·  IATA DGR 67th Edition  ·  Los Angeles, CA', PW / 2, FOOT_Y + 20, { align: 'center' });
+        if (pages > 1) { font(7, 'normal', GRAY); text(e.docNum + '  ·  Page ' + p + ' of ' + pages, R, FOOT_Y - 4, { align: 'right' }); }
+      }
+      pdf.setProperties({ title: (inv ? 'Invoice ' : 'Quote ') + pdfText(e.docNum), subject: pdfText(e.company || e.name), author: 'HazPack Compliance Solutions LLC', creator: 'HazPack client portal' });
+      return pdf.output('blob');
     });
   }
   function pdfName(rec) { return (rec.type + '_' + rec.docNum).replace(/[^a-zA-Z0-9_-]+/g, '_') + '.pdf'; }

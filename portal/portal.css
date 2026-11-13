@@ -580,3 +580,4 @@ select:disabled { cursor: default; opacity: .6; }
 /* route map: keep the captions readable over the dots */
 .mapcard::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 38px; background: linear-gradient(transparent, var(--map-bg) 80%); pointer-events: none; }
 .map-foot, .mlabel { z-index: 1; }
+.paper .nobank { margin: 0; font-size: 8.5pt; } .paper .nobank span { color: #b45309; font-size: 7.5pt; }
