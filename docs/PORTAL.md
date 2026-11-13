@@ -50,8 +50,8 @@ marked "sample" on screen. They exist only locally (the `data/` folder is not co
    ```
 
    The portal creates the empty first row and the file bucket itself. With Supabase connected there is no sample data:
-   create companies from the staff screen (Clients, Add company). Preview and Production share one Supabase project until
-   you split them, so delete test companies before going live.
+   create companies from the staff screen (Clients, Add company). Vercel gives Preview the same Supabase settings, but a
+   preview with `PORTAL_DEMO=1` ignores them and runs on throwaway sample data, so only Production touches real records.
 2. **Vercel environment variables** (Production): `PORTAL_SESSION_SECRET` (a long random string),
    `PORTAL_STAFF_KEY` (the staff password), `CRON_SECRET` (a long random string).
 3. **Uploads** go through the function as base64 and are limited to 3 MB. Switch to direct-to-storage uploads if bigger photos are needed.

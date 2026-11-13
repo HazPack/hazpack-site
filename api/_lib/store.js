@@ -152,7 +152,10 @@ async function sbDel(cfg, id) {
 }
 
 // ---- the functions the rest of the portal uses ----
+// A demo preview (PORTAL_DEMO=1, Preview only) always runs on throwaway sample data, even though Vercel gives Preview the
+// same Supabase settings as Production. So the preview link and its staff key can never reach real client records.
 function mode() {
+  if (DEMO) return null;
   const cfg = supabaseConfig();
   if (cfg) return cfg;
   if (isProd && !DEMO) throw new NotConfigured('Portal storage is not configured.');

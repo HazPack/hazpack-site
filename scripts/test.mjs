@@ -292,11 +292,11 @@ try {
   check('production without a staff key: staff sign-in is unavailable', (await c.json('/api/portal-staff-login', { method: 'POST', body: { key: 'dev' } })).status === 503);
   check('production purge needs CRON_SECRET', (await c.json('/api/portal-purge')).status === 503);
 } finally { prod.kill(); }
-const demo = await startServer(4403, { VERCEL: '1', PORTAL_DEMO: '1', PORTAL_SESSION_SECRET: 'y'.repeat(40), PORTAL_STAFF_KEY: 'preview-key', PORTAL_DATA_DIR: await mkdtemp(join(tmpdir(), 'hp-portal-demo-')) });
+const demo = await startServer(4403, { VERCEL: '1', PORTAL_DEMO: '1', SUPABASE_URL: 'http://127.0.0.1:9', SUPABASE_SERVICE_ROLE_KEY: 'not-a-real-key', PORTAL_SESSION_SECRET: 'y'.repeat(40), PORTAL_STAFF_KEY: 'preview-key', PORTAL_DATA_DIR: await mkdtemp(join(tmpdir(), 'hp-portal-demo-')) });
 try {
   const c = new Client('http://localhost:4403');
   const l = await c.json('/api/portal-login', { method: 'POST', body: { slug: 'pacific', password: 'demo' } });
-  check('demo preview works with sample data', l.status === 200);
+  check('demo preview works with sample data, even with Supabase settings present', l.status === 200);
   check('cookie is Secure on Vercel', /; Secure/.test(l.res.lastCookie));
   check('"dev" is not a staff key on Vercel', (await c.json('/api/portal-staff-login', { method: 'POST', body: { key: 'dev' } })).status === 401);
   check('configured staff key works', (await c.json('/api/portal-staff-login', { method: 'POST', body: { key: 'preview-key' } })).status === 200);
