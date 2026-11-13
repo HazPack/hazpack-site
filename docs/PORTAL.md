@@ -63,7 +63,8 @@ marked "sample" on screen. They exist only locally (the `data/` folder is not co
    (default "HazPack Compliance Solutions LLC"). Until all three numbers are set, invoices say "For bank transfer details,
    email accounts@hazpackcompliance.com", and the editor shows a staff note. Only staff ever receive these values.
 7. Quote and invoice PDFs are drawn as real text (selectable and searchable, about 25 KB each). Only the logo is a picture.
-8. Confirm the retention rule (each record is kept 5 months from when it was created) and who should see the staff page.
+8. Retention rule confirmed (Nov 2026): each record is kept 5 months from when it was created, then removed by the daily clean-up.
+   Only HazPack staff get the Production staff key.
 
 ## Email alerts
 
