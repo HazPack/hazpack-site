@@ -129,7 +129,7 @@ function renderClient(m, now) {
       `<div class="hp-name" style="${FONT}font-size:18px;font-weight:bold;color:${NAVY};line-height:1.3">${esc(SIG.name)}</div>` +
       `<div class="hp-title" style="${FONT}font-size:14px;font-weight:bold;color:${ORANGE};line-height:1.45;margin:4px 0 16px">${esc(SIG.title[0])}<span class="hp-sep">&nbsp; |&nbsp; </span><span class="hp-t2" style="white-space:nowrap">${esc(SIG.title[1])}</span></div>` +
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0">` +
-      SIG.rows.map(([k, v, href], i) => `<tr><td class="hp-lab" style="${FONT}font-size:14px;color:${GREY};padding:${i === 2 ? 10 : 3}px 16px 3px 0;vertical-align:top;width:44px">${k}</td><td class="hp-val" style="${FONT}font-size:14px;padding:${i === 2 ? 10 : 3}px 0 3px"><a href="${esc(href)}" style="color:${NAVY};text-decoration:none">${brk(v)}</a></td></tr>`).join('') +
+      SIG.rows.map(([k, v, href]) => `<tr><td class="hp-lab" style="${FONT}font-size:14px;color:${GREY};padding:4px 16px 4px 0;vertical-align:top;width:44px">${k}</td><td class="hp-val" style="${FONT}font-size:14px;padding:4px 0"><a href="${esc(href)}" style="color:${NAVY};text-decoration:none">${brk(v)}</a></td></tr>`).join('') +
       `</table>` +
       `<div class="hp-svc" style="${FONT}font-size:12.5px;color:${LIGHT};line-height:1.7;margin-top:16px">${SIG.services.map(esc).join(' &nbsp;&middot;&nbsp; ')}</div>` +
     `</td></tr></table>`;
