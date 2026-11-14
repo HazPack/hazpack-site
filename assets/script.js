@@ -319,3 +319,49 @@
   });
   document.documentElement.classList.add('js-reveal');
 })();
+
+// Searchable question index on the Resources page
+(function () {
+  var root = document.getElementById('qx');
+  if (!root) return;
+  var tools = root.querySelector('.qx-tools'), input = document.getElementById('qx-q');
+  var chips = Array.prototype.slice.call(root.querySelectorAll('.qx-chip'));
+  var items = Array.prototype.slice.call(root.querySelectorAll('.qx-list li'));
+  var count = document.getElementById('qx-count'), empty = document.getElementById('qx-empty'), list = document.getElementById('qx-list');
+  var cat = 'all';
+  items.forEach(function (li) {
+    var q = li.querySelector('.qx-q');
+    li._q = q.textContent; li._text = (li.textContent || '').toLowerCase();
+  });
+  function esc(t) { return t.replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function inCat(li, c) { return c === 'all' || (' ' + li.getAttribute('data-cat') + ' ').indexOf(' ' + c + ' ') > -1; }
+  function apply(typed) {
+    var term = input.value.trim().toLowerCase(), words = term ? term.split(/\s+/) : [], shown = 0;
+    function hit(li) { return words.every(function (w) { return li._text.indexOf(w) > -1; }); }
+    items.forEach(function (li) {
+      var ok = inCat(li, cat) && hit(li), q = li.querySelector('.qx-q');
+      li.hidden = !ok; if (ok) shown++;
+      var h = esc(li._q);
+      words.forEach(function (w) { if (w.length > 1) h = h.replace(new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>'); });
+      q.innerHTML = h;
+      if (typed) li.querySelector('details').open = ok && term.length > 2;
+    });
+    chips.forEach(function (b) {
+      var c = b.getAttribute('data-cat');
+      b.querySelector('.qx-n').textContent = items.filter(function (li) { return inCat(li, c) && hit(li); }).length;
+    });
+    count.textContent = shown === items.length ? items.length + ' questions' : 'Showing ' + shown + ' of ' + items.length + ' questions';
+    empty.hidden = shown > 0; list.hidden = shown === 0;
+  }
+  chips.forEach(function (b) {
+    b.addEventListener('click', function () {
+      cat = b.getAttribute('data-cat');
+      chips.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      apply();
+    });
+  });
+  input.addEventListener('input', function () { apply(true); });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { input.value = ''; apply(true); } });
+  tools.hidden = false;
+  apply();
+})();

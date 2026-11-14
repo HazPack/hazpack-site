@@ -105,6 +105,136 @@
       </div>
     </section>
 
+    <section class="section section-tint" id="questions" aria-labelledby="qx-title">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="eyebrow">Common questions</p>
+          <h2 id="qx-title">Quick answers for shippers</h2>
+          <p class="sub">Short answers to the questions we hear most. Each one links to the full guide.</p>
+        </div>
+        <div class="qx" id="qx">
+          <div class="qx-tools" hidden>
+            <label class="qx-search"><span class="sr">Search the questions</span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg><input type="search" id="qx-q" placeholder="Search, for example UN3480 or packing group" autocomplete="off"></label>
+            <div class="qx-chips" role="group" aria-label="Filter by topic"><button type="button" class="qx-chip" data-cat="all" aria-pressed="true">All <span class="qx-n"></span></button><button type="button" class="qx-chip" data-cat="basics" aria-pressed="false">Basics <span class="qx-n"></span></button><button type="button" class="qx-chip" data-cat="air" aria-pressed="false">Air <span class="qx-n"></span></button><button type="button" class="qx-chip" data-cat="ocean" aria-pressed="false">Ocean <span class="qx-n"></span></button><button type="button" class="qx-chip" data-cat="lithium" aria-pressed="false">Lithium batteries <span class="qx-n"></span></button><button type="button" class="qx-chip" data-cat="paperwork" aria-pressed="false">Paperwork <span class="qx-n"></span></button></div>
+            <p class="qx-count" id="qx-count" aria-live="polite"></p>
+          </div>
+          <ol class="qx-list" id="qx-list">
+          <li data-cat="basics">
+            <details>
+              <summary><span class="qx-q">What is the difference between hazmat and dangerous goods?</span><span class="qx-tags"><span class="qx-tag">Basics</span></span></summary>
+              <div class="qx-a"><p>They describe the same thing from different rulebooks. Hazmat is the term in US regulations. Dangerous goods is the term in the international rules for air (IATA, ICAO) and ocean (IMDG Code). One shipment can fall under more than one set of rules, depending on how it travels.</p><a href="/resources/what-is-hazmat">Read the full guide: What is Hazmat? <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="basics">
+            <details>
+              <summary><span class="qx-q">Who regulates dangerous goods shipments?</span><span class="qx-tags"><span class="qx-tag">Basics</span></span></summary>
+              <div class="qx-a"><p>PHMSA, part of the US DOT, writes the Hazardous Materials Regulations in 49 CFR Parts 171 to 180. The FAA, FMCSA, FRA and US Coast Guard enforce them for air, highway, rail and water. ICAO and IATA set the international air rules, and the IMO publishes the IMDG Code for ocean.</p><a href="/resources/what-is-hazmat">Read the full guide: What is Hazmat? <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="basics">
+            <details>
+              <summary><span class="qx-q">Are everyday products like perfume, paint or aerosols regulated?</span><span class="qx-tags"><span class="qx-tag">Basics</span></span></summary>
+              <div class="qx-a"><p>Often, yes. Paint, aerosols, perfume, adhesives, cleaning products, batteries and even dry ice can be hazardous materials in transport, not only fuels and industrial chemicals.</p><a href="/resources/what-is-hazmat">Read the full guide: What is Hazmat? <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="basics">
+            <details>
+              <summary><span class="qx-q">What are the nine hazard classes?</span><span class="qx-tags"><span class="qx-tag">Basics</span></span></summary>
+              <div class="qx-a"><p>1 Explosives, 2 Gases, 3 Flammable liquids, 4 Flammable solids and reactive substances, 5 Oxidizers and organic peroxides, 6 Toxic and infectious substances, 7 Radioactive material, 8 Corrosives, 9 Miscellaneous dangerous goods. Some classes are split into divisions.</p><a href="/resources/dangerous-goods-classes">Read the full guide: Dangerous Goods Classes <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="basics paperwork">
+            <details>
+              <summary><span class="qx-q">What does the packing group mean?</span><span class="qx-tags"><span class="qx-tag">Basics</span><span class="qx-tag">Paperwork</span></span></summary>
+              <div class="qx-a"><p>It shows how dangerous a material is within its class: packing group I is great danger, II medium and III minor. It affects which packaging you can use and the quantity limits that apply.</p><a href="/resources/dangerous-goods-classes">Read the full guide: Dangerous Goods Classes <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="basics">
+            <details>
+              <summary><span class="qx-q">Is a Safety Data Sheet enough to classify my product?</span><span class="qx-tags"><span class="qx-tag">Basics</span></span></summary>
+              <div class="qx-a"><p>No. A Safety Data Sheet is a starting point, but it is not a substitute for classifying the product against the regulations. Classification is the shipper&#x27;s responsibility, and everything else in the shipment depends on it.</p><a href="/resources/dangerous-goods-classes">Read the full guide: Dangerous Goods Classes <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="air ocean">
+            <details>
+              <summary><span class="qx-q">Do air and ocean use the same hazard classes?</span><span class="qx-tags"><span class="qx-tag">Air</span><span class="qx-tag">Ocean</span></span></summary>
+              <div class="qx-a"><p>Yes. The same nine-class system is used for air, ocean and US ground transport. What changes between modes is the detail: packaging, quantity limits and paperwork.</p><a href="/resources/dangerous-goods-classes">Read the full guide: Dangerous Goods Classes <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="paperwork air ocean">
+            <details>
+              <summary><span class="qx-q">What is a Dangerous Goods Declaration?</span><span class="qx-tags"><span class="qx-tag">Paperwork</span><span class="qx-tag">Air</span><span class="qx-tag">Ocean</span></span></summary>
+              <div class="qx-a"><p>The document where the shipper identifies the dangerous goods and certifies they are properly classified, packaged, marked and labeled. For air it is the Shipper&#x27;s Declaration for Dangerous Goods, for ocean the Dangerous Goods Declaration, and for US ground the shipping paper.</p><a href="/resources/dangerous-goods-declarations">Read the full guide: Dangerous Goods Declarations <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="paperwork">
+            <details>
+              <summary><span class="qx-q">Who can sign a dangerous goods declaration?</span><span class="qx-tags"><span class="qx-tag">Paperwork</span></span></summary>
+              <div class="qx-a"><p>The shipper is responsible for the declaration, and the person who signs it must be trained. Carriers and emergency responders rely on what it says.</p><a href="/resources/dangerous-goods-declarations">Read the full guide: Dangerous Goods Declarations <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="paperwork">
+            <details>
+              <summary><span class="qx-q">What mistakes on a declaration cause delays?</span><span class="qx-tags"><span class="qx-tag">Paperwork</span></span></summary>
+              <div class="qx-a"><p>The usual ones: a wrong or incomplete proper shipping name, a missing packing group or subsidiary hazard, quantities that do not match the package, no staffed emergency number, an unsigned declaration, or labels that do not agree with the paperwork.</p><a href="/resources/dangerous-goods-declarations">Read the full guide: Dangerous Goods Declarations <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="basics air">
+            <details>
+              <summary><span class="qx-q">How often does dangerous goods training need to be renewed?</span><span class="qx-tags"><span class="qx-tag">Basics</span><span class="qx-tag">Air</span></span></summary>
+              <div class="qx-a"><p>Under US rules, hazmat employees must be trained within 90 days of starting the job function and retrained at least every three years. For air shipments, IATA requires recurrent training at least every 24 months.</p><a href="/resources/what-is-hazmat">Read the full guide: What is Hazmat? <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="lithium">
+            <details>
+              <summary><span class="qx-q">Which UN number applies to my lithium batteries?</span><span class="qx-tags"><span class="qx-tag">Lithium batteries</span></span></summary>
+              <div class="qx-a"><p>UN3480 for lithium ion batteries on their own, UN3481 when contained in or packed with equipment. UN3090 for lithium metal batteries on their own, UN3091 when contained in or packed with equipment.</p><a href="/resources/lithium-batteries">Read the full guide: Lithium Batteries <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="lithium air">
+            <details>
+              <summary><span class="qx-q">Can lithium ion batteries ship on passenger aircraft?</span><span class="qx-tags"><span class="qx-tag">Lithium batteries</span><span class="qx-tag">Air</span></span></summary>
+              <div class="qx-a"><p>Lithium ion batteries shipped on their own (UN3480) are not permitted on passenger aircraft and must be at a limited state of charge for air transport. Batteries in or with equipment follow different rules.</p><a href="/resources/lithium-batteries">Read the full guide: Lithium Batteries <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="lithium">
+            <details>
+              <summary><span class="qx-q">What is UN 38.3?</span><span class="qx-tags"><span class="qx-tag">Lithium batteries</span></span></summary>
+              <div class="qx-a"><p>The test series in the UN Manual of Tests and Criteria that every lithium battery type must pass before it can be transported. Shippers are generally expected to be able to provide a test summary.</p><a href="/resources/lithium-batteries">Read the full guide: Lithium Batteries <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="lithium air">
+            <details>
+              <summary><span class="qx-q">Can I ship damaged or recalled batteries?</span><span class="qx-tags"><span class="qx-tag">Lithium batteries</span><span class="qx-tag">Air</span></span></summary>
+              <div class="qx-a"><p>Damaged, defective and recalled batteries are under special rules, and many are forbidden from air transport altogether. Do not ship them without specialist guidance.</p><a href="/resources/lithium-batteries">Read the full guide: Lithium Batteries <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="paperwork">
+            <details>
+              <summary><span class="qx-q">What is an overpack, and how is it marked?</span><span class="qx-tags"><span class="qx-tag">Paperwork</span></span></summary>
+              <div class="qx-a"><p>An enclosure one shipper uses to hold one or more complete packages as one unit, such as a shrink-wrapped pallet. If the markings and labels inside are not visible, the overpack must be marked OVERPACK and repeat them.</p><a href="/resources/what-is-an-overpack">Read the full guide: What is an Overpack <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="ocean">
+            <details>
+              <summary><span class="qx-q">Which rules apply to ocean shipments?</span><span class="qx-tags"><span class="qx-tag">Ocean</span></span></summary>
+              <div class="qx-a"><p>The IMDG Code, published by the International Maritime Organization. In the US, the Coast Guard enforces the rules for transport by water, and the shipment needs a Dangerous Goods Declaration.</p><a href="/resources/what-is-hazmat">Read the full guide: What is Hazmat? <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          <li data-cat="basics">
+            <details>
+              <summary><span class="qx-q">What happens if a shipment is not compliant?</span><span class="qx-tags"><span class="qx-tag">Basics</span></span></summary>
+              <div class="qx-a"><p>It can be refused or held at the airport, port or terminal, returned or repackaged at your cost, and delayed. Agencies can also issue civil penalties per violation, often per day it continues.</p><a href="/resources/enforcement-and-penalties">Read the full guide: Enforcement and Penalties <span aria-hidden="true">&rarr;</span></a></div>
+            </details>
+          </li>
+          </ol>
+          <div class="qx-empty" id="qx-empty" hidden>
+            <p><b>No questions match.</b> Ask us directly and a dangerous goods specialist will answer.</p>
+            <a class="btn btn-primary btn-sm" href="/quote">Ask a question</a>
+          </div>
+        </div>
+      </div>
+    </section>
     <section class="cta-band">
       <div class="wrap cta-inner">
         <div>
