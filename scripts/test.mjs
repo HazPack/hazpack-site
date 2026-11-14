@@ -152,7 +152,8 @@ try {
   const rq = await act(D.c, { action: 'requestJob', svc: ['dgd', 'insp'], item: 'Test aerosols', un: 'un1950', cls: '2.1', mode: 'Ground', from: 'LAX', to: 'PHX', ref: 'PO-1', req: '2026-12-01' });
   check('request a job', rq.status === 200 && /^HP-\d{4}-\d{3}$/.test(rq.data.jobId));
   const newJob = rq.data.state.org.jobs.find((j) => j.id === rq.data.jobId);
-  check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 6);
+  check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 5);
+  check('Documentation & DGD is one step: Documentation created and signed', JSON.stringify(newJob.steps) === JSON.stringify(['Job received', 'Documents reviewed', 'Inspection complete', 'Documentation created and signed', 'Invoice sent']));
   const reqMail = mails.find((m) => m.to[0] === 'alerts@hazpack-qa.com' && /submitted a job request/.test(m.subject));
   check('a job request emails HazPack, naming the job by its reference', reqMail && /PO-1/.test(reqMail.subject) && !/HP-\d{4}/.test(reqMail.subject) && reqMail.auth === 'Bearer test-key' && reqMail.html.includes('https://portal.hazpack-qa.com/portal'), JSON.stringify(reqMail?.subject));
   check('HazPack alerts use the branded layout without the client signature', reqMail && reqMail.html.includes('hazpackcompliance.com/logo.png') && !reqMail.html.includes('Alexander Walsh'));
@@ -160,6 +161,7 @@ try {
   check('request without a service refused', (await act(D.c, { action: 'requestJob', svc: ['bogus'] })).status === 400);
   const sq = await act(D.c, { action: 'requestJob', svc: ['dgd'], item: 'Test resin', un: 'UN1866', cls: '3', mode: 'Ocean', from: 'LAX', to: 'TLV', toText: 'Haifa, Israel', pol: 'Los Angeles / Long Beach', note: 'Pickup at dock 3.\r\n\r\n\r\nCall first.', ref: 'PO-SEA' });
   const seaJob = sq.status === 200 && sq.data.state.org.jobs.find((j) => j.id === sq.data.jobId);
+  check('dry ice on its own keeps the two declaration steps', (await (async () => { const r = await act(D.c, { action: 'requestJob', svc: ['dry'], item: 'Test dry ice', ref: 'PO-DRY' }); const j = r.data.state.org.jobs.find((x) => x.id === r.data.jobId); const ok = j.steps.includes('Declaration prepared') && j.steps.includes('Declaration signed, cleared to ship') && !j.steps.includes('Documentation created and signed'); await act(D.c, { action: 'withdrawJob', jobId: r.data.jobId }); return ok; })()));
   check('ocean request keeps the ports and the client notes', seaJob && seaJob.pol === 'Los Angeles / Long Beach' && seaJob.toText === 'Haifa, Israel' && seaJob.note === 'Pickup at dock 3.\n\nCall first.');
   check('a port of loading is ignored unless the request is by ocean', newJob.pol === '' && newJob.note === '');
   check('withdraw the ocean test request', (await act(D.c, { action: 'withdrawJob', jobId: sq.data.jobId })).status === 200);

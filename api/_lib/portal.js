@@ -171,7 +171,7 @@ async function storeUpload(org, { jobId, type, name, data, note, by, step }) {
 }
 
 // ---- helpers for jobs ----
-const LB = { rec: 'Job received', rev: 'Documents reviewed', cls: 'Shipment classified', pack: 'Packed and photographed', temp: 'Temperature control set up', dry: 'Dry ice loaded and marked', insp: 'Inspection complete', dgdp: 'Declaration prepared', dgd: 'Declaration signed, cleared to ship', consult: 'Consultation delivered', emerg: 'Emergency support provided', inv: 'Invoice sent' };
+const LB = { rec: 'Job received', rev: 'Documents reviewed', cls: 'Shipment classified', pack: 'Packed and photographed', temp: 'Temperature control set up', dry: 'Dry ice loaded and marked', insp: 'Inspection complete', dgdp: 'Declaration prepared', dgd: 'Declaration signed, cleared to ship', dgdo: 'Documentation created and signed', consult: 'Consultation delivered', emerg: 'Emergency support provided', inv: 'Invoice sent' };
 // Every job starts the same way, then gets a step for each service chosen, and ends with the invoice.
 function stepsFor(svc) {
   const has = (k) => svc.includes(k);
@@ -181,7 +181,8 @@ function stepsFor(svc) {
   if (has('temp')) s.push(LB.temp);
   if (has('dry')) s.push(LB.dry);
   if (has('insp')) s.push(LB.insp);
-  if (has('dgd') || has('dry')) { s.push(LB.dgdp); s.push(LB.dgd); }
+  // Documentation & DGD is one step; dry ice on its own keeps the two declaration steps.
+  if (has('dgd')) s.push(LB.dgdo); else if (has('dry')) { s.push(LB.dgdp); s.push(LB.dgd); }
   if (has('consult')) s.push(LB.consult);
   if (has('emerg')) s.push(LB.emerg);
   s.push(LB.inv);

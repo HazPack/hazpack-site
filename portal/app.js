@@ -14,7 +14,7 @@
   function fmt(dt) { return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
   function fmtS(dt) { return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
   var uid = 0; function nid(p) { return p + Date.now().toString(36) + (++uid); }
-  var LB = { rec: 'Job received', rev: 'Documents reviewed', cls: 'Shipment classified', pack: 'Packed and photographed', temp: 'Temperature control set up', dry: 'Dry ice loaded and marked', insp: 'Inspection complete', dgdp: 'Declaration prepared', dgd: 'Declaration signed, cleared to ship', consult: 'Consultation delivered', emerg: 'Emergency support provided', inv: 'Invoice sent' };
+  var LB = { rec: 'Job received', rev: 'Documents reviewed', cls: 'Shipment classified', pack: 'Packed and photographed', temp: 'Temperature control set up', dry: 'Dry ice loaded and marked', insp: 'Inspection complete', dgdp: 'Declaration prepared', dgd: 'Declaration signed, cleared to ship', dgdo: 'Documentation created and signed', consult: 'Consultation delivered', emerg: 'Emergency support provided', inv: 'Invoice sent' };
   /* services as named on the HazPack website's Services page */
   var SVC = { class: 'DG classification', dgd: 'Documentation & DGD', pack: 'Packaging & labeling', insp: 'DG inspections', emerg: 'DG emergency support', consult: 'DG consulting', temp: 'Temperature control', dry: 'Dry ice services' };
   var SVC_HELP = { class: 'All 9 hazard classes, UN number, packing group, proper shipping name', dgd: 'Declarations and paperwork for air, ocean and ground', pack: 'UN-certified packaging, marking, labeling and placarding', insp: 'Pre-shipment inspections, repackaging and relabeling', emerg: 'Urgent help with a last-minute shipment or compliance problem', consult: 'Ongoing guidance for complex or restricted commodities', temp: 'Insulated packaging, coolants and transit planning', dry: 'Packaging, marking, labeling and paperwork for dry ice shipments' };
@@ -27,7 +27,7 @@
     if (has('temp')) s.push(LB.temp);
     if (has('dry')) s.push(LB.dry);
     if (has('insp')) s.push(LB.insp);
-    if (has('dgd') || has('dry')) { s.push(LB.dgdp); s.push(LB.dgd); }
+    if (has('dgd')) s.push(LB.dgdo); else if (has('dry')) { s.push(LB.dgdp); s.push(LB.dgd); }
     if (has('consult')) s.push(LB.consult);
     if (has('emerg')) s.push(LB.emerg);
     s.push(LB.inv); return s;
@@ -70,9 +70,10 @@
   function visFiles() { var ids = vis().map(function (j) { return j.id; }); return S.org.files.filter(function (f) { return ids.indexOf(f.job) > -1; }); }
   function unread() { var ids = vis().map(function (j) { return j.id; }); return S.org.notifs.filter(function (n) { return n.to === 'client' && nvis(n, ids) && !n.read[S.rep.id]; }); }
   function doneStep(j, label) { var i = j.steps.indexOf(label); return i > -1 && j.done > i; }
+  function cleared(j) { return doneStep(j, LB.dgd) || doneStep(j, LB.dgdo); }
   function jobStatus(j) {
     if (j.pending) return ['Request received', 'info']; if (j.fix) return j.fixReply ? ['Correction received', 'info'] : ['Needs correction', 'bad']; if (j.done >= j.steps.length) return ['Completed', 'info'];
-    if (doneStep(j, LB.dgd)) return ['Cleared to ship', 'ok']; return ['In progress', 'warn'];
+    if (cleared(j)) return ['Cleared to ship', 'ok']; return ['In progress', 'warn'];
   }
   function isOpen(j) { return j.done < j.steps.length; }
   function pill(j) { var s = jobStatus(j); return '<span class="pill ' + s[1] + '">' + s[0] + '</span>'; }
@@ -1481,7 +1482,7 @@
       var o = ORGS[k];
       o.jobs.forEach(function (j) {
         if (j.pending) r.req.push([o, j]); else if (j.fix) r.fix.push([o, j]);
-        if (j.req && !j.pending && isOpen(j) && !doneStep(j, LB.dgd) && daysTo(j.req) <= 7) r.soon.push([o, j]);
+        if (j.req && !j.pending && isOpen(j) && !cleared(j) && daysTo(j.req) <= 7) r.soon.push([o, j]);
       });
     });
     DOCS.forEach(function (x) {
@@ -1660,9 +1661,10 @@
   STEP_HELP[LB.pack] = ['Packaging done and photos added to the job.', ['Upload photos', 'Photo']];
   STEP_HELP[LB.insp] = ['Inspection finished and the report added.', ['Upload report', 'Report']];
   STEP_HELP[LB.dgd] = ['Declaration signed. The shipment is cleared to ship.', ['Upload DGD', 'DGD']];
+  STEP_HELP[LB.dgdo] = ['Declaration prepared and signed. The shipment is cleared to ship.', ['Upload DGD', 'DGD']];
   STEP_HELP[LB.inv] = ['Invoice made and sent to the client.', ['Create invoice', '__inv']];
   var TYPE_STEP = { Photo: LB.pack, Report: LB.insp, DGD: LB.dgd, Invoice: LB.inv };
-  function stepFiles(j, label) { return S.org.files.filter(function (f) { return f.job === j.id && (f.step ? f.step === label : TYPE_STEP[f.type] === label); }); }
+  function stepFiles(j, label) { var dgdStep = j.steps.indexOf(LB.dgdo) > -1 ? LB.dgdo : LB.dgd; return S.org.files.filter(function (f) { return f.job === j.id && (f.step ? f.step === label : (f.type === 'DGD' ? dgdStep : TYPE_STEP[f.type]) === label); }); }
   function taskCard(j, i, state) {
     var s = j.steps[i], h = STEP_HELP[s] || ['', null], meta = state === 'cur' ? 'In progress' : 'Up next', btns = '', nf = stepFiles(j, s).length;
     if (state === 'done') { var e = j.ev.filter(function (ev) { return ev[1] === s; })[0], by = j.by && j.by[s]; meta = (e || by) ? 'Completed ' + fmtS(by ? by.date : e[0]) + (by ? ' by ' + esc(byName(by.who)) : '') : 'Completed'; }
@@ -1714,7 +1716,7 @@
   /* ----- calendar on Home ----- */
   function calEvents() {
     var ev = {}, add = function (k, e) { (ev[k] = ev[k] || []).push(e); };
-    Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(function (j) { if (j.req && isOpen(j)) add(j.req, { t: 'job', label: jn(j), org: ORGS[k], job: j, late: daysTo(j.req) < 0 && !doneStep(j, LB.dgd) }); }); });
+    Object.keys(ORGS).forEach(function (k) { ORGS[k].jobs.forEach(function (j) { if (j.req && isOpen(j)) add(j.req, { t: 'job', label: jn(j), org: ORGS[k], job: j, late: daysTo(j.req) < 0 && !cleared(j) }); }); });
     DOCS.forEach(function (x) { if (x.type === 'Invoice' && x.status === 'Unpaid') add(dueOf(x), { t: 'inv', label: 'Inv ' + x.docNum.slice(-3), doc: x, late: isOverdue(x) }); });
     return ev;
   }
