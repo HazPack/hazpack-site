@@ -439,7 +439,7 @@
     var first = staff() ? staffName() : S.rep.name.split(' ')[0];
     return '<section class="banner"><div><p class="eyebrow">' + esc(S.org.name) + '</p><h2>' + (staff() ? 'Viewing ' + esc(S.org.name) : 'Welcome back, ' + esc(first)) + '</h2><p>Here is where ' + (showWho() ? 'all jobs' : 'your jobs') + ' stand on ' + fmt(TODAY) + '.</p></div>' +
       (fix.length ? '<button type="button" class="btn" data-act="job" data-id="' + fix[0].id + '">Review the job that needs correction</button>' : !staff() ? ihb('Start a new job request', 'type="button" data-act="request"', 'lg') : '') + '</section>' +
-      '<div class="stats"><div class="card stat cf' + (fix.length || quotesWaiting().length ? ' attn' : '') + '"><span class="k">Needs your attention</span><span class="v">' + (fix.length + quotesWaiting().length) + '</span><span class="s">' + (quotesWaiting().length ? 'corrections and quotes to approve' : 'awaiting a correction') + '</span></div>' +
+      onboardCard() + '<div class="stats"><div class="card stat cf' + (fix.length || quotesWaiting().length ? ' attn' : '') + '"><span class="k">Needs your attention</span><span class="v">' + (fix.length + quotesWaiting().length) + '</span><span class="s">' + (quotesWaiting().length ? 'corrections and quotes to approve' : 'awaiting a correction') + '</span></div>' +
       '<div class="card stat cf"><span class="k">Open jobs</span><span class="v">' + open.length + '</span><span class="s">being worked by HazPack</span></div>' +
       '<div class="card stat cf"><span class="k">Requests under review</span><span class="v">' + req.length + '</span><span class="s">waiting for HazPack to accept</span></div>' +
       '<div class="card stat cf"><span class="k">Files added this week</span><span class="v">' + wk + '</span><span class="s">declarations, reports, invoices</span></div></div>' +
@@ -447,6 +447,27 @@
       '<div class="card"><h2>Jobs</h2>' + (jobs.length ? jobTable(jobs.slice(0, 5)) : emptyS('No jobs yet', 'Start a job request and it appears here.', !staff() ? '' + ihb('New job request', 'type="button" data-act="request"', 'sm') + '' : '')) + '</div>' +
       '<div class="two"><div class="card"><h2>Latest files</h2><ul class="list">' + (recentFiles.length ? recentFiles.map(fileRowCompact).join('') : '<li class="muted">No files yet.</li>') + '</ul></div>' +
       '<div class="card"><h2>Recent activity</h2><ul class="list">' + (feed.length ? feed.map(function (n) { return '<li><div class="t"><b style="font-weight:500">' + esc(clientText(n.text)) + '</b><span class="mono">' + esc(jnId(n.job)) + ' · ' + fmt(n.date) + '</span></div></li>'; }).join('') : '<li class="muted">No activity yet.</li>') + '</ul></div></div>';
+  }
+  /* Onboarding checklist (21st.dev pick 24): first steps for a new client, worked out from their account; gone once all are done */
+  function onbKey() { return 'hp-onb-hide-' + S.org.id + '-' + S.rep.id; }
+  function onboardCard() {
+    if (staff() || !S.rep || lsGet(onbKey()) === '1') return '';
+    var me = S.rep, steps = [
+      ['phone', 'Add your phone number', 'Your phone and address go on the quotes and invoices HazPack makes for you.', !!me.phone, '<button type="button" class="btn sm" data-act="editRep" data-id="' + me.id + '">Edit your details</button>'],
+      ['alerts', 'Turn on email alerts', 'Get an email when something changes on one of your jobs. Switch it on next to your name on the Team page.', !!me.notify, '<button type="button" class="btn sm" data-act="nav" data-v="team">Open Team</button>']
+    ];
+    if (me.admin) steps.push(['team', 'Add a colleague', 'Give each person their own PIN. Admins see every job in the company, members see only their own.', S.org.reps.length > 1, '<button type="button" class="btn sm" data-act="nav" data-v="team">Add a person</button>']);
+    steps.push(['job', 'Send your first job request', 'Tell HazPack what you are shipping and where it is going. You get a quote before any work starts.', S.org.jobs.some(function (j) { return j.rep === me.id; }), ihb('New job request', 'type="button" data-act="request"', 'sm')]);
+    var done = steps.filter(function (x) { return x[3]; }).length, n = steps.length;
+    if (done === n) return '';
+    var open = S.onbOpen && steps.some(function (x) { return x[0] === S.onbOpen && !x[3]; }) ? S.onbOpen : steps.filter(function (x) { return !x[3]; })[0][0];
+    var pct = Math.round(100 * done / n);
+    return '<section class="card onb" aria-label="Get started"><header><span class="onb-ring" style="--p:' + pct + '" aria-hidden="true"></span><div><h2>Get started with the portal</h2><p class="muted">' + done + ' of ' + n + ' done</p></div><button type="button" class="linkbtn" data-act="onbHide">Hide</button></header><ol>' +
+      steps.map(function (x) {
+        var on = x[0] === open && !x[3];
+        return '<li class="' + (x[3] ? 'done' : '') + (on ? ' open' : '') + '"><button type="button" class="onb-h" data-act="onbOpen" data-k="' + x[0] + '" aria-expanded="' + on + '"' + (x[3] ? ' disabled' : '') + '><span class="onb-c" aria-hidden="true">' + (x[3] ? ico('check') : '') + '</span><span class="onb-t">' + x[1] + (x[3] ? '<span class="sr"> (done)</span>' : '') + '</span>' + (x[3] ? '' : ico('chev', 'cv')) + '</button>' +
+          (on ? '<div class="onb-b"><p>' + x[2] + '</p>' + x[4] + '</div>' : '') + '</li>';
+      }).join('') + '</ol></section>';
   }
   function jobCard(j) {
     var e = ends(j), a = e && e.a, b = e && e.b, ok = !!e;
@@ -2273,6 +2294,8 @@
       case 'filter': S.f = ds.f; render(); break;
       case 'bell': S.notif = !S.notif; render(); break;
       case 'ntab': S.ntab = ds.t; render(); break;
+      case 'onbOpen': S.onbOpen = ds.k; render(); break;
+      case 'onbHide': lsSet(onbKey(), '1'); toast('Checklist hidden. Everything on it is still on the Team page and the New job request button.'); render(); break;
       case 'readAll': clientAct({ action: 'readNotifs', all: true }); break;
       case 'openNotif': var nn = o.notifs.filter(function (x) { return x.id === ds.id; })[0]; S.notif = false; clientAct({ action: 'readNotifs', ids: [ds.id] }, function () { if (nn.job) act('job', { id: nn.job }); else { S.view = 'dashboard'; render(); } }); break;
       case 'upload': uploadModal(ds.job || '', ds.type || '', ds.step || ''); break;

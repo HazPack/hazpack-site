@@ -192,3 +192,28 @@ label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px;
 .trbar .segs i { height: 9px; border-radius: 3px; }
 .trnow { font-size: 12.5px; font-weight: 600; color: var(--ink); }
 .trnow.x { color: var(--bad); }
+
+/* Onboarding checklist (21st.dev pick 24): client dashboard, one step open at a time */
+.sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.onb header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.onb header h2 { font-size: 15px; padding: 0; border: 0; }
+.onb header p { margin: 1px 0 0; font-size: 12.5px; }
+.onb header .linkbtn { margin-left: auto; font-size: 12.5px; }
+.onb-ring { flex: none; width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--p) * 1%), var(--rail-hover) 0); -webkit-mask: radial-gradient(circle, transparent 10px, #000 10.5px); mask: radial-gradient(circle, transparent 10px, #000 10.5px); }
+.onb ol { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; }
+.onb li { border-radius: var(--radius-md); }
+.onb li.open { background: var(--bg); }
+.onb-h { width: 100%; display: flex; align-items: center; gap: 12px; border: 0; background: transparent; font: inherit; color: var(--ink); text-align: left; padding: 10px; border-radius: var(--radius-md); cursor: pointer; }
+.onb-h:hover:not([disabled]) { background: var(--rail-hover); }
+.onb li.open .onb-h:hover { background: transparent; }
+.onb-h[disabled] { cursor: default; }
+.onb-t { flex: 1; font-weight: 600; font-size: 14px; }
+.onb li.done .onb-t { color: var(--muted); font-weight: 500; text-decoration: line-through; text-decoration-color: var(--line); }
+.onb-c { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px dashed var(--line); display: grid; place-items: center; }
+.onb li.open .onb-c { border: 2px solid var(--accent); }
+.onb li.done .onb-c { border: 0; background: var(--ok); color: #fff; }
+.onb-c .ic { width: 13px; height: 13px; stroke-width: 3; }
+.onb-h .cv { width: 16px; height: 16px; color: var(--muted); transform: rotate(-90deg); transition: transform .15s; }
+.onb li.open .onb-h .cv { transform: none; }
+.onb-b { padding: 0 12px 14px 42px; display: grid; justify-items: start; gap: 10px; }
+.onb-b p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 60ch; }
