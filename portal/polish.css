@@ -100,3 +100,11 @@ body.sheet-on { overflow: hidden; }
 .dtbl.fx .dtbl-f { gap: 10px; flex-wrap: wrap; }
 .alert.fx-sent { border-color: var(--info); background: var(--info-soft); }
 .alert.fx-sent b { color: var(--info); }
+
+/* ---- 21st.dev trial 13: empty state with a small icon, one line, one button ---- */
+.empty-s { gap: 4px; margin: 12px; width: auto; border: 1.5px dashed var(--line); border-radius: 12px; }
+.empty-s .es-i { display: grid; place-items: center; width: 38px; height: 38px; margin-bottom: 6px; border-radius: 10px; background: var(--accent-soft); color: var(--accent); }
+.empty-s .es-i .ic { width: 19px; height: 19px; }
+.empty-s b { font-size: 14.5px; }
+.empty-s .es-t { font-size: 13px; }
+td > .empty-s, .ftbl-empty .empty-s { margin: 8px 0; }

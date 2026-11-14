@@ -1417,7 +1417,12 @@
   }
   /* ---------- extras: staff home, client invoices, messages, activity log, zip, sorting, drag and drop ----------
      Injected into portal.js by build.py after billing.js. Shares the portal closure. */
-  function emptyS(title, text, btn) { return '<div class="empty-s"><b>' + title + '</b><span>' + text + '</span>' + (btn || '') + '</div>'; }
+  /* Empty state (21st.dev trial): a small icon picked from the title, one line, an optional button. */
+  var EMPTY_IC = [[/match/i, 'search'], [/message/i, 'msg'], [/file/i, 'files'], [/invoice|document|quote/i, 'inv'], [/request/i, 'newreq'], [/correction/i, 'flag'], [/logged|activity|nothing/i, 'check'], [/job|required/i, 'jobs']];
+  function emptyS(title, text, btn, icon) {
+    var k = icon || (EMPTY_IC.filter(function (p) { return p[0].test(title); })[0] || [0, 'box'])[1];
+    return '<div class="empty-s"><span class="es-i">' + ico(k) + '</span><b>' + title + '</b>' + (text ? '<span class="es-t">' + text + '</span>' : '') + (btn || '') + '</div>';
+  }
   function logEv(j, who, text) { if (j && j.log) j.log.push({ date: new Date(), who: who, text: text }); }
   function daysTo(s) { return Math.floor((isoDate(s) - TODAY) / 864e5); }
 

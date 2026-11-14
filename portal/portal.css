@@ -329,7 +329,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--bg); }
 /* empty states, sortable headers, messages, drag and drop */
 .empty-s { display: grid; justify-items: center; gap: 6px; text-align: center; padding: 28px 18px; width: 100%; }
 .empty-s b { color: var(--navy-text); font-size: 15px; }
-.empty-s span { color: var(--muted); font-size: 13.5px; max-width: 44ch; }
+.empty-s .es-t { color: var(--muted); font-size: 13.5px; max-width: 44ch; }
 .empty-s .btn { margin-top: 6px; }
 .thb { background: none; border: 0; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; padding: 0; white-space: nowrap; }
 .thb:hover { text-decoration: underline; }
@@ -342,7 +342,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--bg); }
 .msg p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .msgform { display: grid; gap: 10px; padding: 12px 16px 16px; }
 label.f.drag input[type=file] { border-color: var(--accent); background: var(--accent-soft); }
-.list li > .empty-s { padding: 22px 12px; }
+.list li > .empty-s { flex: 1 1 auto; margin: 4px 0; padding: 22px 12px; }
 
 /* staff jobs table, job workspace and task board */
 .statline { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
