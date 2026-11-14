@@ -155,7 +155,7 @@ try {
   check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 6);
   const reqMail = mails.find((m) => m.to[0] === 'alerts@hazpack-qa.com' && /submitted a job request/.test(m.subject));
   check('a job request emails HazPack, naming the job by its reference', reqMail && /PO-1/.test(reqMail.subject) && !/HP-\d{4}/.test(reqMail.subject) && reqMail.auth === 'Bearer test-key' && reqMail.html.includes('https://portal.hazpack-qa.com/portal'), JSON.stringify(reqMail?.subject));
-  check('HazPack alerts use the branded layout without the client signature', reqMail && reqMail.html.includes('/assets/logo.png') && !reqMail.html.includes('Alexander Walsh'));
+  check('HazPack alerts use the branded layout without the client signature', reqMail && reqMail.html.includes('hazpackcompliance.com/logo.png') && !reqMail.html.includes('Alexander Walsh'));
   check('sample (.example) addresses are never emailed', mails.every((m) => ![...m.to, ...(m.cc || [])].some((a) => /\.example$/.test(a))));
   check('request without a service refused', (await act(D.c, { action: 'requestJob', svc: ['bogus'] })).status === 400);
   const up = (type, bytes, name = 'doc', extra = {}) => act(D.c, { action: 'uploadFile', jobId: rq.data.jobId, type, name, data: b64(bytes), ...extra });

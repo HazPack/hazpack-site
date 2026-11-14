@@ -98,7 +98,7 @@ export function greeting(now = new Date()) {
 // ending with a signature laid out like the team's email signature (logo, orange bar, navy name, orange title, grey labels).
 // Tables and inline styles only, so they hold up in Outlook and Gmail. The logo is served from the live site.
 const SITE = 'https://www.hazpackcompliance.com';
-const LOGO = `${SITE}/assets/logo.png`;
+const LOGO = `${SITE}/logo.png`; // served by the live site today and kept at the repo root for after the merge
 const NAVY = '#1B2A4A', ORANGE = '#E8792B', INK = '#1f2937', GREY = '#6b7280', LIGHT = '#9ca3af';
 const SIG = {
   name: 'Alexander Walsh',
