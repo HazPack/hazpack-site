@@ -155,7 +155,7 @@ try {
   check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 6);
   const reqMail = mails.find((m) => m.to[0] === 'alerts@hazpack-qa.com' && /submitted a job request/.test(m.subject));
   check('a job request emails HazPack, naming the job by its reference', reqMail && /PO-1/.test(reqMail.subject) && !/HP-\d{4}/.test(reqMail.subject) && reqMail.auth === 'Bearer test-key' && reqMail.html.includes('https://portal.hazpack-qa.com/portal'), JSON.stringify(reqMail?.subject));
-  check('HazPack alerts use the branded layout without the client signature', reqMail && reqMail.html.includes('/assets/logo.png') && !reqMail.html.includes('Dangerous Goods Specialists'));
+  check('HazPack alerts use the branded layout without the client signature', reqMail && reqMail.html.includes('/assets/logo.png') && !reqMail.html.includes('Alexander Walsh'));
   check('sample (.example) addresses are never emailed', mails.every((m) => ![...m.to, ...(m.cc || [])].some((a) => /\.example$/.test(a))));
   check('request without a service refused', (await act(D.c, { action: 'requestJob', svc: ['bogus'] })).status === 400);
   const up = (type, bytes, name = 'doc', extra = {}) => act(D.c, { action: 'uploadFile', jobId: rq.data.jobId, type, name, data: b64(bytes), ...extra });
@@ -238,7 +238,7 @@ try {
   const before = mails.length;
   check('staff can add a client alert', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200);
   const inv = mails.slice(before);
-  check('client emails carry the HazPack signature with phone, email and website', inv[0] && /Dangerous Goods Specialists/.test(inv[0].html) && inv[0].html.includes('+1 310-425-3712') && inv[0].html.includes('www.hazpackcompliance.com') && /Web: www\.hazpackcompliance\.com/.test(inv[0].text));
+  check('client emails carry the signature with name, phones, email and website', inv[0] && inv[0].html.includes('Alexander Walsh') && /Dangerous Goods Specialist/.test(inv[0].html) && inv[0].html.includes('+1 310-425-3712') && inv[0].html.includes('+1 310-387-1473') && inv[0].html.includes('www.hazpackcompliance.com') && /Web: www\.hazpackcompliance\.com/.test(inv[0].text));
   check('an invoice alert emails the person with alerts on and copies accounts', inv.length === 1 && inv[0].to[0] === 'sam@testco-mail.com' && inv[0].cc?.[0] === 'ap@testco-mail.com' && /T-1/.test(inv[0].subject) && inv[0].reply_to === 'alerts@hazpack-qa.com', JSON.stringify(inv.map((m) => [m.to, m.cc, m.subject])));
   org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
   check('saving again does not email the same alert twice', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200 && mails.length === before + 1);

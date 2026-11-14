@@ -55,17 +55,17 @@ export function newMail(db, before) {
   return out.filter((m) => m.to.every(realAddress));
 }
 
-// Branded layout, matching HazPack's email signature: logo on top, the update in a highlighted box, an orange button,
-// then a signature block (orange bar, navy name, orange title, grey labels). Tables and inline styles only, so it holds up
+// Branded layout: logo on top, the update in a highlighted box, an orange button, then (for clients) a signature block
+// laid out like the team's email signature (logo, orange bar, navy name, orange title, grey labels). Tables and inline styles only, so it holds up
 // in Outlook and Gmail. The logo is served from the live site, so it shows once the site has it (it does from launch).
 const SITE = 'https://www.hazpackcompliance.com';
 const LOGO = `${SITE}/assets/logo.png`;
 const NAVY = '#1B2A4A', ORANGE = '#E8792B', INK = '#1f2937', GREY = '#6b7280', LIGHT = '#9ca3af';
 const SIG = {
-  name: 'HazPack Compliance Solutions',
-  title: 'Dangerous Goods Specialists  |  IATA DGR Certified',
-  rows: [['Tel', '+1 310-425-3712', 'tel:+13104253712'], ['Email', 'lax-dgr@hazpackcompliance.com', 'mailto:lax-dgr@hazpackcompliance.com'], ['Web', 'www.hazpackcompliance.com', SITE]],
-  services: 'Dangerous Goods Packaging  ·  Regulatory Compliance  ·  Certification & Documentation',
+  name: 'Alexander Walsh',
+  title: ['Dangerous Goods Specialist', 'IATA DGR Certified'],
+  rows: [['Tel', '+1 310-425-3712', 'tel:+13104253712'], ['Mob', '+1 310-387-1473', 'tel:+13103871473'], ['Email', 'lax-dgr@hazpackcompliance.com', 'mailto:lax-dgr@hazpackcompliance.com'], ['Web', 'www.hazpackcompliance.com', SITE]],
+  services: ['Dangerous Goods Packaging', 'Regulatory Compliance', 'Certification & Documentation'],
 };
 const FONT = 'font-family:Arial,Helvetica,sans-serif;';
 
@@ -76,34 +76,39 @@ export function render(m) {
   const foot = m.staff
     ? 'This is an automatic alert from the HazPack client portal.'
     : 'You get these emails because email alerts are on for you in the HazPack client portal. Your company admin can turn them off on the Team page.';
-  const sigText = m.staff ? [] : ['--', SIG.name, SIG.title.replace(/\s+\|\s+/, ' | '), ...SIG.rows.map(([k, v]) => `${k}: ${v}`)];
+  const sigText = m.staff ? [] : ['--', SIG.name, SIG.title.join(' | '), 'HazPack Compliance Solutions', ...SIG.rows.map(([k, v]) => `${k}: ${v}`)];
   const text = [hello, lead, '', m.text, '', `Sign in to see it: ${url}`, '', ...sigText, ...(sigText.length ? [''] : []), foot].filter((l, i) => l || i > 0).join('\n');
 
   const p = (t, extra = '') => `<p style="margin:0 0 14px;${FONT}font-size:15px;line-height:1.55;color:${INK};${extra}">${t}</p>`;
+  // Laid out like the HazPack email signature: logo, orange bar, name and details. The two halves are inline blocks, so on
+  // a narrow screen the details drop below the logo instead of being squeezed.
   const sig = m.staff ? '' :
-    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:28px"><tr>` +
-    `<td width="3" style="width:3px;background:${ORANGE};font-size:0;line-height:0">&nbsp;</td>` +
-    `<td style="padding:2px 0 2px 18px">` +
-      `<div style="${FONT}font-size:17px;font-weight:bold;color:${NAVY};line-height:1.3">${esc(SIG.name)}</div>` +
-      `<div style="${FONT}font-size:13px;font-weight:bold;color:${ORANGE};line-height:1.4;margin:3px 0 12px">${esc(SIG.title).replace(/  /g, '&nbsp; ')}</div>` +
+    `<div style="margin-top:32px;padding-top:26px;border-top:1px solid #e5e7eb;font-size:0">` +
+    `<div style="display:inline-block;vertical-align:middle;width:150px;padding:6px 0 14px 0">` +
+      `<a href="${SITE}"><img src="${LOGO}" width="136" height="43" alt="HazPack Compliance" style="display:block;border:0;width:136px;height:auto"></a></div>` +
+    `<div style="display:inline-block;vertical-align:middle;max-width:360px;border-left:3px solid ${ORANGE};padding:4px 0 4px 20px">` +
+      `<div style="${FONT}font-size:18px;font-weight:bold;color:${NAVY};line-height:1.3">${esc(SIG.name)}</div>` +
+      `<div style="${FONT}font-size:14px;font-weight:bold;color:${ORANGE};line-height:1.45;margin:4px 0 16px">${esc(SIG.title[0])}<span class="hp-sep">&nbsp; |&nbsp; </span><span class="hp-t2" style="white-space:nowrap">${esc(SIG.title[1])}</span></div>` +
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0">` +
-      SIG.rows.map(([k, v, href]) => `<tr><td style="${FONT}font-size:13px;color:${GREY};padding:2px 18px 2px 0;vertical-align:top">${k}</td><td style="${FONT}font-size:13px;padding:2px 0"><a href="${esc(href)}" style="color:${NAVY};text-decoration:none">${esc(v)}</a></td></tr>`).join('') +
+      SIG.rows.map(([k, v, href], i) => `<tr><td style="${FONT}font-size:14px;color:${GREY};padding:${i === 2 ? 10 : 3}px 16px 3px 0;vertical-align:top;width:44px">${k}</td><td style="${FONT}font-size:14px;padding:${i === 2 ? 10 : 3}px 0 3px;white-space:nowrap"><a href="${esc(href)}" style="color:${NAVY};text-decoration:none">${esc(v)}</a></td></tr>`).join('') +
       `</table>` +
-      `<div style="${FONT}font-size:12px;color:${LIGHT};line-height:1.5;margin-top:12px">${esc(SIG.services).replace(/  /g, '&nbsp; ')}</div>` +
-    `</td></tr></table>`;
+      `<div style="${FONT}font-size:12.5px;color:${LIGHT};line-height:1.7;margin-top:16px">${SIG.services.map(esc).join(' &nbsp;&middot;&nbsp; ')}</div>` +
+    `</div></div>`;
 
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
-    `<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light"><title>${esc(m.subject || 'HazPack client portal')}</title></head>` +
+    `<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">` +
+    `<style>@media only screen and (max-width:480px){.hp-pad{padding-left:20px!important;padding-right:20px!important}.hp-sep{display:none!important}.hp-t2{display:block!important}}</style>` +
+    `<title>${esc(m.subject || 'HazPack client portal')}</title></head>` +
     `<body style="margin:0;padding:0;background:#f1f3f6">` +
     `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${esc(m.text)}</div>` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f1f3f6"><tr><td align="center" style="padding:24px 12px">` +
     `<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border-radius:8px;border-top:4px solid ${ORANGE}">` +
-      `<tr><td style="padding:24px 32px 18px;border-bottom:1px solid #e5e7eb">` +
+      `<tr><td class="hp-pad" style="padding:24px 32px 18px;border-bottom:1px solid #e5e7eb">` +
         `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>` +
         `<td><a href="${SITE}"><img src="${LOGO}" width="150" height="47" alt="HazPack Compliance" style="display:block;border:0;width:150px;height:auto"></a></td>` +
         `<td align="right" style="${FONT}font-size:12px;color:${GREY};letter-spacing:.5px;text-transform:uppercase">Client portal</td>` +
         `</tr></table></td></tr>` +
-      `<tr><td style="padding:28px 32px 32px">` +
+      `<tr><td class="hp-pad" style="padding:28px 32px 32px">` +
         (hello ? p(esc(hello), `color:${NAVY};font-weight:bold`) : '') + p(esc(lead), `color:${GREY}`) +
         `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px"><tr>` +
         `<td style="background:#f6f7f9;border-left:4px solid ${ORANGE};border-radius:4px;padding:14px 18px;${FONT}font-size:15px;line-height:1.5;color:${NAVY};font-weight:bold">${esc(m.text)}</td></tr></table>` +

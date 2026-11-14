@@ -82,7 +82,7 @@ Before the first email: in Resend, **Domains, Add domain**, enter `hazpackcompli
 where the domain's DNS is managed. Resend only sends from a verified domain.
 
 Look: the HazPack logo on top, the update in a highlighted box, an orange "Open the client portal" button, and (for clients)
-a signature block matching HazPack's email signature: phone, email and website. To change the signature wording, edit `SIG`
+a signature block laid out like the team email signature (logo, Alexander Walsh, phone, mobile, email, website). To change the signature wording, edit `SIG`
 in `api/_lib/mail.js`. The logo is loaded from `https://www.hazpackcompliance.com/assets/logo.png`, so it appears once the
 site is live with this branch merged.
 
