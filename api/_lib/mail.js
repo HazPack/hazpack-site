@@ -98,6 +98,8 @@ export function greeting(now = new Date()) {
 // ending with a signature laid out like the team's email signature (logo, orange bar, navy name, orange title, grey labels).
 // Tables and inline styles only, so they hold up in Outlook and Gmail. The logo is served from the live site.
 const SITE = 'https://www.hazpackcompliance.com';
+// Signature logo: the logo on a solid white background (email-logo.png), so it reads the same in dark mode, where mail apps darken the page but never change images.
+const SIG_LOGO = `${SITE}/email-logo.png`;
 const LOGO = `${SITE}/logo.png`; // served by the live site today and kept at the repo root for after the merge
 const NAVY = '#1B2A4A', ORANGE = '#E8792B', INK = '#1f2937', GREY = '#6b7280', LIGHT = '#9ca3af';
 const SIG = {
@@ -124,7 +126,7 @@ function renderClient(m, now) {
   const sig =
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px"><tr>` +
     `<td class="hp-logo" width="160" valign="middle" style="width:160px;padding:0 22px 0 0;vertical-align:middle">` +
-      `<a href="${SITE}"><img class="hp-logo-img" src="${LOGO}" width="160" height="51" alt="HazPack Compliance" style="display:block;border:0;width:160px;height:auto"></a></td>` +
+      `<a href="${SITE}"><img class="hp-logo-img" src="${SIG_LOGO}" width="160" height="61" alt="HazPack Compliance" style="display:block;border:0;width:160px;height:auto"></a></td>` +
     `<td class="hp-det" valign="middle" style="border-left:3px solid ${ORANGE};padding:4px 0 4px 20px;vertical-align:middle">` +
       `<div class="hp-name" style="${FONT}font-size:18px;font-weight:bold;color:${NAVY};line-height:1.3">${esc(SIG.name)}</div>` +
       `<div class="hp-title" style="${FONT}font-size:14px;font-weight:bold;color:${ORANGE};line-height:1.45;margin:4px 0 16px">${esc(SIG.title[0])}<span class="hp-sep">&nbsp; |&nbsp; </span><span class="hp-t2" style="white-space:nowrap">${esc(SIG.title[1])}</span></div>` +

@@ -87,7 +87,8 @@ Look:
   email, website). The wording comes from HazPack's own templates (the `EMAIL TEMPLATES` folder, outside this repository) and lives in
   `CLIENT` in `api/_lib/mail.js`; edit `SIG` there to change the signature.
 - **HazPack alerts** keep the branded layout: logo on top, the update in a highlighted box and an orange "Open the client portal" button.
-- The logo is loaded from `https://www.hazpackcompliance.com/logo.png`. The live site already serves it (`logo.png` at the repo root, a copy of `assets/logo.png`).
+- The signature logo is `email-logo.png` (the logo on a white background, so it stays readable in dark mode); it loads from
+  `https://www.hazpackcompliance.com/email-logo.png` once this branch is merged. The HazPack alert header logo is loaded from `https://www.hazpackcompliance.com/logo.png`. The live site already serves it (`logo.png` at the repo root, a copy of `assets/logo.png`).
 
 Which client actions send an email (everything else stays inside the portal, as a notification only):
 
