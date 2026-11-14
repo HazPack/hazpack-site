@@ -1648,7 +1648,7 @@
     var a = ' data-org="' + o.id + '" data-id="' + j.id + '"';
     if (j.pending) return '<button type="button" class="btn sm" data-act="qAccept"' + a + '>Accept</button>';
     if (!isOpen(j)) return '';
-    return '<button type="button" class="btn ghost sm" data-act="qStep"' + a + ' title="Complete: ' + esc(j.steps[j.done]) + '">Complete step</button><button type="button" class="btn ghost sm" data-act="qFlag"' + a + '>Flag</button>';
+    return '<button type="button" class="btn ghost sm qi" data-act="qStep"' + a + ' title="Complete: ' + esc(j.steps[j.done]) + '" aria-label="Complete step: ' + esc(j.steps[j.done]) + '">' + ico('check') + '</button><button type="button" class="btn ghost sm qi" data-act="qFlag"' + a + ' title="Flag for correction" aria-label="Flag for correction">' + ico('flag') + '</button>';
   }
   function staffJobs() {
     if (S.mobileDetail && S.job && getJob(S.job) && !sheetMode()) return detail(getJob(S.job));

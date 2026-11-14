@@ -81,7 +81,7 @@
 .ftbl-card th + th, .ftbl-card td + td { border-left: 1px solid var(--line); }
 .ftbl-card tbody tr:last-child td { border-bottom: 0; }
 .ftbl-card tr.click { cursor: pointer; } .ftbl-card tr.click:hover td { background: var(--rail-hover); }
-.ftbl-card td.ell { max-width: 240px; }
+.ftbl-card td.ell { max-width: 210px; }
 .ftbl-card .mono b, .ftbl-card b.mono { color: var(--navy-text); }
 .ftbl-empty { padding: 10px; }
 .content .back-m { display: inline-block; justify-self: start; }
@@ -261,9 +261,10 @@ body.has-dock .content { padding-bottom: 28px; }
 .ftbl-card td b.mono { white-space: nowrap; }
 
 /* ---------- staff side ---------- */
-.ftbl-card .sub2 { font-size: 12.5px; color: var(--muted); max-width: 240px; }
+.ftbl-card .sub2 { font-size: 12.5px; color: var(--muted); max-width: 210px; }
 .ftbl-card td.qa-c { white-space: nowrap; text-align: right; }
-.ftbl-card .qa { display: inline-flex; gap: 6px; }
+.ftbl-card .qa { display: inline-flex; gap: 6px; margin-right: 0; }
+.qa .qi { width: 32px; padding-left: 0; padding-right: 0; justify-content: center; } .qa .qi .ic { width: 16px; height: 16px; }
 .board.trboard { padding: 4px 20px 20px; }
 .board.trboard .trhead { border-top: 0; }
 .tr-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 14px 12px 46px; }
