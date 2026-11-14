@@ -51,7 +51,7 @@
   var ORGS = {};
 
   /* ---------- state ---------- */
-  var S = { stage: 'org', org: null, home: null, homeRep: null, pendingRep: null, pin: '', pinErr: '', orgErr: '', rep: null, role: 'client', view: 'dashboard', job: null, jobTab: 'overview', q: '', f: 'all', fp: 'all', ff: 'all', openF: {}, notif: false, attempts: {}, mobileDetail: false };
+  var S = { stage: 'org', org: null, home: null, homeRep: null, pendingRep: null, pin: '', pinErr: '', orgErr: '', rep: null, role: 'client', view: 'dashboard', job: null, jobTab: 'overview', q: '', f: 'all', fp: 'all', ff: 'all', openF: {}, notif: false, ntab: 'all', attempts: {}, mobileDetail: false };
   var app = document.getElementById('app'), layer = document.getElementById('layer'), idleT = null;
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -395,9 +395,18 @@
   function notifPanel() {
     var ids = vis().map(function (j) { return j.id; });
     var list = S.org.notifs.filter(function (n) { return n.to === 'client' && nvis(n, ids); }).sort(function (a, b) { return b.date - a.date; });
-    return '<div class="npanel" role="dialog" aria-label="Notifications"><header><b>Notifications</b><button type="button" class="linkbtn" data-act="readAll">Mark all read</button></header><ul>' +
-      (list.length ? list.map(function (n) { return '<li class="' + (n.read[S.rep.id] ? '' : 'unread') + '"><button type="button" data-act="openNotif" data-id="' + n.id + '"><span>' + esc(clientText(n.text)) + '</span><small class="mono">' + esc(jnId(n.job)) + ' · ' + fmt(n.date) + '</small></button></li>'; }).join('') : '<li style="padding:16px" class="muted">Nothing new.</li>') + '</ul></div>';
+    var un = list.filter(function (n) { return !n.read[S.rep.id]; }).length, total = list.length;
+    if (S.ntab === 'unread') list = list.filter(function (n) { return !n.read[S.rep.id]; });
+    return '<div class="npanel" role="dialog" aria-label="Notifications"><header><b>Notifications</b><button type="button" class="linkbtn" data-act="readAll"' + (un ? '' : ' disabled') + '>Mark all read</button></header>' + nTabs(total, un) + '<ul>' +
+      (list.length ? list.map(function (n) { return '<li class="' + (n.read[S.rep.id] ? '' : 'unread') + '"><button type="button" data-act="openNotif" data-id="' + n.id + '"><span>' + esc(clientText(n.text)) + '</span><small class="mono">' + esc(jnId(n.job)) + ' · ' + fmt(n.date) + '</small></button></li>'; }).join('') : nEmpty('Nothing new.')) + '</ul></div>';
   }
+  /* Notification center tabs (21st.dev pick 20): All and Unread with counts, a dot on each unread row */
+  function nTabs(all, un) {
+    if (S.ntab !== 'unread') S.ntab = 'all';
+    var t = function (k, label, n) { return '<button type="button" role="tab" data-act="ntab" data-t="' + k + '" aria-selected="' + (S.ntab === k) + '">' + label + '<span class="nc">' + n + '</span></button>'; };
+    return '<div class="ntabs" role="tablist" aria-label="Show">' + t('all', 'All', all) + t('unread', 'Unread', un) + '</div>';
+  }
+  function nEmpty(none) { return '<li class="nempty">' + (S.ntab === 'unread' ? '<b>All caught up</b><span>Nothing unread.</span>' : '<span>' + none + '</span>') + '</li>'; }
 
   /* ---------- views ---------- */
   function showWho() { return staff() || S.rep.admin; }
@@ -2247,6 +2256,7 @@
       case 'jobTab': S.jobTab = ds.t; render(); break;
       case 'filter': S.f = ds.f; render(); break;
       case 'bell': S.notif = !S.notif; render(); break;
+      case 'ntab': S.ntab = ds.t; render(); break;
       case 'readAll': clientAct({ action: 'readNotifs', all: true }); break;
       case 'openNotif': var nn = o.notifs.filter(function (x) { return x.id === ds.id; })[0]; S.notif = false; clientAct({ action: 'readNotifs', ids: [ds.id] }, function () { if (nn.job) act('job', { id: nn.job }); else { S.view = 'dashboard'; render(); } }); break;
       case 'upload': uploadModal(ds.job || '', ds.type || '', ds.step || ''); break;
@@ -3006,9 +3016,10 @@
   function staffNews(seen) { if (!staff()) return; var fresh = staffNotifs().filter(function (x) { return !seen[x[1].id]; }); fresh.slice(0, 3).reverse().forEach(function (x) { toast(x[0].name + ': ' + clientText(x[1].text)); }); }
   function staffBell() { var n = staffUnread().length; return '<button type="button" class="bell" data-act="bell" aria-label="Client activity, ' + n + ' unread"><svg viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6.5 2 6.5H4S6 14 6 9z"/><path d="M10 19a2 2 0 0 0 4 0"/></svg>' + (n ? '<span class="badge">' + n + '</span>' : '') + '</button>'; }
   function staffNotifPanel() {
-    var list = staffNotifs().slice(0, 40);
-    return '<div class="npanel" role="dialog" aria-label="Client activity"><header><b>Client activity</b><button type="button" class="linkbtn" data-act="sReadAll">Mark all read</button></header><ul>' +
-      (list.length ? list.map(function (x) { var o = x[0], n = x[1]; return '<li class="' + (n.read.staff ? '' : 'unread') + '"><button type="button" data-act="sOpenNotif" data-org="' + o.id + '" data-id="' + n.id + '"><span>' + esc(clientText(n.text)) + '</span><small class="mono">' + esc(o.name) + ' · ' + fmt(n.date) + '</small></button></li>'; }).join('') : '<li style="padding:16px" class="muted">Nothing yet.</li>') + '</ul></div>';
+    var list = staffNotifs().slice(0, 40), un = list.filter(function (x) { return !x[1].read.staff; }).length, total = list.length;
+    if (S.ntab === 'unread') list = list.filter(function (x) { return !x[1].read.staff; });
+    return '<div class="npanel" role="dialog" aria-label="Client activity"><header><b>Client activity</b><button type="button" class="linkbtn" data-act="sReadAll"' + (un ? '' : ' disabled') + '>Mark all read</button></header>' + nTabs(total, un) + '<ul>' +
+      (list.length ? list.map(function (x) { var o = x[0], n = x[1]; return '<li class="' + (n.read.staff ? '' : 'unread') + '"><button type="button" data-act="sOpenNotif" data-org="' + o.id + '" data-id="' + n.id + '"><span>' + esc(clientText(n.text)) + '</span><small class="mono">' + esc(o.name) + ' · ' + fmt(n.date) + '</small></button></li>'; }).join('') : nEmpty('Nothing yet.')) + '</ul></div>';
   }
   function fixAct(a, ds) {
     switch (a) {
