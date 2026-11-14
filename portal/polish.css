@@ -144,3 +144,15 @@ label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px;
 /* ---- 21st.dev trial 5: Number Flow look for the rolling numbers above: digits fade at the top and bottom edge and settle with a small overshoot ---- */
 .nr-d { -webkit-mask-image: linear-gradient(transparent, #000 .16em, #000 calc(100% - .16em), transparent); mask-image: linear-gradient(transparent, #000 .16em, #000 calc(100% - .16em), transparent); }
 .nr-d.go > span { transition-duration: .8s; transition-timing-function: cubic-bezier(.34, 1.36, .64, 1); }
+
+/* Corner frame (21st.dev pick 17): crop-mark brackets on the dashboard stat cards, drawn with background layers */
+.stat.cf { --cf-c: var(--accent); --cf-s: 12px; --cf-w: 2px; border-radius: 4px;
+  background-image: linear-gradient(var(--cf-c), var(--cf-c)), linear-gradient(var(--cf-c), var(--cf-c)), linear-gradient(var(--cf-c), var(--cf-c)), linear-gradient(var(--cf-c), var(--cf-c)), linear-gradient(var(--cf-c), var(--cf-c)), linear-gradient(var(--cf-c), var(--cf-c)), linear-gradient(var(--cf-c), var(--cf-c)), linear-gradient(var(--cf-c), var(--cf-c));
+  background-repeat: no-repeat; background-origin: border-box;
+  background-position: 0 0, 0 0, 100% 0, 100% 0, 0 100%, 0 100%, 100% 100%, 100% 100%;
+  background-size: var(--cf-s) var(--cf-w), var(--cf-w) var(--cf-s), var(--cf-s) var(--cf-w), var(--cf-w) var(--cf-s), var(--cf-s) var(--cf-w), var(--cf-w) var(--cf-s), var(--cf-s) var(--cf-w), var(--cf-w) var(--cf-s);
+  transition: background-size .25s ease; }
+.stat.cf.attn { --cf-c: var(--bad); }
+.stat.cf:hover { --cf-s: 18px; }
+.stat.cf .k { font-family: var(--font-narrow); text-transform: uppercase; letter-spacing: .1em; font-weight: 700; font-size: 11.5px; }
+@media (prefers-reduced-motion: reduce) { .stat.cf { transition: none; } }
