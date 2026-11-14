@@ -103,7 +103,7 @@ const NAVY = '#1B2A4A', ORANGE = '#E8792B', INK = '#1f2937', GREY = '#6b7280', L
 const SIG = {
   name: 'Alexander Walsh',
   title: ['Dangerous Goods Specialist', 'IATA DGR Certified'],
-  rows: [['Tel', '+1 310-425-3712', 'tel:+13104253712'], ['Mob', '+1 310-387-1473', 'tel:+13103871473'], ['Email', 'lax-dgr@hazpackcompliance.com', 'mailto:lax-dgr@hazpackcompliance.com']],
+  rows: [['Tel', '+1 310-425-3712', 'tel:+13104253712'], ['Mob', '+1 310-387-1473', 'tel:+13103871473'], ['Email', 'lax-dgr@hazpackcompliance.com', 'mailto:lax-dgr@hazpackcompliance.com'], ['Web', 'www.hazpackcompliance.com', SITE]],
   services: ['Dangerous Goods Packaging', 'Regulatory Compliance', 'Certification & Documentation'],
 };
 const FONT = 'font-family:Arial,Helvetica,sans-serif;';
@@ -120,7 +120,7 @@ function renderClient(m, now) {
   const text = [hello, '', line, '', `Open the client portal: ${url}`, '', 'Thank you,', '', '--', SIG.name, SIG.title.join(' | '), 'HazPack Compliance Solutions', ...SIG.rows.map(([k, v]) => `${k}: ${v}`), SIG.services.join(' · ')].join('\n');
 
   const p = (t) => `<p style="margin:0 0 18px;${MAIL_FONT}font-size:15px;line-height:1.5;color:#111111">${t}</p>`;
-  const brk = (v) => esc(v).replace('@', '@<wbr>');
+  const brk = (v) => esc(v).replace('@', '@<wbr>').replace(/^www\./, 'www.<wbr>');
   const sig =
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px"><tr>` +
     `<td class="hp-logo" width="160" valign="middle" style="width:160px;padding:0 22px 0 0;vertical-align:middle">` +

@@ -238,7 +238,7 @@ try {
   const before = mails.length;
   check('staff can add a client alert', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200);
   const inv = mails.slice(before);
-  check('client emails carry the signature with name, phones and email', inv[0] && inv[0].html.includes('Alexander Walsh') && /Dangerous Goods Specialist/.test(inv[0].html) && inv[0].html.includes('+1 310-425-3712') && inv[0].html.includes('+1 310-387-1473') && /Email: lax-dgr@hazpackcompliance\.com/.test(inv[0].text) && !/Web:/.test(inv[0].text));
+  check('client emails carry the signature with name, phones, email and website', inv[0] && inv[0].html.includes('Alexander Walsh') && /Dangerous Goods Specialist/.test(inv[0].html) && inv[0].html.includes('+1 310-425-3712') && inv[0].html.includes('+1 310-387-1473') && /Email: lax-dgr@hazpackcompliance\.com/.test(inv[0].text) && /Web: www\.hazpackcompliance\.com/.test(inv[0].text));
   check('the invoice email uses HazPack\'s wording', inv[0] && /^Good (morning|afternoon), Sam,\n\nHere is the invoice for T-1\. Please let us know if you have any questions!\n\nOpen the client portal: https:\/\/portal\.hazpack-qa\.com\/portal\n\nThank you,/.test(inv[0].text) && inv[0].subject === 'Invoice for T-1', JSON.stringify(inv[0]?.text?.slice(0, 160)));
   check('an invoice alert emails the person with alerts on and copies accounts', inv.length === 1 && inv[0].to[0] === 'sam@testco-mail.com' && inv[0].cc?.[0] === 'ap@testco-mail.com' && /T-1/.test(inv[0].subject) && inv[0].reply_to === 'alerts@hazpack-qa.com', JSON.stringify(inv.map((m) => [m.to, m.cc, m.subject])));
   org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');

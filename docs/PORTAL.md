@@ -84,7 +84,7 @@ where the domain's DNS is managed. Resend only sends from a verified domain.
 Look:
 - **Client emails** read like a personal email: "Good morning" or "Good afternoon" (Los Angeles time) and the person's first
   name, one line, an "Open the client portal" link, "Thank you," and a signature laid out like the team email signature (logo, Alexander Walsh, phone, mobile,
-  email). The wording comes from HazPack's own templates (the `EMAIL TEMPLATES` folder, outside this repository) and lives in
+  email, website). The wording comes from HazPack's own templates (the `EMAIL TEMPLATES` folder, outside this repository) and lives in
   `CLIENT` in `api/_lib/mail.js`; edit `SIG` there to change the signature.
 - **HazPack alerts** keep the branded layout: logo on top, the update in a highlighted box and an orange "Open the client portal" button.
 - The logo is loaded from `https://www.hazpackcompliance.com/assets/logo.png`, so it appears once the site is live with this branch merged.
