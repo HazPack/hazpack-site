@@ -1444,6 +1444,13 @@
     return '<div class="empty-s"><span class="es-i">' + ico(k) + '</span><b>' + title + '</b>' + (text ? '<span class="es-t">' + text + '</span>' : '') + (btn || '') + '</div>';
   }
   function logEv(j, who, text) { if (j && j.log) j.log.push({ date: new Date(), who: who, text: text }); }
+  /* Log rows (21st.dev trial): monospace time, a short bold code, the message, and a heavy bar on items that need attention. */
+  var LOG_CODE = [[/resolved/i, 'DONE'], [/declin/i, 'DECL', 1], [/flag|correction|overdue/i, 'FLAG', 1], [/upload|file/i, 'FILE'], [/request|accept|opened/i, 'OPEN'], [/completed|undid|step/i, 'STEP'], [/message/i, 'MSG'], [/route/i, 'ROUTE'], [/quote|invoice|paid|marked/i, 'BILL'], [/assign|owner|priority/i, 'EDIT']];
+  function logTime(d) { return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }) + (d.getHours() || d.getMinutes() ? ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''); }
+  function logRow(text, who, date) {
+    var c = LOG_CODE.filter(function (p) { return p[0].test(text); })[0] || [0, 'NOTE'];
+    return '<li class="lg' + (c[2] ? ' attn' : '') + '"><time class="lg-t" datetime="' + date.toISOString() + '" title="' + fmt(date) + '">' + logTime(date) + '</time><b class="lg-c">' + c[1] + '</b><span class="lg-m">' + esc(text) + ' <i>' + esc(who) + '</i></span></li>';
+  }
   function daysTo(s) { return Math.floor((isoDate(s) - TODAY) / 864e5); }
 
   /* ----- job tabs: messages, activity (staff), files with zip ----- */
@@ -1461,7 +1468,7 @@
   function logBody(j) {
     var items = j.log.map(function (l, i) { return [l, i]; }).sort(function (a, b) { return (b[0].date - a[0].date) || (b[1] - a[1]); });
     return '<p class="muted" style="margin:0;padding:12px 16px 0;font-size:13px">Staff only. Clients do not see this history.</p><ul class="list">' +
-      (items.length ? items.map(function (p) { return '<li><div class="t"><b style="font-weight:500">' + esc(clientText(p[0].text)) + '</b><span>' + esc(p[0].who) + ' · ' + fmt(p[0].date) + '</span></div></li>'; }).join('') : '<li>' + emptyS('Nothing logged yet', 'Actions on this job appear here as they happen.', '') + '</li>') + '</ul>';
+      (items.length ? items.map(function (p) { return logRow(clientText(p[0].text), p[0].who, p[0].date); }).join('') : '<li>' + emptyS('Nothing logged yet', 'Actions on this job appear here as they happen.', '') + '</li>') + '</ul>';
   }
   function filesBody(j, files) {
     return (files.length ? '<div style="padding:12px 16px 0"><button type="button" class="btn ghost sm" data-act="zipJob" data-id="' + j.id + '">Download all files (zip)</button></div>' : '') +
@@ -1565,7 +1572,7 @@
     var qLi = n.qs.map(function (x) { return docLi(x, ''); }).join('');
     var soonLi = n.soon.map(function (p) { var dd = daysTo(p[1].req); return li('<span class="mono">' + p[1].id + '</span> · ' + esc(p[0].name), esc(p[1].item) + ' · required by ' + fmt(isoDate(p[1].req)) + (dd < 0 ? ' (late)' : dd === 0 ? ' (today)' : ' (' + dd + (dd === 1 ? ' day' : ' days') + ')'), '<button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + p[0].id + '" data-job="' + p[1].id + '">Open</button>'); }).join('');
     var acts = []; Object.keys(ORGS).forEach(function (k) { ORGS[k].notifs.forEach(function (x) { if (x.to === 'staff') acts.push([ORGS[k], x]); }); }); acts.sort(function (a, b) { return b[1].date - a[1].date; });
-    var actLi = acts.slice(0, 5).map(function (a) { return li(esc(clientText(a[1].text)), esc(a[0].name) + ' · ' + fmt(a[1].date), ''); }).join('');
+    var actLi = acts.slice(0, 5).map(function (a) { return logRow(clientText(a[1].text), a[0].name, a[1].date); }).join('');
     var card = function (title, html, empty) { return '<div class="card"><h2>' + title + '</h2><ul class="list">' + (html || none(empty)) + '</ul></div>'; };
     var stat = function (k, v, s, cls) { return '<div class="card stat' + (cls || '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span><span class="s">' + s + '</span></div>'; };
     return '<section class="banner"><div><p class="eyebrow">HazPack staff</p><h2>Needs attention</h2><p>Across every client company, on ' + fmt(TODAY) + '.</p></div></section>' +
