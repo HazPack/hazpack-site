@@ -76,8 +76,8 @@
 .fsearch input:focus-visible { outline: 0; } .fsearch:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
 .ftbl-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-lg); overflow-x: auto; }
 .ftbl-card table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.ftbl-card th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12.5px; padding: 10px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-.ftbl-card td { padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.ftbl-card th { text-align: left; font-weight: 500; color: var(--muted); font-size: 12.5px; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.ftbl-card td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .ftbl-card th + th, .ftbl-card td + td { border-left: 1px solid var(--line); }
 .ftbl-card tbody tr:last-child td { border-bottom: 0; }
 .ftbl-card tr.click { cursor: pointer; } .ftbl-card tr.click:hover td { background: var(--rail-hover); }
