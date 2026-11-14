@@ -116,7 +116,8 @@ export function render(m, now = new Date()) {
 function renderClient(m, now) {
   const hello = `${greeting(now)}${m.name ? ', ' + m.name.trim().split(/\s+/)[0] : ''},`;
   const line = CLIENT[m.kind].line(m.ref);
-  const text = [hello, '', line, '', 'Thank you,', '', '--', SIG.name, SIG.title.join(' | '), 'HazPack Compliance Solutions', ...SIG.rows.map(([k, v]) => `${k}: ${v}`), SIG.services.join(' · ')].join('\n');
+  const url = portalUrl();
+  const text = [hello, '', line, '', `Open the client portal: ${url}`, '', 'Thank you,', '', '--', SIG.name, SIG.title.join(' | '), 'HazPack Compliance Solutions', ...SIG.rows.map(([k, v]) => `${k}: ${v}`), SIG.services.join(' · ')].join('\n');
 
   const p = (t) => `<p style="margin:0 0 18px;${MAIL_FONT}font-size:15px;line-height:1.5;color:#111111">${t}</p>`;
   const brk = (v) => esc(v).replace('@', '@<wbr>');
@@ -144,7 +145,7 @@ function renderClient(m, now) {
     `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${esc(line)}</div>` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff"><tr><td style="padding:20px 16px">` +
     `<table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px"><tr><td>` +
-      p(esc(hello)) + p(esc(line)) + p('Thank you,') + sig +
+      p(esc(hello)) + p(esc(line)) + p(`<a href="${esc(url)}" style="color:${NAVY};font-weight:bold;text-decoration:underline">Open the client portal</a>`) + p('Thank you,') + sig +
     `</td></tr></table></td></tr></table></body></html>`;
   return { text, html };
 }
