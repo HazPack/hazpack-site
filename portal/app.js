@@ -667,6 +667,23 @@
   }
   function destInput(id, code) { return '<input id="' + id + '" type="text" list="apList" autocomplete="off" placeholder="Type a city or code, or pick from the list" value="' + esc(apLabel(code)) + '">'; }
   function sizeOf(file) { return file.size > 1048576 ? (file.size / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(file.size / 1024)) + ' KB'; }
+  /* File drop zone (21st.dev trial): a dashed box with the limit written under it, then one row per chosen file with its size and status.
+     The server limit is MAX_FILE_BYTES in api/_lib/config.js and it accepts PDF, PNG and JPG only. */
+  var UP_MAX = 3 * 1024 * 1024;
+  function dropBox(id, label, limit, attrs) {
+    var many = / multiple/.test(' ' + attrs);
+    return '<div class="dzw"><span class="dz-l" id="' + id + 'L">' + label + '</span><label class="f dz" for="' + id + '"><input id="' + id + '" class="dz-in" type="file" aria-labelledby="' + id + 'L" aria-describedby="' + id + 'H" ' + attrs + '>' +
+      '<span class="dz-i">' + ico('up') + '</span><b>Drop ' + (many ? 'files' : 'a file') + ' here, or <u>browse</u></b><span class="dz-h" id="' + id + 'H">' + limit + '</span></label><ul class="dz-files" id="' + id + 'List" aria-live="polite"></ul></div>';
+  }
+  function dzList(inp) {
+    var ul = document.getElementById(inp.id + 'List'); if (!ul) return;
+    var fs = [].slice.call(inp.files || []), okType = inp.dataset.pdf ? /\.pdf$/i : /\.(pdf|png|jpe?g)$/i;
+    ul.innerHTML = fs.map(function (f, i) {
+      var st = f.size > UP_MAX ? ['Too large, limit 3 MB', 'bad'] : !okType.test(f.name) ? [inp.dataset.pdf ? 'PDF only' : 'PDF, PNG or JPG only', 'bad'] : ['Ready', 'ok'];
+      return '<li class="dz-row ' + st[1] + '">' + ico('files') + '<span class="dz-n">' + esc(f.name) + '</span><span class="dz-s">' + sizeOf(f) + '</span><span class="dz-st">' + st[0] + '</span>' +
+        '<button type="button" class="dz-x" data-dz="' + inp.id + '" data-i="' + i + '" aria-label="Remove ' + esc(f.name) + '">' + ico('x') + '</button></li>';
+    }).join('');
+  }
 
   /* ---------- upload ---------- */
   function uploadModal(jobId, type, step) {
@@ -676,12 +693,13 @@
     var types = Object.keys(TYPE_LABEL).filter(function (k) { return st || (k !== 'Invoice' && k !== 'Report'); }).map(function (k) { return '<option value="' + k + '"' + (type === k ? ' selected' : '') + '>' + TYPE_LABEL[k] + '</option>'; }).join('');
     openModal('<form class="modal" id="upForm" role="dialog" aria-modal="true" aria-label="Upload a file"><h2>' + (st ? 'Upload a file for ' + esc(o.name) : 'Upload a file to HazPack') + '</h2>' +
       '<input type="hidden" id="ustep" value="' + esc(step || '') + '"><label class="f" for="us">Job<select id="us">' + opts + '</select></label><label class="f" for="ut">File type<select id="ut">' + types + '</select></label>' +
-      '<label class="f" for="uf">File (click or drop it here)<input id="uf" type="file" required></label><label class="f" for="un">Note (optional)<input id="un" type="text" placeholder="For example: Signed, or Corrected quantity"></label>' +
+      dropBox('uf', 'File', 'PDF, PNG or JPG, up to 3 MB', 'required') + '<label class="f" for="un">Note (optional)<input id="un" type="text" placeholder="For example: Signed, or Corrected quantity"></label>' +
       '<p class="hint">' + (st ? 'People who can see this job and have email alerts on get an email from ' + FROM_EMAIL + '. Everyone else who can see the job gets a portal notification.' : 'HazPack staff are notified as soon as you upload.') + ' Choose Declaration (DGD) and the portal reads the airports from the PDF to draw the route.</p>' +
       '<div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="submit" class="btn" id="upGo">Upload</button></div></form>');
     document.getElementById('upForm').addEventListener('submit', function (e) {
       e.preventDefault();
       var file = document.getElementById('uf').files[0]; if (!file) return;
+      if (file.size > UP_MAX) { toast('That file is too large. The limit is 3 MB.'); return; }
       var job = getJob(document.getElementById('us').value), type = document.getElementById('ut').value, note = document.getElementById('un').value.trim();
       var btn = document.getElementById('upGo'); btn.disabled = true; btn.textContent = type === 'DGD' ? 'Reading file' : 'Uploading';
       var step = (document.getElementById('ustep') || {}).value || '';
@@ -783,10 +801,10 @@
       '<div class="f"><span id="svl" style="font-size:13px;font-weight:600">Services</span>' + msel() + '</div>' +
       '<label class="f" for="rq7">Your reference number<input id="rq7" type="text" required placeholder="PO or order number"></label>' +
       '<label class="f" for="rq8">Required by (optional)<input id="rq8" type="date" min="' + iso(TODAY) + '"></label>' +
-      '<label class="f" for="rq0">DGD (PDF, click or drop it here)<input id="rq0" type="file" accept="application/pdf,.pdf" required></label>' +
+      dropBox('rq0', 'DGD', 'PDF, up to 3 MB', 'accept="application/pdf,.pdf" required data-pdf="1"') +
       '<div id="found" class="found" hidden></div>' +
       '<label class="f" for="rq10">Notes for HazPack (optional)<textarea id="rq10" rows="2" maxlength="1000" placeholder="Pickup details, dock numbers or deadlines"></textarea></label>' +
-      '<label class="f" for="rq9">Additional files (optional, click or drop)<input id="rq9" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"></label><p class="hint" style="margin-top:-6px">Photos, safety data sheets (SDS) or anything else that helps. You can also add files to the job later.</p>' +
+      dropBox('rq9', 'Additional files (optional)', 'PDF, PNG or JPG, up to 3 MB each', 'multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"') + '<p class="hint" style="margin-top:-6px">Photos, safety data sheets (SDS) or anything else that helps. You can also add files to the job later.</p>' +
       '<p class="err" id="rqerr" role="alert"></p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Submit request', 'type="submit" id="rqGo"', '') + '</div></form>');
     document.getElementById('found').addEventListener('change', function (e) {
       if (e.target.id !== 'rv6') return; var sea = e.target.value === 'Ocean';
@@ -804,6 +822,8 @@
       var svc = [].slice.call(document.querySelectorAll('[data-svc]:checked')).map(function (c) { return c.dataset.svc; }), err = document.getElementById('rqerr');
       if (!svc.length) { err.textContent = 'Choose at least one service.'; document.getElementById('mselB').focus(); return; }
       var dgd = document.getElementById('rq0').files[0]; if (!dgd) { err.textContent = 'Upload your DGD.'; return; }
+      var big = [dgd].concat([].slice.call(document.getElementById('rq9').files)).filter(function (f) { return f.size > UP_MAX; })[0];
+      if (big) { err.textContent = big.name + ' is larger than 3 MB. Remove it or choose a smaller file.'; return; }
       var go = document.getElementById('rqGo'); go.disabled = true; go.querySelectorAll('.ihb-t').forEach(function (t) { t.textContent = 'Submitting'; });
       Promise.resolve(reqDetect).then(function () {
         var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
@@ -2106,6 +2126,14 @@
     inp.files = files; inp.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
+  /* remove one chosen file from a drop zone */
+  document.addEventListener('click', function (e) {
+    var x = e.target.closest ? e.target.closest('.dz-x') : null; if (!x) return;
+    var inp = document.getElementById(x.dataset.dz), dt = new DataTransfer(); if (!inp) return;
+    [].forEach.call(inp.files, function (f, i) { if (i !== +x.dataset.i) dt.items.add(f); });
+    inp.files = dt.files; inp.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
   /* ----- fit the invoice paper to a narrow screen ----- */
   function fitPaper() {
     var w = document.querySelector('.paperwrap'), p = w && w.querySelector('.paper'); if (!p) return;
@@ -2153,6 +2181,7 @@
   });
   document.addEventListener('input', function (e) { if (e.target.id === 'q') { flipBefore(); S.q = e.target.value; render(); return; } billingInput(e.target); });
   document.addEventListener('change', function (e) {
+    if (e.target.classList && e.target.classList.contains('dz-in')) dzList(e.target);
     if (e.target.dataset && e.target.dataset.svc) { updateMsel(); return; }
     if (billingChange(e.target) || extrasChange(e.target)) return;
     if (e.target.id === 'ff') { S.ff = e.target.value; render(); }

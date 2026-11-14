@@ -108,3 +108,26 @@ body.sheet-on { overflow: hidden; }
 .empty-s b { font-size: 14.5px; }
 .empty-s .es-t { font-size: 13px; }
 td > .empty-s, .ftbl-empty .empty-s { margin: 8px 0; }
+
+/* ---- 21st.dev trial 12: file drop zone with the limit under it and a row per chosen file ---- */
+.dzw { display: grid; gap: 6px; }
+.dz-l { font-size: 13px; font-weight: 600; }
+label.f.dz { position: relative; justify-items: center; gap: 3px; padding: 18px 14px; text-align: center; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; transition: border-color .15s, background .15s; }
+label.f.dz:hover, label.f.dz.drag { border-color: var(--accent); background: var(--accent-soft); }
+label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dz .dz-in { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; opacity: 0; pointer-events: none; }
+.dz-i { display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 4px; border-radius: 50%; background: var(--panel); border: 1px solid var(--line); color: var(--accent); }
+.dz-i .ic { width: 17px; height: 17px; }
+.dz b { font-weight: 600; font-size: 13.5px; } .dz b u { color: var(--accent); text-underline-offset: 2px; }
+.dz-h { font-size: 12px; font-weight: 400; color: var(--muted); }
+.dz-files { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.dz-files:empty { display: none; }
+.dz-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto auto 26px; align-items: center; gap: 10px; padding: 7px 7px 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); font-size: 13px; }
+.dz-row > .ic { width: 16px; height: 16px; color: var(--muted); }
+.dz-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.dz-s { font: 12px var(--font-mono); color: var(--muted); }
+.dz-st { font-size: 12px; font-weight: 600; color: var(--ok); }
+.dz-row.bad { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); } .dz-row.bad .dz-st { color: var(--bad); }
+.dz-x { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; }
+.dz-x:hover { background: var(--bg); color: var(--ink); } .dz-x .ic { width: 14px; height: 14px; }
+@media (max-width: 420px) { .dz-row { grid-template-columns: 18px minmax(0, 1fr) auto 26px; } .dz-s { display: none; } }
