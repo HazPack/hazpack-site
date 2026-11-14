@@ -238,10 +238,36 @@ try {
   const before = mails.length;
   check('staff can add a client alert', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200);
   const inv = mails.slice(before);
-  check('client emails carry the signature with name, phones, email and website', inv[0] && inv[0].html.includes('Alexander Walsh') && /Dangerous Goods Specialist/.test(inv[0].html) && inv[0].html.includes('+1 310-425-3712') && inv[0].html.includes('+1 310-387-1473') && inv[0].html.includes('www.hazpackcompliance.com') && /Web: www\.hazpackcompliance\.com/.test(inv[0].text));
+  check('client emails carry the signature with name, phones and email', inv[0] && inv[0].html.includes('Alexander Walsh') && /Dangerous Goods Specialist/.test(inv[0].html) && inv[0].html.includes('+1 310-425-3712') && inv[0].html.includes('+1 310-387-1473') && /Email: lax-dgr@hazpackcompliance\.com/.test(inv[0].text) && !/Web:/.test(inv[0].text));
+  check('the invoice email uses HazPack\'s wording', inv[0] && /^Good (morning|afternoon), Sam,\n\nHere is the invoice for T-1\. Please let us know if you have any questions!\n\nThank you,/.test(inv[0].text) && inv[0].subject === 'Invoice for T-1', JSON.stringify(inv[0]?.text?.slice(0, 160)));
   check('an invoice alert emails the person with alerts on and copies accounts', inv.length === 1 && inv[0].to[0] === 'sam@testco-mail.com' && inv[0].cc?.[0] === 'ap@testco-mail.com' && /T-1/.test(inv[0].subject) && inv[0].reply_to === 'alerts@hazpack-qa.com', JSON.stringify(inv.map((m) => [m.to, m.cc, m.subject])));
   org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
   check('saving again does not email the same alert twice', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200 && mails.length === before + 1);
+  {
+    // Which client notifications send an email, and what each says.
+    org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+    const J = 'HP-2611-900';
+    const add = (id, text, job = J) => org.notifs.unshift({ id, to: 'client', job, text, date: new Date().toISOString(), read: {} });
+    add('k1', `HazPack received your request and opened job ${J}.`);
+    add('k2', `${J}: Declaration signed, cleared to ship.`);
+    add('k3', `${J} needs a correction before it can be cleared to ship.`);
+    add('k4', `The correction on ${J} is resolved.`);
+    add('k5', `HazPack sent a message on ${J}.`);
+    add('k6', `HazPack added DGD_T-1.pdf (Declaration (DGD)) to ${J}.`);
+    add('k7', `HazPack added Quote_Q-1.pdf (quote) on ${J}. It is waiting for your approval.`);
+    add('k8', 'HazPack added Quote_Q-2.pdf (quote) for Test Co. It is waiting for your approval.', '');
+    add('k9', `HazPack updated Quote_Q-1.pdf (quote) on ${J}. It is waiting for your approval.`);
+    add('k11', `HazPack updated Invoice_I-1.pdf (invoice) on ${J}.`);
+    org.notifs[0].acct = true;
+    const from = mails.length;
+    check('staff can add several client alerts', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200);
+    const got = mails.slice(from).map((m) => m.subject).sort();
+    const want = ['Correction needed: T-1', 'Files uploaded: T-1', 'New message: T-1', 'Quote for T-1', 'Request accepted: T-1', 'Updated invoice for T-1', 'Updated quote for T-1'].sort();
+    check('only the chosen client actions send an email (no step, resolved correction or job-less quote)', JSON.stringify(got) === JSON.stringify(want), JSON.stringify(got));
+    const line = (subj) => mails.slice(from).find((m) => m.subject === subj)?.text.split('\n')[2];
+    check('each client email has its own line', line('Request accepted: T-1') === 'We have accepted your request for T-1.' && line('Correction needed: T-1') === 'Please see the correction needed for T-1 in the client portal.' && line('New message: T-1') === 'You have received a message in the client portal for T-1.' && line('Files uploaded: T-1') === 'Files for T-1 have been uploaded to the client portal.' && line('Quote for T-1') === 'A quote for T-1 is waiting for your approval. Please open the client portal to review.' && line('Updated invoice for T-1') === 'Here is the updated invoice for T-1. Please let us know if you have any questions!');
+    check('only the updated invoice copies the accounts email', mails.slice(from).filter((m) => m.cc?.length).map((m) => m.subject).join() === 'Updated invoice for T-1');
+  }
   check('a stale save is refused with a conflict', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 409);
   org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
   check('saved job is there and PINs survived', org.jobs.length === 1 && !JSON.stringify(org).includes('Hash') && (await signIn('test-co', 'a-long-enough-pass', 'Sam', '4321')).session.status === 200);

@@ -665,7 +665,7 @@
         '<div><button type="button" class="btn sm" data-act="saveRoute" data-job="' + job.id + '">Save route</button></div></div>';
     }
     var mail;
-    if (st) mail = mailBox(HP_FROM, peopleList(recipients(job)), 'New file on ' + jn(job) + ': ' + rec.name, 'HazPack added a file to job ' + esc(jn(job)) + ' for ' + esc(o.name) + ': ' + esc(rec.name) + ' (' + TYPE_LABEL[rec.type] + '). Sign in to the client portal to view and download it.');
+    if (st) mail = mailBox(HP_FROM, peopleList(recipients(job)), 'Files uploaded: ' + jn(job), 'Files for ' + esc(jn(job)) + ' have been uploaded to the client portal.');
     else mail = mailBox('HazPack client portal', esc(FROM_EMAIL), 'Client upload on ' + jn(job) + ': ' + rec.name, esc(S.rep.name) + ' of ' + esc(o.name) + ' uploaded ' + esc(rec.name) + ' to job ' + esc(jn(job)) + '.');
     openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Upload complete"><h2>Uploaded to ' + esc(jn(job)) + '</h2><p class="muted" style="margin:0">' + esc(rec.name) + ' · ' + rec.size + '</p>' + route + mail + '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
     S.job = job.id; render();
@@ -1224,7 +1224,7 @@
       var to = peopleList(job ? recipients(job) : org.reps.filter(function (r) { return r.notify && (r.admin || r.id === rec.repId); })); S.org = prev;
       render();
       openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Sent to client"><h2>' + rec.type + ' sent to ' + esc(org.name) + '</h2><p class="muted" style="margin:0">' + esc(name) + ' ' + (job ? 'is now a file on job ' + esc(jn(job)) + '. People who can see the job have a portal notification.' : 'was sent to the company with no job yet. Company admins and the contact see it on their dashboard. Accepting it opens a new job request.') + (reopened ? ' The quote changed after it was answered, so it is open for approval again.' : '') + (cc ? ' The company accounts email is copied on the invoice email.' : '') + '</p>' +
-        mailBox(HP_FROM, to, rec.type + ' ' + rec.docNum + (job ? ' for ' + jn(job) : ''), 'HazPack added ' + (rec.type === 'Invoice' ? 'an invoice' : 'a quote') + (job ? ' to job ' + esc(jn(job)) : '') + ' for ' + esc(org.name) + ': ' + esc(name) + ' (' + fileNote(rec) + '). Sign in to the client portal to view and download it.', '', cc) +
+        (job ? mailBox(HP_FROM, to, (again ? 'Updated ' + rec.type.toLowerCase() : rec.type) + ' for ' + jn(job), rec.type === 'Invoice' ? 'Here is the ' + (again ? 'updated ' : '') + 'invoice for ' + esc(jn(job)) + '. Please let us know if you have any questions!' : 'A quote for ' + esc(jn(job)) + ' is waiting for your approval. Please open the client portal to review.', '', cc) : '<p class="muted">No email is sent for a quote with no job yet.</p>') +
         '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
       });
     }, function () { toast('Could not make the PDF. Check your connection and try again.'); });

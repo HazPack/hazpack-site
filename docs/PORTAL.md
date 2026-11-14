@@ -68,7 +68,7 @@ marked "sample" on screen. They exist only locally (the `data/` folder is not co
 
 ## Email alerts
 
-Every portal notification is also emailed, through [Resend](https://resend.com), once these are set in Vercel
+HazPack alerts and some client notifications are also emailed, through [Resend](https://resend.com), once these are set in Vercel
 (Settings, Environment Variables; tick **Preview** to try it on the client-portal link, and **Production** for launch):
 
 | Variable | What to put |
@@ -81,16 +81,33 @@ Every portal notification is also emailed, through [Resend](https://resend.com),
 Before the first email: in Resend, **Domains, Add domain**, enter `hazpackcompliance.com`, and add the DNS records it shows
 where the domain's DNS is managed. Resend only sends from a verified domain.
 
-Look: the HazPack logo on top, the update in a highlighted box, an orange "Open the client portal" button, and (for clients)
-a signature block laid out like the team email signature (logo, Alexander Walsh, phone, mobile, email, website). To change the signature wording, edit `SIG`
-in `api/_lib/mail.js`. The logo is loaded from `https://www.hazpackcompliance.com/assets/logo.png`, so it appears once the
-site is live with this branch merged.
+Look:
+- **Client emails** read like a personal email: "Good morning" or "Good afternoon" (Los Angeles time) and the person's first
+  name, one line, "Thank you," and a signature laid out like the team email signature (logo, Alexander Walsh, phone, mobile,
+  email). The wording comes from HazPack's own templates (the `EMAIL TEMPLATES` folder, outside this repository) and lives in
+  `CLIENT` in `api/_lib/mail.js`; edit `SIG` there to change the signature.
+- **HazPack alerts** keep the branded layout: logo on top, the update in a highlighted box and an orange "Open the client portal" button.
+- The logo is loaded from `https://www.hazpackcompliance.com/assets/logo.png`, so it appears once the site is live with this branch merged.
+
+Which client actions send an email (everything else stays inside the portal, as a notification only):
+
+| Action | Subject | Line |
+| --- | --- | --- |
+| Job opened | Request accepted: REF | We have accepted your request for REF. |
+| Correction needed | Correction needed: REF | Please see the correction needed for REF in the client portal. |
+| Message from HazPack | New message: REF | You have received a message in the client portal for REF. |
+| Document added | Files uploaded: REF | Files for REF have been uploaded to the client portal. |
+| Quote sent on a job | Quote for REF | A quote for REF is waiting for your approval. Please open the client portal to review. |
+| Quote updated | Updated quote for REF | (same line as a new quote) |
+| Invoice sent | Invoice for REF | Here is the invoice for REF. Please let us know if you have any questions! |
+| Invoice updated | Updated invoice for REF | Here is the updated invoice for REF. Please let us know if you have any questions! |
+
+No email for: a job moving to its next step, a correction resolved, or a quote sent to a company with no job yet.
 
 Who gets what:
 - **Clients:** each person at the company with email alerts on (Team page) who can see the job; admins see every job.
-  Covers files and documents HazPack adds, quotes and invoices sent, job steps, corrections and messages from HazPack.
   Invoices also copy the company's accounts email. Replies go to `PORTAL_STAFF_EMAIL`.
-- **HazPack:** new job requests, withdrawn requests, client uploads and messages, and quotes accepted or declined.
+- **HazPack:** new job requests, withdrawn requests, client uploads, corrected files and corrections, messages, and quotes accepted or declined.
 - Emails name jobs by the client's reference. Sample addresses (`.example`, `.test`) are never emailed, so the demo data is safe.
 - The portal's email previews say "Email sent" when email is on, and "not set up yet" when it is off.
 
