@@ -140,3 +140,7 @@ label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px;
 .lg.attn .lg-c { color: var(--bad); }
 .lg-m { min-width: 0; overflow-wrap: anywhere; } .lg-m i { font-style: normal; color: var(--muted); }
 @media (max-width: 520px) { .list li.lg { grid-template-columns: auto 1fr; row-gap: 2px; } .lg-m { grid-column: 1 / -1; } }
+
+/* ---- 21st.dev trial 5: Number Flow look for the rolling numbers above: digits fade at the top and bottom edge and settle with a small overshoot ---- */
+.nr-d { -webkit-mask-image: linear-gradient(transparent, #000 .16em, #000 calc(100% - .16em), transparent); mask-image: linear-gradient(transparent, #000 .16em, #000 calc(100% - .16em), transparent); }
+.nr-d.go > span { transition-duration: .8s; transition-timing-function: cubic-bezier(.34, 1.36, .64, 1); }
