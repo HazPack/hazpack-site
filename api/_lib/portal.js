@@ -204,6 +204,7 @@ function makeJob(db, rep, f) {
     cls: clean(f.cls, 20) || 'To be confirmed', pg: clean(f.pg, 12) || 'N/A', qty: clean(f.qty, 80),
     mode: ['Air', 'Ground', 'Ocean'].includes(f.mode) ? f.mode : 'Air', from: /^[A-Z]{3}$/.test(f.from) ? f.from : 'LAX',
     to: /^[A-Z]{3}$/.test(f.to) ? f.to : null, toText: clean(f.toText, 80), ref: clean(f.ref, 60),
+    pol: f.mode === 'Ocean' ? clean(f.pol, 80) : '', note: String(f.note ?? '').trim().replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').slice(0, 1000),
     req: /^\d{4}-\d{2}-\d{2}$/.test(String(f.req || '')) ? f.req : '',
     svc, steps: stepsFor(svc), done: 0, start: now, pending: true, fix: false, msgs: [], owner: '', pri: '', by: {}, notes: {},
     ev: [[now, 'Request submitted']], log: [], createdAt: now, expiresAt: addMonths(now, RETENTION_MONTHS),

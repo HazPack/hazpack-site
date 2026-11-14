@@ -158,6 +158,11 @@ try {
   check('HazPack alerts use the branded layout without the client signature', reqMail && reqMail.html.includes('hazpackcompliance.com/logo.png') && !reqMail.html.includes('Alexander Walsh'));
   check('sample (.example) addresses are never emailed', mails.every((m) => ![...m.to, ...(m.cc || [])].some((a) => /\.example$/.test(a))));
   check('request without a service refused', (await act(D.c, { action: 'requestJob', svc: ['bogus'] })).status === 400);
+  const sq = await act(D.c, { action: 'requestJob', svc: ['dgd'], item: 'Test resin', un: 'UN1866', cls: '3', mode: 'Ocean', from: 'LAX', to: 'TLV', toText: 'Haifa, Israel', pol: 'Los Angeles / Long Beach', note: 'Pickup at dock 3.\r\n\r\n\r\nCall first.', ref: 'PO-SEA' });
+  const seaJob = sq.status === 200 && sq.data.state.org.jobs.find((j) => j.id === sq.data.jobId);
+  check('ocean request keeps the ports and the client notes', seaJob && seaJob.pol === 'Los Angeles / Long Beach' && seaJob.toText === 'Haifa, Israel' && seaJob.note === 'Pickup at dock 3.\n\nCall first.');
+  check('a port of loading is ignored unless the request is by ocean', newJob.pol === '' && newJob.note === '');
+  check('withdraw the ocean test request', (await act(D.c, { action: 'withdrawJob', jobId: sq.data.jobId })).status === 200);
   const up = (type, bytes, name = 'doc', extra = {}) => act(D.c, { action: 'uploadFile', jobId: rq.data.jobId, type, name, data: b64(bytes), ...extra });
   const u1 = await up('DGD', PDF, 'My DGD.pdf', { quiet: true });
   check('PDF accepted as DGD', u1.status === 200 && u1.data.fileId);

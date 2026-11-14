@@ -78,6 +78,10 @@
   var TYPE_LABEL = { DGD: 'Declaration (DGD)', Report: 'Inspection report', Invoice: 'Invoice', Photo: 'Packing photo', Other: 'Other document' };
   function ftype(t) { return { DGD: ['DGD', ''], Report: ['RPT', ''], Invoice: ['INV', 'inv'], Photo: ['IMG', 'oth'], Other: ['DOC', 'oth'] }[t] || ['DOC', 'oth']; }
   function routeOf(j) { return j.from && j.to && AP[j.from] && AP[j.to]; }
+  function sea(j) { return j.mode === 'Ocean' && !!j.pol; }
+  function fromText(j) { return sea(j) ? j.pol : (j.from || 'LAX'); }
+  function seaRoute(j) { return esc(j.pol) + ' to ' + (j.toText ? esc(j.toText) : 'port not set'); }
+  function noteRow(j) { return j.note ? '<div class="wide2"><dt>' + (staff() ? 'Notes from the client' : 'Your notes') + '</dt><dd style="white-space:pre-wrap">' + esc(j.note) + '</dd></div>' : ''; }
 
   /* ---------- sample PDFs, built in the page ---------- */
   function makePdf(lines) {
@@ -447,7 +451,7 @@
         (j.fix ? fixPanel(j) : '') +
         '<dl class="dl"><div><dt>UN number</dt><dd><span class="un">' + esc(j.un || '—') + '</span></dd></div><div><dt>Hazard class</dt><dd>' + esc(j.cls) + '</dd></div><div><dt>Packing group</dt><dd>' + esc(j.pg) + '</dd></div><div><dt>Quantity</dt><dd>' + esc(j.qty || '—') + '</dd></div><div><dt>Transport</dt><dd>' + j.mode + '</dd></div><div><dt>Your reference</dt><dd class="mono">' + esc(j.ref || '—') + '</dd></div>' +
         '<div><dt>Requested by</dt><dd>' + esc(repName(j.rep)) + '</dd></div><div><dt>Services</dt><dd>' + j.svc.map(function (k) { return SVC[k]; }).join(', ') + '</dd></div><div><dt>Required by</dt><dd>' + (j.req ? fmt(isoDate(j.req)) : 'Not set') + '</dd></div>' +
-        '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl>' + (staff() ? '' : '<div class="pad" style="padding-top:0">' + taskRows(j) + '</div>');
+        (sea(j) ? '<div class="wide2"><dt>Ports</dt><dd>' + seaRoute(j) + '</dd></div>' : '') + noteRow(j) + '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl>' + (staff() ? '' : '<div class="pad" style="padding-top:0">' + taskRows(j) + '</div>');
     } else if (t === 'timeline') {
       var items = j.ev.map(function (e) { return '<li class="' + (/^Correction needed/.test(e[1]) ? 'warn' : '') + '"><div><b>' + esc(clientText(e[1])) + '</b><span>' + fmt(e[0]) + '</span></div></li>'; });
       j.steps.forEach(function (n, i) { if (i >= j.done) items.push('<li class="todo"><div><b>' + esc(n) + '</b><span>Up next</span></div></li>'); });
@@ -465,7 +469,7 @@
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     return '<div style="display:grid;gap:14px"><button type="button" class="btn ghost sm back-m" data-act="backList">&larr; All jobs</button>' +
       '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + esc(jn(j)) + '</h2><div class="muted">' + esc(j.item) + '' + '</div></div>' + pill(j) + '</div>' + sb +
-      mapHtml([j], { labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
+      mapHtml([j], { labels: true, empty: sea(j) ? 'Ocean shipment: ' + seaRoute(j) + '. Ports are not shown on the map.' : j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
       tabsCard + jobDock(j) + '</div>';
   }
   var FOLDER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
@@ -717,10 +721,13 @@
     var on = [].slice.call(document.querySelectorAll('[data-svc]:checked')).map(function (c) { return SVC[c.dataset.svc]; }), t = document.getElementById('mselT'); if (!t) return;
     t.textContent = on.length ? (on.length > 2 ? on.slice(0, 2).join(', ') + ' and ' + (on.length - 2) + ' more' : on.join(', ')) : 'Select one or more services'; t.className = on.length ? '' : 'muted';
   }
+  var PORTS_LOADING = ['Los Angeles / Long Beach', 'Oakland', 'Seattle / Tacoma'];
   function reviewFields(o) {
     return '<div class="g3"><label class="f" for="rv1">Contents (proper shipping name)<input id="rv1" type="text" value="' + esc(o.item) + '"></label><label class="f" for="rv2">UN number<input id="rv2" type="text" value="' + esc(o.un) + '"></label><label class="f" for="rv3">Class<input id="rv3" type="text" value="' + esc(o.cls) + '"></label>' +
       '<label class="f" for="rv4">Packing group<input id="rv4" type="text" value="' + esc(o.pg) + '"></label><label class="f" for="rv5">Quantity<input id="rv5" type="text" value="' + esc(o.qty) + '"></label><label class="f" for="rv6">Transport<select id="rv6">' + ['Air', 'Ground', 'Ocean'].map(function (x) { return '<option' + (x === o.mode ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></label>' +
-      '<label class="f" for="rv7">From (origin airport)<select id="rv7">' + apOptions(o.from || 'LAX', false) + '</select></label><label class="f" for="rv8">To (destination airport)' + destInput('rv8', o.to) + '</label></div>' + apDatalist();
+      '<span id="rtAir" style="display:' + (o.mode === 'Ocean' ? 'none' : 'contents') + '"><label class="f" for="rv7">From (origin airport)<select id="rv7">' + apOptions(o.from || 'LAX', false) + '</select></label><label class="f" for="rv8">To (destination airport)' + destInput('rv8', o.to) + '</label></span>' +
+      '<span id="rtSea" style="display:' + (o.mode === 'Ocean' ? 'contents' : 'none') + '"><label class="f" for="rv9">Port of loading<input id="rv9" type="text" list="polList" autocomplete="off" maxlength="80" value="' + esc(PORTS_LOADING[0]) + '"></label><label class="f" for="rv10">Port of discharge<input id="rv10" type="text" autocomplete="off" maxlength="80" placeholder="City and country"></label></span></div>' + apDatalist() +
+      '<datalist id="polList">' + PORTS_LOADING.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist>';
   }
   function requestModal() {
     reqDetect = null;
@@ -730,8 +737,13 @@
       '<label class="f" for="rq8">Required by (optional)<input id="rq8" type="date" min="' + iso(TODAY) + '"></label>' +
       '<label class="f" for="rq0">DGD (PDF, click or drop it here)<input id="rq0" type="file" accept="application/pdf,.pdf" required></label>' +
       '<div id="found" class="found" hidden></div>' +
+      '<label class="f" for="rq10">Notes for HazPack (optional)<textarea id="rq10" rows="2" maxlength="1000" placeholder="Pickup details, dock numbers or deadlines"></textarea></label>' +
       '<label class="f" for="rq9">Additional files (optional, click or drop)<input id="rq9" type="file" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"></label><p class="hint" style="margin-top:-6px">Photos, safety data sheets (SDS) or anything else that helps. You can also add files to the job later.</p>' +
       '<p class="err" id="rqerr" role="alert"></p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Submit request', 'type="submit" id="rqGo"', '') + '</div></form>');
+    document.getElementById('found').addEventListener('change', function (e) {
+      if (e.target.id !== 'rv6') return; var sea = e.target.value === 'Ocean';
+      document.getElementById('rtAir').style.display = sea ? 'none' : 'contents'; document.getElementById('rtSea').style.display = sea ? 'contents' : 'none';
+    });
     document.getElementById('rq0').addEventListener('change', function () {
       var f = this.files[0], box = document.getElementById('found'); reqDetect = null; if (!f) { box.hidden = true; return; }
       box.hidden = false; box.innerHTML = '<b>Reading your DGD</b><p class="muted" style="margin:0;font-size:13px">This takes a few seconds.</p>';
@@ -753,7 +765,7 @@
           var nm = fl[i].name, isImg = /\.(png|jpe?g|gif|webp|heic)$/i.test(nm) || /^image\//.test(fl[i].type), isSds = /sds|safety/i.test(nm);
           list.push({ type: isImg ? 'Photo' : 'Other', file: fl[i], note: isSds ? 'Safety data sheet' : 'Sent with the request' });
         }
-        clientAct({ action: 'requestJob', svc: svc, item: item, un: v('rv2'), cls: v('rv3'), pg: v('rv4'), qty: v('rv5'), mode: v('rv6') || 'Air', from: v('rv7') || 'LAX', to: dstP.code, toText: dstP.text, ref: v('rq7'), req: v('rq8') }, function (res) {
+        clientAct({ action: 'requestJob', svc: svc, item: item, un: v('rv2'), cls: v('rv3'), pg: v('rv4'), qty: v('rv5'), mode: v('rv6') || 'Air', from: v('rv7') || 'LAX', to: v('rv6') === 'Ocean' ? null : dstP.code, toText: v('rv6') === 'Ocean' ? v('rv10') : dstP.text, pol: v('rv6') === 'Ocean' ? v('rv9') : '', note: v('rq10'), ref: v('rq7'), req: v('rq8') }, function (res) {
         sendFiles(res.jobId, list, true).then(function () {
         var j = getJob(res.jobId);
         S.view = 'jobs'; S.job = j.id; S.jobTab = 'overview'; S.f = 'all'; S.q = ''; S.fp = 'all'; S.mobileDetail = true; render();
@@ -1675,11 +1687,11 @@
       '<div class="wh2"><label class="mini-l">Owner<select id="owner" class="mini"><option value="">Unassigned</option>' + OWNERS.map(function (n) { return '<option' + (j.owner === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
       '<label class="mini-l">Priority<select id="prio" class="mini"><option value="">Auto' + (pr && !j.pri ? ' (' + pr[0] + ')' : '') + '</option>' + ['Urgent', 'High', 'Normal', 'Low'].map(function (n) { return '<option' + (j.pri === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></label>' +
       '</div></div>';
-    var facts = '<div class="facts">' + fact('Client', esc(o.name)) + fact('Requested by', esc(r ? r.name : 'Former member')) + fact('Transport', j.mode) + fact('Route', ok ? j.from + ' &rarr; ' + j.to : j.toText ? esc(j.toText) : 'Not set') + fact('Reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') + fact('Required by', j.req ? fmt(isoDate(j.req)) : 'Not set') + '</div>';
+    var facts = '<div class="facts">' + fact('Client', esc(o.name)) + fact('Requested by', esc(r ? r.name : 'Former member')) + fact('Transport', j.mode) + fact('Route', ok ? j.from + ' &rarr; ' + j.to : sea(j) ? seaRoute(j) : j.toText ? esc(j.toText) : 'Not set') + fact('Reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') + fact('Required by', j.req ? fmt(isoDate(j.req)) : 'Not set') + '</div>';
     var accept = j.pending ? '<div class="alert" style="border-color:var(--info);background:var(--info-soft)"><b style="color:var(--info)">New request.</b> Check the details below, then accept it to open the job and start the first step.</div>' : '';
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
-    var mapbar = '<div class="mapbar"><span><b>Route</b> ' + (ok ? esc(a.city) + ' to ' + esc(b.city) + ' · ' + j.mode : j.toText ? 'to ' + esc(j.toText) : 'not set yet') + '</span><button type="button" class="linkbtn" data-act="mapToggle">' + (S.mapHide ? 'Show map' : 'Hide map') + '</button></div>';
-    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { ar: window.innerWidth <= 800 ? 2.1 : 4, labels: true, empty: j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
+    var mapbar = '<div class="mapbar"><span><b>Route</b> ' + (ok ? esc(a.city) + ' to ' + esc(b.city) + ' · ' + j.mode : sea(j) ? seaRoute(j) + ' · Ocean' : j.toText ? 'to ' + esc(j.toText) : 'not set yet') + '</span><button type="button" class="linkbtn" data-act="mapToggle">' + (S.mapHide ? 'Show map' : 'Hide map') + '</button></div>';
+    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { ar: window.innerWidth <= 800 ? 2.1 : 4, labels: true, empty: sea(j) ? 'Ocean shipment: ' + seaRoute(j) + '. Ports are not shown on the map.' : j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
       '<section class="board trboard">' + taskRows(j) + '</section>' + tabsCard + drawerHtml(j) + jobDock(j) + '</div>';
   }
 
@@ -1715,7 +1727,7 @@
     var f = function (k, v) { return '<div><dt>' + k + '</dt><dd>' + v + '</dd></div>'; };
     var detailHtml = !open ? '' : '<div class="reqd"><dl class="dl">' +
       f('Contents', esc(j.item)) + f('UN number', '<span class="un">' + esc(j.un || '—') + '</span>') + f('Hazard class', esc(j.cls)) + f('Packing group', esc(j.pg)) + f('Quantity', esc(j.qty || '—')) + f('Transport', j.mode) +
-      f('From', j.from && AP[j.from] ? esc(AP[j.from].city) + ' (' + j.from + ')' : esc(j.from || 'LAX')) + f('To', routeOf(j) ? esc(AP[j.to].city) + ' (' + j.to + ')' : j.toText ? esc(j.toText) + ' <span class="muted">(not on the map yet)</span>' : '<span class="muted">Not set</span>') + f('Reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') +
+      (sea(j) ? f('Port of loading', esc(j.pol)) + f('Port of discharge', j.toText ? esc(j.toText) : '<span class="muted">Not set</span>') : f('From', j.from && AP[j.from] ? esc(AP[j.from].city) + ' (' + j.from + ')' : esc(j.from || 'LAX')) + f('To', routeOf(j) ? esc(AP[j.to].city) + ' (' + j.to + ')' : j.toText ? esc(j.toText) + ' <span class="muted">(not on the map yet)</span>' : '<span class="muted">Not set</span>')) + (j.note ? f('Notes', '<span style="white-space:pre-wrap">' + esc(j.note) + '</span>') : '') + f('Reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') +
       f('Required by', j.req ? fmt(isoDate(j.req)) : 'Not set') + f('Services', j.svc.map(function (k) { return SVC[k]; }).join(', ')) + f('Submitted', fmt(j.ev[0][0])) +
       f('Requested by', r ? esc(r.name) + '<br><span class="muted">' + esc(r.title) + '</span>' : 'Former member') + f('Contact', r ? esc(r.email) + (r.phone ? '<br>' + esc(r.phone) : '') : '—') + f('Company', esc(o.name)) + '</dl>' +
       '<h4 class="reqh">Files sent with the request</h4>' + (files.length ? '<ul class="list">' + files.map(function (x) { return fileRow(x, false); }).join('') + '</ul>' : '<p class="muted" style="margin:0 20px 14px">No files were attached.</p>') +
@@ -1813,7 +1825,7 @@
   function cmInfo(it) {
     if (it.k === 'folder') { var nf = it.files.length; return { name: it.job ? jnId(it.job) : 'No job yet', sans: !it.job, chip: [nf + (nf === 1 ? ' file' : ' files'), 'done'], sub: (it.j ? it.j.item.split(/[,(]/)[0].trim() : it.job ? 'Job' : 'Not tied to a job') + ' · latest ' + fmtS(it.files[0].date) }; }
     if (it.k === 'rep') return { name: it.r.name, sans: true, chip: it.r.admin ? ['Admin', 'info'] : ['Member', 'done'], sub: it.r.title || 'Team member' };
-    if (it.k === 'job') { var j = it.j, s = jobStatus(j); return { name: jn(j), chip: [s[0], s[0] === 'Completed' ? 'done' : s[1]], sub: j.item.split(/[,(]/)[0].trim() + ' · ' + (j.from || 'LAX') + (j.to ? ' to ' + j.to : j.toText ? ' to ' + j.toText : ''), prog: progOf(j) }; }
+    if (it.k === 'job') { var j = it.j, s = jobStatus(j); return { name: jn(j), chip: [s[0], s[0] === 'Completed' ? 'done' : s[1]], sub: j.item.split(/[,(]/)[0].trim() + ' · ' + fromText(j) + (j.to ? ' to ' + j.to : j.toText ? ' to ' + j.toText : ''), prog: progOf(j) }; }
     if (it.k === 'file') { var f = it.f; return { name: f.name, chip: [ftype(f.type)[0], 'done'], sub: (f.note ? f.note + ' · ' : '') + fmtS(f.date) }; } /* files are only shown inside their job's folder, so no job number here */
     var x = it.x;
     if (it.k === 'inv') return { name: x.docNum, chip: x.status === 'Paid' ? ['Paid', 'ok'] : isOverdue(x) ? ['Overdue', 'bad'] : ['Due', 'warn'], sub: money(docTotal(x)) + ' · due ' + mdy(dueOf(x)) };
@@ -1943,7 +1955,7 @@
       if (j.fix) wait.push(esc(j.fixNote || 'A correction is needed.'));
       DOCS.forEach(function (q) { if (q.type === 'Quote' && q.status === 'Open' && q.orgId === o.id && q.jobId === j.id && q.fileId) wait.push('Quote ' + esc(q.docNum) + ' for ' + money(docTotal(q)) + ' is waiting for approval.'); });
       body = row('Requested by', esc(r ? r.name : 'Former member')) + row('UN number', '<span class="un">' + esc(j.un || '—') + '</span> · Class ' + esc(j.cls) + ' · PG ' + esc(j.pg)) +
-        row('Route', ok ? esc(AP[j.from].city) + ' to ' + esc(AP[j.to].city) + ' · ' + j.mode : j.toText ? 'To ' + esc(j.toText) + ' · ' + j.mode : 'Not set') + row('Required by', j.req ? fmt(isoDate(j.req)) : 'Not set') + (cl ? row('Your reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') : row('Owner', j.owner ? esc(j.owner) : '<span class="muted">Unassigned</span>')) +
+        row('Route', ok ? esc(AP[j.from].city) + ' to ' + esc(AP[j.to].city) + ' · ' + j.mode : sea(j) ? seaRoute(j) + ' · Ocean' : j.toText ? 'To ' + esc(j.toText) + ' · ' + j.mode : 'Not set') + row('Required by', j.req ? fmt(isoDate(j.req)) : 'Not set') + (cl ? row('Your reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') : row('Owner', j.owner ? esc(j.owner) : '<span class="muted">Unassigned</span>')) +
         '<div class="cm-sec"><h4>Progress · ' + (j.pending ? 'not started' : Math.min(j.done, j.steps.length) + ' of ' + j.steps.length + ' steps') + '</h4><div class="cm-steps">' + bars + '</div><p>' + (j.pending ? 'Waiting for HazPack to accept the request.' : cur ? 'Up next: <b>' + esc(cur) + '</b>' : 'All steps done.') + '</p></div>' +
         (wait.length ? '<div class="cm-sec"><h4>' + (cl ? 'Waiting on you' : 'Waiting on the client') + '</h4>' + wait.map(function (w) { return '<p>' + w + '</p>'; }).join('') + '</div>' : '');
       var staffBtns = cl ? '' : j.pending ? '<button type="button" class="btn sm ghost" data-act="qAccept" data-org="' + o.id + '" data-id="' + j.id + '">Accept request</button>' : cur ? '<button type="button" class="btn sm ghost" data-act="qStep" data-org="' + o.id + '" data-id="' + j.id + '" title="Complete: ' + esc(cur) + '">Complete step</button>' : '';
@@ -2301,7 +2313,7 @@
     var who = showWho() ? '<select id="fp" class="mini" aria-label="Filter by person"><option value="all">Everyone</option>' + S.org.reps.map(function (r) { return '<option value="' + r.id + '"' + (S.fp === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select>' : '';
     var mode = '<select id="fm" class="mini" aria-label="Filter by transport"><option value="all">Any transport</option><option' + (S.fm === 'Air' ? ' selected' : '') + '>Air</option><option' + (S.fm === 'Ground' ? ' selected' : '') + '>Ground</option></select>';
     var rows = list.map(function (j) {
-      var rt = routeOf(j) ? j.from + ' → ' + j.to : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—';
+      var rt = routeOf(j) ? j.from + ' → ' + j.to : sea(j) ? esc(j.pol) + ' → ' + esc(j.toText || '—') : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—';
       var on = !!S.sel[j.id];
       return '<tr class="click' + (on ? ' sel' : '') + '" data-act="job" data-id="' + j.id + '" data-flip="job-' + j.id + '"><td class="cbc"><button type="button" class="cbx" role="checkbox" aria-checked="' + on + '" aria-label="Select ' + esc(jn(j)) + '" data-act="selRow" data-id="' + j.id + '">' + ico('check') + '</button></td><td><b class="mono">' + esc(jn(j)) + '</b></td><td class="ell">' + esc(j.item) + '</td><td class="mono nowrap">' + rt + '</td><td class="nowrap">' + (j.req ? fmtS(isoDate(j.req)) : '<span class="muted">—</span>') + '</td><td class="nowrap">' + progBar(j) + '</td><td>' + pill(j) + '</td>' + (showWho() ? '<td class="ell muted">' + esc(repName(j.rep)) + '</td>' : '') + '</tr>';
     }).join('');
@@ -2528,7 +2540,7 @@
     var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
     var st = staff(), rows = [['Job', 'HazPack ID'].concat(st ? ['Client', 'Owner', 'Priority'] : [], ['Contents', 'UN number', 'Class', 'Quantity', 'Transport', 'From', 'To', 'Required by', 'Status', 'Progress %', 'Requested by'])].concat(ids.map(jobAny).map(function (j) {
       var o = st ? orgOfJob(j.id) : S.org, p = priorityOf(j);
-      return [jn(j), j.id].concat(st ? [o.name, j.owner || 'Unassigned', p ? p[0] : ''] : [], [j.item, j.un, j.cls, j.qty, j.mode, j.from, j.to || j.toText, j.req ? mdy(j.req) : '', jobStatus(j)[0], progOf(j), repName2(o, j.rep)]);
+      return [jn(j), j.id].concat(st ? [o.name, j.owner || 'Unassigned', p ? p[0] : ''] : [], [j.item, j.un, j.cls, j.qty, j.mode, fromText(j), j.to || j.toText, j.req ? mdy(j.req) : '', jobStatus(j)[0], progOf(j), repName2(o, j.rep)]);
     }));
     download('HazPack_jobs_' + iso(TODAY) + '.csv', new Blob(['﻿' + rows.map(function (r) { return r.map(q).join(','); }).join('\n')], { type: 'text/csv;charset=utf-8' }));
   }
