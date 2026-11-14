@@ -81,6 +81,11 @@ Every portal notification is also emailed, through [Resend](https://resend.com),
 Before the first email: in Resend, **Domains, Add domain**, enter `hazpackcompliance.com`, and add the DNS records it shows
 where the domain's DNS is managed. Resend only sends from a verified domain.
 
+Look: the HazPack logo on top, the update in a highlighted box, an orange "Open the client portal" button, and (for clients)
+a signature block matching HazPack's email signature: phone, email and website. To change the signature wording, edit `SIG`
+in `api/_lib/mail.js`. The logo is loaded from `https://www.hazpackcompliance.com/assets/logo.png`, so it appears once the
+site is live with this branch merged.
+
 Who gets what:
 - **Clients:** each person at the company with email alerts on (Team page) who can see the job; admins see every job.
   Covers files and documents HazPack adds, quotes and invoices sent, job steps, corrections and messages from HazPack.
