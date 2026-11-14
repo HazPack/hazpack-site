@@ -80,24 +80,29 @@ export function render(m) {
   const text = [hello, lead, '', m.text, '', `Sign in to see it: ${url}`, '', ...sigText, ...(sigText.length ? [''] : []), foot].filter((l, i) => l || i > 0).join('\n');
 
   const p = (t, extra = '') => `<p style="margin:0 0 14px;${FONT}font-size:15px;line-height:1.55;color:${INK};${extra}">${t}</p>`;
-  // Laid out like the HazPack email signature: logo, orange bar, name and details. The two halves are inline blocks, so on
-  // a narrow screen the details drop below the logo instead of being squeezed.
+  // Laid out like the HazPack email signature: logo, orange bar, then name and details, side by side at every width.
+  // On a phone the logo and text get a little smaller, and the email and web addresses may break after "@" or "www.".
+  const brk = (v) => esc(v).replace('@', '@<wbr>').replace(/^www\./, 'www.<wbr>');
   const sig = m.staff ? '' :
-    `<div style="margin-top:32px;padding-top:26px;border-top:1px solid #e5e7eb;font-size:0">` +
-    `<div style="display:inline-block;vertical-align:middle;width:150px;padding:6px 0 14px 0">` +
-      `<a href="${SITE}"><img src="${LOGO}" width="136" height="43" alt="HazPack Compliance" style="display:block;border:0;width:136px;height:auto"></a></div>` +
-    `<div style="display:inline-block;vertical-align:middle;max-width:360px;border-left:3px solid ${ORANGE};padding:4px 0 4px 20px">` +
-      `<div style="${FONT}font-size:18px;font-weight:bold;color:${NAVY};line-height:1.3">${esc(SIG.name)}</div>` +
-      `<div style="${FONT}font-size:14px;font-weight:bold;color:${ORANGE};line-height:1.45;margin:4px 0 16px">${esc(SIG.title[0])}<span class="hp-sep">&nbsp; |&nbsp; </span><span class="hp-t2" style="white-space:nowrap">${esc(SIG.title[1])}</span></div>` +
+    `<div style="margin-top:32px;padding-top:26px;border-top:1px solid #e5e7eb">` +
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>` +
+    `<td class="hp-logo" width="138" valign="middle" style="width:138px;padding:0 20px 0 0;vertical-align:middle">` +
+      `<a href="${SITE}"><img class="hp-logo-img" src="${LOGO}" width="138" height="44" alt="HazPack Compliance" style="display:block;border:0;width:138px;height:auto"></a></td>` +
+    `<td class="hp-det" valign="middle" style="border-left:3px solid ${ORANGE};padding:4px 0 4px 20px;vertical-align:middle">` +
+      `<div class="hp-name" style="${FONT}font-size:18px;font-weight:bold;color:${NAVY};line-height:1.3">${esc(SIG.name)}</div>` +
+      `<div class="hp-title" style="${FONT}font-size:14px;font-weight:bold;color:${ORANGE};line-height:1.45;margin:4px 0 16px">${esc(SIG.title[0])}<span class="hp-sep">&nbsp; |&nbsp; </span><span class="hp-t2" style="white-space:nowrap">${esc(SIG.title[1])}</span></div>` +
       `<table role="presentation" cellpadding="0" cellspacing="0" border="0">` +
-      SIG.rows.map(([k, v, href], i) => `<tr><td style="${FONT}font-size:14px;color:${GREY};padding:${i === 2 ? 10 : 3}px 16px 3px 0;vertical-align:top;width:44px">${k}</td><td style="${FONT}font-size:14px;padding:${i === 2 ? 10 : 3}px 0 3px;white-space:nowrap"><a href="${esc(href)}" style="color:${NAVY};text-decoration:none">${esc(v)}</a></td></tr>`).join('') +
+      SIG.rows.map(([k, v, href], i) => `<tr><td class="hp-lab" style="${FONT}font-size:14px;color:${GREY};padding:${i === 2 ? 10 : 3}px 16px 3px 0;vertical-align:top;width:44px">${k}</td><td class="hp-val" style="${FONT}font-size:14px;padding:${i === 2 ? 10 : 3}px 0 3px"><a href="${esc(href)}" style="color:${NAVY};text-decoration:none">${brk(v)}</a></td></tr>`).join('') +
       `</table>` +
-      `<div style="${FONT}font-size:12.5px;color:${LIGHT};line-height:1.7;margin-top:16px">${SIG.services.map(esc).join(' &nbsp;&middot;&nbsp; ')}</div>` +
-    `</div></div>`;
+      `<div class="hp-svc" style="${FONT}font-size:12.5px;color:${LIGHT};line-height:1.7;margin-top:16px">${SIG.services.map(esc).join(' &nbsp;&middot;&nbsp; ')}</div>` +
+    `</td></tr></table></div>`;
 
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">` +
     `<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">` +
-    `<style>@media only screen and (max-width:480px){.hp-pad{padding-left:20px!important;padding-right:20px!important}.hp-sep{display:none!important}.hp-t2{display:block!important}}</style>` +
+    `<style>@media only screen and (max-width:480px){.hp-pad{padding-left:20px!important;padding-right:20px!important}` +
+    `.hp-sep{display:none!important}.hp-t2{display:block!important}.hp-logo{width:84px!important;padding-right:12px!important}` +
+    `.hp-logo-img{width:84px!important}.hp-det{padding-left:12px!important}.hp-name{font-size:16px!important}.hp-title{font-size:12.5px!important}` +
+    `.hp-lab,.hp-val{font-size:13px!important}.hp-lab{width:34px!important;padding-right:8px!important}.hp-svc{font-size:11.5px!important}}</style>` +
     `<title>${esc(m.subject || 'HazPack client portal')}</title></head>` +
     `<body style="margin:0;padding:0;background:#f1f3f6">` +
     `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${esc(m.text)}</div>` +
