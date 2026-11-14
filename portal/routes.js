@@ -146,7 +146,7 @@
     var byName = {}; PORTS.forEach(function (p) { byName[p.name] = p; });
     return SHOWCASE.map(function (r) { return { mode: r[0], a: typeof r[1] === 'string' ? byName[r[1]] : r[1], b: typeof r[2] === 'string' ? byName[r[2]] : r[2], label: '' }; });
   }
-  var DATA = {}, LIVE = [], raf = 0, reduce = false, SPIN_T0 = 0;
+  var DATA = {}, LIVE = [], raf = 0, reduce = false;
   try { reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
   function setGlobe(id, routes) { DATA[id] = routes; }
 
@@ -160,92 +160,133 @@
     return { r: r, mode: mode, V: V, H: len.map(function (l) { return mode === 'Air' ? 1 + lift * Math.sin(Math.PI * l / total) : 1 + lift; }), len: len, total: total, icon: new Path2D(ICON[mode]) };
   }
 
+  /* A globe survives the portal's redraws: the page HTML is rebuilt on every change (and every few seconds while it
+     checks for updates), so an existing globe with the same routes is moved into the new placeholder, canvas and all,
+     instead of being drawn again from scratch. */
+  function sigOf(routes) { return JSON.stringify(routes.map(function (r) { return [r.mode, r.a.lat, r.a.lon, r.b.lat, r.b.lon, r.label || '']; })); }
+  function watch(g) {
+    if (g.ro) g.ro.disconnect(); if (g.io) g.io.disconnect();
+    if (window.ResizeObserver) { g.ro = new ResizeObserver(function () { if (size(g)) draw(g, performance.now()); }); g.ro.observe(g.el); }
+    if (window.IntersectionObserver) { g.io = new IntersectionObserver(function (es) { g.visible = es[es.length - 1].isIntersecting; if (g.visible) loop(); }); g.io.observe(g.el); }
+  }
   function mountGlobes(root) {
-    LIVE = LIVE.filter(function (g) { return g.el.isConnected; });
     [].forEach.call((root || document).querySelectorAll('[data-globe]'), function (el) {
       if (el._globe) return;
-      var still = el.dataset.globe === 'backdrop', routes = (still ? showcase() : DATA[el.dataset.globe] || []).map(build);
+      var still = el.dataset.globe === 'backdrop', raw = still ? showcase() : DATA[el.dataset.globe] || [], drop = delete DATA[el.dataset.globe], sig = (still ? 'backdrop:' : '') + sigOf(raw);
+      var old = LIVE.filter(function (g) { return g.sig === sig && !g.el.isConnected; })[0];
+      if (old) { el.appendChild(old.cv); old.el = el; el._globe = old; watch(old); size(old); return; }
+      var routes = raw.map(build);
       var cv = document.createElement('canvas'); cv.setAttribute('aria-hidden', 'true'); el.appendChild(cv);
-      var g = { el: el, cv: cv, ctx: cv.getContext('2d'), routes: routes, lon0: -100, lat0: 25, base: -100, drag: null, idle: 0, t0: performance.now(), visible: true, spin: still };
-      if (still) g.t0 = SPIN_T0 || (SPIN_T0 = g.t0); /* keep turning smoothly when the sign-in screen redraws */
+      var g = { el: el, cv: cv, ctx: cv.getContext('2d'), routes: routes, sig: sig, lon0: -100, lat0: still ? 18 : 25, base: -100, drag: null, idle: 0, t0: performance.now(), visible: true, spin: still, last: 0 };
       if (routes.length && !still) {
         var s = [0, 0, 0]; routes.forEach(function (x) { [x.V[0], x.V[x.V.length - 1]].forEach(function (v) { s[0] += v[0]; s[1] += v[1]; s[2] += v[2]; }); });
         var n = Math.sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2]) || 1;
         g.base = g.lon0 = Math.atan2(s[1], s[0]) / D2R; g.lat0 = Math.max(-20, Math.min(45, Math.asin(s[2] / n) / D2R));
       }
-      el._globe = g; LIVE.push(g);
-      size(g);
-      if (window.ResizeObserver) new ResizeObserver(function () { size(g); if (reduce) draw(g, performance.now()); }).observe(el);
-      if (window.IntersectionObserver) new IntersectionObserver(function (es) { g.visible = es[0].isIntersecting; if (g.visible) loop(); }).observe(el);
-      if (!still) cv.addEventListener('pointerdown', function (e) { g.drag = { x: e.clientX, y: e.clientY, lon: g.lon0, lat: g.lat0 }; try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
-      if (!still) cv.addEventListener('pointermove', function (e) {
-        if (!g.drag) return; var k = 90 / (g.R / (window.devicePixelRatio || 1));
-        g.lon0 = g.drag.lon - (e.clientX - g.drag.x) * k; g.lat0 = Math.max(-60, Math.min(70, g.drag.lat + (e.clientY - g.drag.y) * k));
-        if (reduce) draw(g, performance.now());
-      });
-      function up() { if (g.drag) { g.drag = null; g.idle = performance.now(); g.base = g.lon0; } }
-      if (!still) { cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up); }
+      el._globe = g; LIVE.push(g); watch(g); size(g);
+      if (!still) {
+        cv.addEventListener('pointerdown', function (e) { g.drag = { x: e.clientX, y: e.clientY, lon: g.lon0, lat: g.lat0 }; try { cv.setPointerCapture(e.pointerId); } catch (x) {} });
+        cv.addEventListener('pointermove', function (e) {
+          if (!g.drag) return; var k = 90 / (g.R / g.dpr);
+          g.lon0 = g.drag.lon - (e.clientX - g.drag.x) * k; g.lat0 = Math.max(-60, Math.min(70, g.drag.lat + (e.clientY - g.drag.y) * k));
+          if (reduce) draw(g, performance.now());
+        });
+        var up = function () { if (g.drag) { g.drag = null; g.idle = performance.now(); g.base = g.lon0 - 28 * Math.sin((g.idle - g.t0) / 9000); } };
+        cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+      }
       draw(g, performance.now());
     });
+    /* forget globes whose page is gone for good (kept one redraw so they can be reused) */
+    LIVE = LIVE.filter(function (g) { return g.el.isConnected || (g.gone = (g.gone || 0) + 1) < 3; });
+    LIVE.forEach(function (g) { if (g.el.isConnected) g.gone = 0; });
     loop();
   }
+  /* Resize the canvas only when its size really changes: setting width or height wipes it. The sign-in background is
+     full screen, so it is drawn at no more than 1.25x for speed; the dashboard globe up to 2x. */
   function size(g) {
-    var dpr = window.devicePixelRatio || 1, w = g.el.clientWidth || 600, h = g.el.clientHeight || 360;
-    g.cv.width = Math.round(w * dpr); g.cv.height = Math.round(h * dpr); g.cv.style.width = w + 'px'; g.cv.style.height = h + 'px';
-    g.W = g.cv.width; g.Hh = g.cv.height; g.R = g.spin ? Math.max(g.W, g.Hh) * 0.36 : Math.min(g.W, g.Hh) * 0.43; g.dpr = dpr;
+    var dpr = Math.min(window.devicePixelRatio || 1, g.spin ? 1.25 : 2), w = g.el.clientWidth, h = g.el.clientHeight;
+    if (!w || !h) return false;
+    var W = Math.round(w * dpr), H = Math.round(h * dpr);
+    if (W === g.W && H === g.Hh) return false;
+    g.cv.width = W; g.cv.height = H; g.cv.style.width = w + 'px'; g.cv.style.height = h + 'px';
+    g.W = W; g.Hh = H; g.dpr = dpr; g.R = g.spin ? Math.max(W, H) * 0.36 : Math.min(W, H) * 0.43; g.bg = null;
+    return true;
   }
   function loop() {
     if (raf || reduce) return;
     raf = requestAnimationFrame(function tick(now) {
       raf = 0;
-      LIVE = LIVE.filter(function (g) { return g.el.isConnected; });
       var any = false;
-      LIVE.forEach(function (g) { if (g.visible && !document.hidden) { any = true; draw(g, now); } });
+      LIVE.forEach(function (g) { if (g.visible && g.el.isConnected && g.W && !document.hidden) { any = true; draw(g, now); } });
       if (any) raf = requestAnimationFrame(tick);
     });
   }
   document.addEventListener('visibilitychange', function () { if (!document.hidden) loop(); });
 
+  /* The glow and the sphere never change for a given size, so they are painted once into a spare canvas. */
+  function background(g) {
+    if (g.bg) return g.bg;
+    var W = g.W, H = g.Hh, R = g.R, cx = W / 2, cy = H / 2 + R * 0.02, b = document.createElement('canvas'), c = b.getContext('2d');
+    b.width = W; b.height = H;
+    var gl = c.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.25); gl.addColorStop(0, 'rgba(79,140,220,0.22)'); gl.addColorStop(1, 'rgba(79,140,220,0)');
+    c.fillStyle = gl; c.beginPath(); c.arc(cx, cy, R * 1.25, 0, 7); c.fill();
+    var sf = c.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R); sf.addColorStop(0, '#1d3557'); sf.addColorStop(1, '#0b1626');
+    c.fillStyle = sf; c.beginPath(); c.arc(cx, cy, R, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(140,180,240,0.28)'; c.lineWidth = g.dpr; c.stroke();
+    return (g.bg = b);
+  }
+  var SHADES = 7, DOT_FILL = []; for (var si = 0; si < SHADES; si++) DOT_FILL.push('rgba(176,200,235,' + (0.2 + 0.6 * (si + 0.5) / SHADES).toFixed(2) + ')');
+
   function draw(g, now) {
+    if (!g.W) return;
     var c = g.ctx, W = g.W, H = g.Hh, R = g.R, cx = W / 2, cy = H / 2 + R * 0.02, dpr = g.dpr;
-    if (g.spin) { if (!reduce) g.lon0 = g.base - (now - g.t0) / 1000 * 5; g.lat0 = 18; }
-    else if (!g.drag && !reduce && now - g.idle > 2500) g.lon0 += ((g.base + 28 * Math.sin((now - g.t0) / 9000)) - g.lon0) * 0.02;
+    var dt = g.last ? Math.min(now - g.last, 100) : 16; g.last = now;
+    if (g.spin) { if (!reduce) g.lon0 = g.base - (now - g.t0) / 1000 * 4; }
+    else if (!g.drag && !reduce && now - g.idle > 2500) g.lon0 += ((g.base + 28 * Math.sin((now - g.t0) / 9000)) - g.lon0) * (1 - Math.pow(0.98, dt / 16.7));
     var l0 = g.lon0 * D2R, p0 = g.lat0 * D2R, sl = Math.sin(l0), cl = Math.cos(l0), sp = Math.sin(p0), cp = Math.cos(p0);
     function P(v, h) {
       var x = -v[0] * sl + v[1] * cl, t = v[0] * cl + v[1] * sl, y = cp * v[2] - sp * t, z = sp * v[2] + cp * t;
       h = h || 1; return [cx + R * x * h, cy - R * y * h, z, (x * x + y * y) * h * h > 1];
     }
     c.clearRect(0, 0, W, H);
-    var gl = c.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.25); gl.addColorStop(0, 'rgba(79,140,220,0.22)'); gl.addColorStop(1, 'rgba(79,140,220,0)');
-    c.fillStyle = gl; c.beginPath(); c.arc(cx, cy, R * 1.25, 0, 7); c.fill();
-    var sf = c.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.1, cx, cy, R); sf.addColorStop(0, '#1d3557'); sf.addColorStop(1, '#0b1626');
-    c.fillStyle = sf; c.beginPath(); c.arc(cx, cy, R, 0, 7); c.fill();
-    c.strokeStyle = 'rgba(140,180,240,0.28)'; c.lineWidth = dpr; c.stroke();
-    var L = landDots(), d = 1.6 * dpr;
-    for (var i = 0; i < L.length; i++) { var q = P(L[i]); if (q[2] <= 0) continue; c.fillStyle = 'rgba(176,200,235,' + (0.18 + 0.62 * q[2]).toFixed(2) + ')'; c.fillRect(q[0] - d / 2, q[1] - d / 2, d, d); }
-    var period = 7000;
+    c.drawImage(background(g), 0, 0);
+    /* land dots, grouped into a few shades so each shade is one fill instead of thousands */
+    var L = landDots(), d = 1.6 * dpr, hd = d / 2, paths = [];
+    for (var s = 0; s < SHADES; s++) paths.push(new Path2D());
+    for (var i = 0; i < L.length; i++) {
+      var v = L[i], z = sp * v[2] + cp * (v[0] * cl + v[1] * sl); if (z <= 0) continue;
+      var x = -v[0] * sl + v[1] * cl, y = cp * v[2] - sp * (v[0] * cl + v[1] * sl);
+      paths[Math.min(SHADES - 1, (z * SHADES) | 0)].rect(cx + R * x - hd, cy - R * y - hd, d, d);
+    }
+    for (s = 0; s < SHADES; s++) { c.fillStyle = DOT_FILL[s]; c.fill(paths[s]); }
+    var period = 9000;
+    c.lineCap = 'round'; c.lineJoin = 'round';
     g.routes.forEach(function (rt, ri) {
       var col = COLOR[rt.mode], S = rt.V.map(function (v, k) { return P(v, rt.H[k]); });
       c.lineWidth = 1.6 * dpr; c.strokeStyle = col; c.globalAlpha = 0.75; c.beginPath();
-      for (var k = 1; k < S.length; k++) { var a = S[k - 1], b = S[k], va = a[2] > 0 || a[3], vb = b[2] > 0 || b[3]; if (va && vb) { c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); } }
+      var pen = false;
+      for (var k = 0; k < S.length; k++) { var q = S[k], vis = q[2] > 0 || q[3]; if (vis) { if (pen) c.lineTo(q[0], q[1]); else c.moveTo(q[0], q[1]); } pen = vis; }
       c.stroke(); c.globalAlpha = 1;
       var A = S[0], B = S[S.length - 1];
       if (A[2] > 0) { c.fillStyle = '#ffffff'; c.beginPath(); c.arc(A[0], A[1], 3.2 * dpr, 0, 7); c.fill(); }
       if (B[2] > 0) {
         c.fillStyle = col; c.beginPath(); c.arc(B[0], B[1], 3.4 * dpr, 0, 7); c.fill();
         if (!reduce) { var ph = ((now - g.t0) / 1800 + ri * 0.37) % 1; c.strokeStyle = col; c.globalAlpha = 1 - ph; c.lineWidth = 1.2 * dpr; c.beginPath(); c.arc(B[0], B[1], (4 + ph * 12) * dpr, 0, 7); c.stroke(); c.globalAlpha = 1; }
-        c.font = '600 ' + (10.5 * dpr) + 'px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = 'rgba(232,238,248,0.92)'; c.fillText(rt.r.label || '', B[0] + 7 * dpr, B[1] - 6 * dpr);
+        if (rt.r.label) { c.font = '600 ' + (10.5 * dpr) + 'px "IBM Plex Mono", ui-monospace, monospace'; c.fillStyle = 'rgba(232,238,248,0.92)'; c.fillText(rt.r.label, B[0] + 7 * dpr, B[1] - 6 * dpr); }
       }
+      /* the vehicle glides between points along the route instead of jumping from one to the next */
       var f = reduce ? 0.5 : ((now - g.t0) / period + ri * 0.23) % 1, at = f * rt.total, j = 1;
       while (j < rt.len.length - 1 && rt.len[j] < at) j++;
-      var m = S[j], m0 = S[j - 1];
-      if (m && (m[2] > 0 || m[3])) {
-        var ang = Math.atan2(m[1] - m0[1], m[0] - m0[0]), flip = rt.mode !== 'Air' && Math.abs(ang) > Math.PI / 2;
-        c.save(); c.translate(m[0], m[1]); c.rotate(flip ? ang + Math.PI : ang); c.scale((flip ? -1 : 1) * 0.62 * dpr, 0.62 * dpr);
+      var seg = rt.len[j] - rt.len[j - 1], u = seg > 0 ? Math.max(0, Math.min(1, (at - rt.len[j - 1]) / seg)) : 0, a0 = S[j - 1], a1 = S[j];
+      var mx = a0[0] + (a1[0] - a0[0]) * u, my = a0[1] + (a1[1] - a0[1]) * u, mvis = (a0[2] > 0 || a0[3]) && (a1[2] > 0 || a1[3]);
+      if (mvis) {
+        var ang = Math.atan2(a1[1] - a0[1], a1[0] - a0[0]), flip = rt.mode !== 'Air' && Math.abs(ang) > Math.PI / 2;
+        c.save(); c.translate(mx, my); c.rotate(flip ? ang + Math.PI : ang); c.scale((flip ? -1 : 1) * 0.62 * dpr, 0.62 * dpr);
         c.fillStyle = col; c.strokeStyle = '#0b1626'; c.lineWidth = 2.2; c.stroke(rt.icon); c.fill(rt.icon); c.restore();
       }
     });
   }
 
   window.HP_ROUTES = { PORTS: PORTS, findPort: findPort, seaPath: seaPath, surfacePath: surfacePath, ICON: ICON, COLOR: COLOR, mountGlobes: mountGlobes, setGlobe: setGlobe };
+  mountGlobes(document); /* the sign-in background lives outside the redrawn part of the page */
 })();

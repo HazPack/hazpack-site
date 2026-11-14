@@ -592,6 +592,7 @@ select:disabled { cursor: default; opacity: .6; }
 .globe-legend svg { width: 18px; height: 15px; }
 .globe-legend .globe-hint { margin-left: auto; }
 @media (max-width: 600px) { .globe { aspect-ratio: 1 / 1; } .globe-legend .globe-hint { display: none; } }
-.login-globe { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .55; }
+.login-globe { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .55; display: none; }
+body.is-login .login-globe { display: block; }
 .login-globe canvas { position: absolute; inset: 0; display: block; pointer-events: none; }
 .login { position: relative; z-index: 1; }

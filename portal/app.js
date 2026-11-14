@@ -339,7 +339,7 @@
 
   /* ---------- sign-in ---------- */
   function loginShell(inner) {
-    return '<div class="login-globe" data-globe="backdrop" aria-hidden="true"></div><div class="login"><div class="login-card"><div class="login-band"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><p class="eyebrow">Client portal</p></div><div class="login-body">' + inner + '</div></div></div>';
+    return '<div class="login"><div class="login-card"><div class="login-band"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><p class="eyebrow">Client portal</p></div><div class="login-body">' + inner + '</div></div></div>';
   }
   function orgView() {
     return loginShell('<div><h1>Sign in</h1><p class="muted" style="margin:4px 0 0">Enter your organization login. You will choose your name and enter your PIN next.</p></div>' +
