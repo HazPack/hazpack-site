@@ -1676,7 +1676,23 @@
   }
   function priChip(j) { var p = priorityOf(j); return p ? '<span class="pill ' + p[1] + '">' + p[0] + '</span>' : '<span class="muted">—</span>'; }
   function progOf(j) { return j.pending ? 0 : Math.round(100 * Math.min(j.done, j.steps.length) / j.steps.length); }
-  function progBar(j) { var v = progOf(j); return '<span class="prog" role="img" aria-label="' + v + ' percent done"><i style="width:' + v + '%"></i></span><b class="pv">' + v + '%</b>'; }
+  /* Staged progress bar (21st.dev pick 22): one segment per job step, with the current step named */
+  function stageOf(j) {
+    var n = j.steps.length, d = j.pending ? 0 : Math.min(j.done, n), cur = j.pending || d >= n ? -1 : d;
+    var label = j.pending ? 'Waiting to be accepted' : d >= n ? 'All steps done' : (j.fix ? 'Correction: ' : 'Now: ') + j.steps[d];
+    return { n: n, d: d, cur: cur, label: label, cls: function (i) { return i < d ? 'd' : i === cur ? (j.fix ? 'x' : 'c') : ''; } };
+  }
+  function progBar(j) {
+    var g = stageOf(j), segs = '';
+    for (var i = 0; i < g.n; i++) segs += '<i class="' + g.cls(i) + '"></i>';
+    return '<span class="sbar" role="img" aria-label="' + g.d + ' of ' + g.n + ' steps done. ' + esc(g.label) + '" title="' + esc(g.label) + '"><span class="sr1"><span class="segs" style="--n:' + g.n + '">' + segs + '</span><b class="pv">' + g.d + '/' + g.n + '</b></span><span class="snow">' + esc(g.label) + '</span></span>';
+  }
+  function trBar(j) {
+    var g = stageOf(j), segs = '';
+    for (var i = 0; i < g.n; i++) segs += '<i class="' + g.cls(i) + '" title="' + esc(j.steps[i]) + '"></i>';
+    return '<div class="trbar" role="img" aria-label="' + g.d + ' of ' + g.n + ' steps done. ' + esc(g.label) + '"><span class="segs" style="--n:' + g.n + '">' + segs + '</span><span class="trnow' + (j.fix && g.cur > -1 ? ' x' : '') + '">' + esc(g.label) + '</span></div>';
+  }
+
   function allJobsCount() { var n = 0; Object.keys(ORGS).forEach(function (k) { n += ORGS[k].jobs.length; }); return n; }
   function orgOfJob(id) { var r = null; Object.keys(ORGS).forEach(function (k) { if (ORGS[k].jobs.some(function (j) { return j.id === id; })) r = ORGS[k]; }); return r; }
 
@@ -2466,7 +2482,7 @@
       return '<div class="tr ' + st + (open ? ' open' : '') + '"><button type="button" class="tr-h" data-act="trToggle" data-k="' + key + '" aria-expanded="' + open + '">' + icon + '<span class="tr-l">' + esc(label) + '</span><span class="tr-m">' + meta + '</span><span class="pill ' + chip[1] + '">' + chip[0] + '</span>' + ico('chev', 'cv') + '</button>' +
         '<div class="tr-b"><div class="tr-bi">' + sub.map(function (s) { return '<div class="tr-s">' + ico(s[0]) + '<span class="ell">' + esc(s[1]) + '</span><span class="muted">' + esc(s[2]) + '</span>' + (s[3] ? '<button type="button" class="linkbtn" data-act="view" data-id="' + s[3] + '">View</button>' : '') + '</div>'; }).join('') + (sa ? '<div class="tr-acts">' + sa + '</div>' : '') + '</div></div></div>';
     }).join('');
-    return '<div class="trwrap caps"><div class="trhead"><div><b>Progress</b><span class="muted">' + (j.pending ? 'Waiting for HazPack to accept' : done + ' of ' + n + ' steps done') + '</span></div></div><div class="trs">' + rows + '</div></div>';
+    return '<div class="trwrap caps"><div class="trhead"><div><b>Progress</b><span class="muted">' + (j.pending ? 'Waiting for HazPack to accept' : done + ' of ' + n + ' steps done') + '</span></div></div>' + trBar(j) + '<div class="trs">' + rows + '</div></div>';
   }
 
   /* ---------- 11 Diff table ---------- */

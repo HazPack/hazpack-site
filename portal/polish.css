@@ -173,3 +173,22 @@ label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px;
 .npanel .nempty { padding: 26px 16px; text-align: center; display: grid; gap: 2px; color: var(--muted); font-size: 13.5px; }
 .npanel .nempty b { color: var(--ink); font-size: 14px; }
 .npanel header .linkbtn[disabled] { opacity: .45; cursor: default; }
+
+/* Staged progress bar (21st.dev pick 22): segments per step, current step named */
+.sbar { display: inline-grid; gap: 3px; min-width: 120px; vertical-align: middle; }
+.pcell .sbar { flex: 1; }
+.sbar .sr1 { display: flex; align-items: center; gap: 8px; }
+.segs { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 3px; flex: 1; min-width: 84px; }
+.segs i { height: 7px; border-radius: 2px; background: var(--rail-hover); }
+.segs i.d { background: var(--navy-text); }
+.segs i.c { background: linear-gradient(90deg, var(--accent) 0 50%, var(--rail-hover) 50%); }
+.segs i.x { background: var(--bad); }
+.sbar .pv { min-width: 26px; font-size: 12px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sbar .snow { display: block; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; color: var(--muted); line-height: 1.3; }
+.bhr .sbar .snow { max-width: 260px; }
+
+.trbar { display: grid; gap: 6px; margin: 2px 0 12px; }
+.trbar .segs { gap: 4px; }
+.trbar .segs i { height: 9px; border-radius: 3px; }
+.trnow { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.trnow.x { color: var(--bad); }
