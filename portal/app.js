@@ -3,7 +3,9 @@
   var LOGO_L = '/portal/logo-light.svg', LOGO_D = '/portal/logo-dark.svg';
   var MASK = window.HP_MAP.mask;
   var AIRPORTS = window.HP_MAP.airports.map(function (a) { return { code: a[0], city: a[1], country: a[2], lat: a[3], lon: a[4] }; });
-  var AP = {}; AIRPORTS.forEach(function (a) { AP[a.code] = a; });
+  var AP = {}; AIRPORTS.forEach(function (a, i) { AP[a.code] = a; a.core = i < (window.HP_MAP.core || 0); });
+  /* A city counts only as a whole word, so "Male" does not match "female". */
+  function cityRe(a) { return a.re || (a.re = new RegExp('\\b' + a.city.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i')); }
   var FROM_EMAIL = 'lax-dgr@hazpackcompliance.com';
 
   /* ---------- dates, steps ---------- */
@@ -370,7 +372,7 @@
   function showWho() { return staff() || S.rep.admin; }
   function jobTable(list) {
     return '<div class="tbl-wrap"><table><thead><tr><th>' + (staff() ? 'Job' : 'Reference') + '</th><th>Contents</th><th>UN no.</th><th>Route</th>' + (showWho() ? '<th>Requested by</th>' : '') + '<th>Status</th></tr></thead><tbody>' + list.map(function (j) {
-      return '<tr class="click" data-act="job" data-id="' + j.id + '"><td class="mono"><b>' + esc(jn(j)) + '</b></td><td>' + esc(j.item) + '</td><td><span class="un">' + j.un + '</span></td><td class="mono">' + (routeOf(j) ? j.from + ' → ' + j.to : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—') + '</td>' + (showWho() ? '<td>' + esc(repName(j.rep)) + '</td>' : '') + '<td>' + pill(j) + '</td></tr>';
+      return '<tr class="click" data-act="job" data-id="' + j.id + '"><td class="mono"><b>' + esc(jn(j)) + '</b></td><td>' + esc(j.item) + '</td><td><span class="un">' + j.un + '</span></td><td class="mono">' + (routeOf(j) ? j.from + ' → ' + j.to : sea(j) ? esc(j.pol) + ' → ' + esc(j.toText || '—') : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—') + '</td>' + (showWho() ? '<td>' + esc(repName(j.rep)) + '</td>' : '') + '<td>' + pill(j) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
   }
   function actions(f) {
@@ -606,7 +608,7 @@
     var best = null;
     AIRPORTS.forEach(function (a) {
       var pos = -1, m = new RegExp('\\b' + a.code + '\\b').exec(seg); if (m) pos = m.index;
-      var c = seg.toLowerCase().indexOf(a.city.toLowerCase()); if (c > -1 && (pos < 0 || c < pos)) pos = c;
+      var cm = cityRe(a).exec(seg), c = cm ? cm.index : -1; if (c > -1 && (pos < 0 || c < pos)) pos = c;
       if (pos > -1 && (!best || pos < best.pos)) best = { a: a, pos: pos };
     });
     return best && best.a;
@@ -682,9 +684,23 @@
   }
   /* Countries mapped to their main cargo airport, used when a DGD leaves the airport fields blank (they are optional on the IATA form). */
   var COUNTRY_AP = { 'Taiwan': 'TPE', 'Singapore': 'SIN', 'Hong Kong': 'HKG', 'Japan': 'NRT', 'South Korea': 'ICN', 'Korea': 'ICN', 'China': 'PVG', 'Germany': 'FRA', 'United Kingdom': 'LHR', 'U.K.': 'LHR', 'England': 'LHR', 'France': 'CDG', 'Netherlands': 'AMS', 'Belgium': 'BRU', 'Switzerland': 'ZRH', 'Italy': 'FCO', 'Spain': 'MAD', 'Turkey': 'IST', 'Israel': 'TLV', 'Canada': 'YYZ', 'Mexico': 'MEX', 'Brazil': 'GRU', 'Colombia': 'BOG', 'India': 'DEL', 'Thailand': 'BKK', 'Malaysia': 'KUL', 'Australia': 'SYD', 'New Zealand': 'AKL', 'United Arab Emirates': 'DXB', 'U.A.E.': 'DXB', 'Qatar': 'DOH', 'Egypt': 'CAI', 'South Africa': 'JNB', 'Kenya': 'NBO' };
+  var COUNTRY_ALIAS = { GB: ['UK', 'U.K.', 'Great Britain', 'England', 'Scotland', 'Wales', 'Northern Ireland'], AE: ['UAE', 'U.A.E.'], KR: ['Korea'], TR: ['Turkey', 'Turkiye'], RU: ['Russia'], VN: ['Vietnam', 'Viet Nam'], CZ: ['Czech Republic', 'Czechia'], NL: ['Holland', 'The Netherlands'], CN: ['China', 'P.R. China', 'PRC'], TW: ['Taiwan', 'R.O.C.'], HK: ['Hong Kong'], MO: ['Macau', 'Macao'], IR: ['Iran'], SY: ['Syria'], LA: ['Laos'], BO: ['Bolivia'], VE: ['Venezuela'], TZ: ['Tanzania'], CD: ['DR Congo', 'Democratic Republic of the Congo'], CI: ["Cote d'Ivoire", 'Ivory Coast'], MK: ['North Macedonia', 'Macedonia'], MD: ['Moldova'], PS: ['Palestine'] };
+  var REGION = null; try { REGION = new Intl.DisplayNames(['en'], { type: 'region' }); } catch (e) {}
+  var COUNTRY_RE = {};
+  function countryIn(cc, T) {
+    if (!COUNTRY_RE[cc]) {
+      var names = (COUNTRY_ALIAS[cc] || []).slice();
+      Object.keys(COUNTRY_AP).forEach(function (k) { var a = AP[COUNTRY_AP[k]]; if (a && a.country === cc) names.push(k); });
+      if (REGION) { try { var nm = REGION.of(cc); if (nm && nm !== cc) names.push(nm.normalize('NFD').replace(/[\u0300-\u036f]/g, '')); } catch (e) {} }
+      if (!names.length) return true;
+      COUNTRY_RE[cc] = new RegExp('(^|[^A-Za-z])(' + names.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?![A-Za-z])', 'i');
+    }
+    return COUNTRY_RE[cc].test(T);
+  }
   function inferRoute(T) {
     var best = null;
-    AIRPORTS.forEach(function (a) { if (a.country === 'US') return; var i = T.toLowerCase().indexOf(a.city.toLowerCase()); if (i > -1 && (!best || i < best.i)) best = { code: a.code, i: i }; });
+    /* A city guess also needs the airport's country named somewhere in the DGD, so a street such as "Victoria Ave" in a US address is not read as Victoria, Seychelles. The original 62 main airports (HP_MAP.core) are trusted without it. */
+    AIRPORTS.forEach(function (a) { if (a.country === 'US') return; var m = cityRe(a).exec(T); if (m && (!best || m.index < best.i) && (a.core || countryIn(a.country, T))) best = { code: a.code, i: m.index }; });
     if (best) return best.code;
     Object.keys(COUNTRY_AP).forEach(function (c) { var m = new RegExp('\\b' + c.replace(/\./g, '\\.') + '\\b', 'i').exec(T); if (m && (!best || m.index < best.i)) best = { code: COUNTRY_AP[c], i: m.index }; });
     return best ? best.code : null;
