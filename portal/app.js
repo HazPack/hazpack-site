@@ -677,7 +677,7 @@
     return 'HP-2611-' + ('00' + (max + 1)).slice(-3);
   }
   /* Countries mapped to their main cargo airport, used when a DGD leaves the airport fields blank (they are optional on the IATA form). */
-  var COUNTRY_AP = { 'Taiwan': 'TPE', 'Singapore': 'SIN', 'Hong Kong': 'HKG', 'Japan': 'NRT', 'South Korea': 'ICN', 'Korea': 'ICN', 'China': 'PVG', 'Germany': 'FRA', 'United Kingdom': 'LHR', 'U.K.': 'LHR', 'England': 'LHR', 'France': 'CDG', 'Netherlands': 'AMS', 'Belgium': 'BRU', 'Switzerland': 'ZRH', 'Italy': 'FCO', 'Spain': 'MAD', 'Turkey': 'IST', 'Canada': 'YYZ', 'Mexico': 'MEX', 'Brazil': 'GRU', 'Colombia': 'BOG', 'India': 'DEL', 'Thailand': 'BKK', 'Malaysia': 'KUL', 'Australia': 'SYD', 'New Zealand': 'AKL', 'United Arab Emirates': 'DXB', 'U.A.E.': 'DXB', 'Qatar': 'DOH', 'Egypt': 'CAI', 'South Africa': 'JNB', 'Kenya': 'NBO' };
+  var COUNTRY_AP = { 'Taiwan': 'TPE', 'Singapore': 'SIN', 'Hong Kong': 'HKG', 'Japan': 'NRT', 'South Korea': 'ICN', 'Korea': 'ICN', 'China': 'PVG', 'Germany': 'FRA', 'United Kingdom': 'LHR', 'U.K.': 'LHR', 'England': 'LHR', 'France': 'CDG', 'Netherlands': 'AMS', 'Belgium': 'BRU', 'Switzerland': 'ZRH', 'Italy': 'FCO', 'Spain': 'MAD', 'Turkey': 'IST', 'Israel': 'TLV', 'Canada': 'YYZ', 'Mexico': 'MEX', 'Brazil': 'GRU', 'Colombia': 'BOG', 'India': 'DEL', 'Thailand': 'BKK', 'Malaysia': 'KUL', 'Australia': 'SYD', 'New Zealand': 'AKL', 'United Arab Emirates': 'DXB', 'U.A.E.': 'DXB', 'Qatar': 'DOH', 'Egypt': 'CAI', 'South Africa': 'JNB', 'Kenya': 'NBO' };
   function inferRoute(T) {
     var best = null;
     AIRPORTS.forEach(function (a) { if (a.country === 'US') return; var i = T.toLowerCase().indexOf(a.city.toLowerCase()); if (i > -1 && (!best || i < best.i)) best = { code: a.code, i: i }; });
