@@ -103,13 +103,32 @@
   }
   function surfacePath(a, b) { return slerpLine([a.lat, a.lon], [b.lat, b.lon], [[a.lat, a.lon]]); }
   var seaCache = {};
+  function toLatLon(v) { var n = Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); return [Math.asin(v[2] / n) / D2R, Math.atan2(v[1], v[0]) / D2R]; }
+  /* The point dist radians from p toward q, as [lat, lon]. */
+  function toward(p, q, dist) {
+    var w = angle(p, q); if (w < 1e-6) return p;
+    var t = Math.min(1, dist / w), u = unit(p[0], p[1]), v = unit(q[0], q[1]), s = Math.sin(w), a = Math.sin((1 - t) * w) / s, b = Math.sin(t * w) / s;
+    return toLatLon([a * u[0] + b * v[0], a * u[1] + b * v[1], a * u[2] + b * v[2]]);
+  }
+  /* A route through waypoints with each corner rounded off: the line stops a little before the waypoint and bends
+     to a point a little after it. The bend is at most 6 degrees and never more than a third of either leg, so it
+     stays close to the lane and does not cut across land. */
+  function rounded(K) {
+    var pts = [K[0]], prev = K[0];
+    for (var i = 1; i < K.length - 1; i++) {
+      var V = K[i], r = Math.min(6 * D2R, angle(K[i - 1], V) / 3, angle(V, K[i + 1]) / 3);
+      var A = toward(V, K[i - 1], r), B = toward(V, K[i + 1], r), ua = unit(A[0], A[1]), uv = unit(V[0], V[1]), ub = unit(B[0], B[1]);
+      slerpLine(prev, A, pts);
+      for (var k = 1; k <= 10; k++) { var t = k / 10, a = (1 - t) * (1 - t), b = 2 * (1 - t) * t, c = t * t; pts.push(toLatLon([a * ua[0] + b * uv[0] + c * ub[0], a * ua[1] + b * uv[1] + c * ub[1], a * ua[2] + b * uv[2] + c * ub[2]])); }
+      prev = B;
+    }
+    return slerpLine(prev, K[K.length - 1], pts);
+  }
   function seaPath(a, b) {
     var key = a.lat + ',' + a.lon + '>' + b.lat + ',' + b.lon; if (seaCache[key]) return seaCache[key];
-    var s = nearestNode(a), t = nearestNode(b), pts = [[a.lat, a.lon]], way = s === t ? [s] : lanes(s, t), prev = [a.lat, a.lon];
-    if (angle(prev, [b.lat, b.lon]) < angle(prev, NODES[s])) way = []; /* two ports on the same stretch of coast */
-    way.forEach(function (k) { slerpLine(prev, NODES[k], pts); prev = NODES[k]; });
-    slerpLine(prev, [b.lat, b.lon], pts);
-    return (seaCache[key] = pts);
+    var s = nearestNode(a), t = nearestNode(b), way = s === t ? [s] : lanes(s, t), start = [a.lat, a.lon];
+    if (angle(start, [b.lat, b.lon]) < angle(start, NODES[s])) way = []; /* two ports on the same stretch of coast */
+    return (seaCache[key] = rounded([start].concat(way.map(function (k) { return NODES[k]; }), [[b.lat, b.lon]])));
   }
 
   var ICON = {
