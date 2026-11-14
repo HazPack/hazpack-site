@@ -118,10 +118,39 @@
     for (var i = 0; i <= N; i++) { var t = i / N, u = 1 - t; out.push([u * u * x1 + 2 * u * t * cx + t * t * x2, u * u * y1 + 2 * u * t * cy + t * t * y2]); }
     return out;
   }
+  var RT = window.HP_ROUTES;
+  function portPt(p) { return { code: p.name, city: p.name, lat: p.lat, lon: p.lon }; }
+  /* Where a job starts and ends on the map: airports for air and ground, seaports for ocean. */
+  function ends(j) {
+    if (sea(j)) { var a = RT.findPort(j.pol), b = RT.findPort(j.toText); return a && b ? { a: portPt(a), b: portPt(b) } : null; }
+    return routeOf(j) ? { a: pt(j.from), b: pt(j.to) } : null;
+  }
+  function mapped(j) { return !!ends(j); }
+  /* The route on the flat map: an arc for air, sea lanes for ocean, along the ground for trucks. 73 evenly spaced points. */
+  function flatPath(j, e) {
+    if (j.mode === 'Air' || (j.mode !== 'Ocean' && j.mode !== 'Ground')) return greatCircle(e.a, e.b);
+    var ll = j.mode === 'Ocean' && sea(j) ? RT.seaPath(e.a, e.b) : RT.surfacePath(e.a, e.b), P = [], len = [0];
+    ll.forEach(function (q, i) { var x = px(q[1]), y = py(q[0]); if (i) { var d = x - P[i - 1][0]; if (d > 360) x -= 720; else if (d < -360) x += 720; } P.push([x, y]); if (i) len.push(len[i - 1] + Math.hypot(x - P[i - 1][0], y - P[i - 1][1])); });
+    var out = [], total = len[len.length - 1] || 1, k = 1;
+    for (var i = 0; i <= 72; i++) { var at = total * i / 72; while (k < len.length - 1 && len[k] < at) k++; var f = len[k] === len[k - 1] ? 0 : (at - len[k - 1]) / (len[k] - len[k - 1]); out.push([P[k - 1][0] + (P[k][0] - P[k - 1][0]) * f, P[k - 1][1] + (P[k][1] - P[k - 1][1]) * f]); }
+    return out;
+  }
+  function modeIcon(mode) { return RT.ICON[mode] || RT.ICON.Air; }
+  function modeColor(mode) { return RT.COLOR[mode] || RT.COLOR.Air; }
+  /* The dashboard globe: open jobs that can be placed on the map. */
+  var globeN = 0;
+  function globeHtml(jobs, opt) {
+    var routes = jobs.map(function (j) { var e = ends(j); return e ? { mode: j.mode, a: e.a, b: e.b, label: jn(j) } : null; }).filter(Boolean);
+    if (!routes.length) return '<div class="mapcard empty"><span>' + esc(opt.empty) + '</span></div>';
+    var id = 'g' + (++globeN), modes = ['Air', 'Ocean', 'Ground'].filter(function (m) { return routes.some(function (r) { return r.mode === m; }); });
+    RT.setGlobe(id, routes);
+    return '<div class="globecard"><div class="globe" data-globe="' + id + '" role="img" aria-label="' + esc(opt.label + ': ' + routes.map(function (r) { return r.label + ', ' + r.mode.toLowerCase() + ', ' + r.a.city + ' to ' + r.b.city; }).join('; ')) + '"></div>' +
+      '<div class="globe-legend">' + modes.map(function (m) { return '<span><svg viewBox="-13 -11 26 22" aria-hidden="true"><path d="' + modeIcon(m) + '" fill="' + modeColor(m) + '"/></svg>' + (m === 'Air' ? 'Air' : m === 'Ocean' ? 'Ocean' : 'Ground') + '</span>'; }).join('') + '<span class="globe-hint">Drag to turn the globe</span></div></div>';
+  }
   var PLANE = 'M12 0L5 -2.2L-1 -10L-4.5 -10L-1.5 -2.4L-7.5 -2.4L-9.5 -5.5L-12 -5.5L-10 0L-12 5.5L-9.5 5.5L-7.5 2.4L-1.5 2.4L-4.5 10L-1 10L5 2.2Z';
   function mapHtml(jobs, opt) {
     opt = opt || {};
-    var routes = jobs.filter(routeOf).map(function (j) { var a = pt(j.from), b = pt(j.to); return { j: j, a: a, b: b, P: greatCircle(a, b) }; });
+    var routes = jobs.map(function (j) { var e = ends(j); return e ? { j: j, a: e.a, b: e.b, P: flatPath(j, e) } : null; }).filter(Boolean);
     if (!routes.length) return '<div class="mapcard empty"><span>' + (opt.empty || 'The route appears here once airports are added or a declaration is uploaded.') + '</span></div>';
     var minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
     routes.forEach(function (r) { r.P.forEach(function (q) { minx = Math.min(minx, q[0]); maxx = Math.max(maxx, q[0]); miny = Math.min(miny, q[1]); maxy = Math.max(maxy, q[1]); }); });
@@ -135,9 +164,10 @@
     routes.forEach(function (r) {
       var n = r.P.length - 1, m = Math.floor(n / 2);
       var ang = Math.atan2(r.P[m + 1][1] - r.P[m - 1][1], r.P[m + 1][0] - r.P[m - 1][0]) * 180 / Math.PI;
-      svg += '<path d="' + r.P.map(function (q, ix) { return (ix ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join('') + '" fill="none" stroke="#F37A21" stroke-width="' + (2 * u).toFixed(2) + '" stroke-linecap="round" stroke-opacity=".95"/>';
-      [r.P[0], r.P[n]].forEach(function (e) { svg += '<circle cx="' + e[0].toFixed(1) + '" cy="' + e[1].toFixed(1) + '" r="' + (4.2 * u).toFixed(2) + '" fill="#ffffff" stroke="#F37A21" stroke-width="' + (1.6 * u).toFixed(2) + '"/>'; });
-      if (r.j.mode === 'Air') svg += '<g transform="translate(' + r.P[m][0].toFixed(1) + ' ' + r.P[m][1].toFixed(1) + ') rotate(' + ang.toFixed(1) + ') scale(' + (1.05 * u).toFixed(3) + ')"><path d="' + PLANE + '" fill="#F37A21" stroke="#0c1829" stroke-width="1.2"/></g>';
+      var col = modeColor(r.j.mode), flip = r.j.mode !== 'Air' && Math.abs(ang) > 90;
+      svg += '<path d="' + r.P.map(function (q, ix) { return (ix ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1); }).join('') + '" fill="none" stroke="' + col + '" stroke-width="' + (2 * u).toFixed(2) + '" stroke-linecap="round" stroke-opacity=".95"/>';
+      [r.P[0], r.P[n]].forEach(function (e) { svg += '<circle cx="' + e[0].toFixed(1) + '" cy="' + e[1].toFixed(1) + '" r="' + (4.2 * u).toFixed(2) + '" fill="#ffffff" stroke="' + col + '" stroke-width="' + (1.6 * u).toFixed(2) + '"/>'; });
+      svg += '<g transform="translate(' + r.P[m][0].toFixed(1) + ' ' + r.P[m][1].toFixed(1) + ') rotate(' + (flip ? ang + 180 : ang).toFixed(1) + ') scale(' + ((flip ? -1 : 1) * 1.05 * u).toFixed(3) + ' ' + (1.05 * u).toFixed(3) + ')"><path d="' + modeIcon(r.j.mode) + '" fill="' + col + '" stroke="#0c1829" stroke-width="1.2"/></g>';
       if (opt.labels) {
         var lab = function (p, above, html) {
           var pc = (p[0] - vx) / w * 100, tx = pc > 78 ? '-100%' : pc < 22 ? '0%' : '-50%';
@@ -309,7 +339,7 @@
 
   /* ---------- sign-in ---------- */
   function loginShell(inner) {
-    return '<div class="login"><div class="login-card"><div class="login-band"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><p class="eyebrow">Client portal</p></div><div class="login-body">' + inner + '</div></div></div>';
+    return '<div class="login-globe" data-globe="backdrop" aria-hidden="true"></div><div class="login"><div class="login-card"><div class="login-band"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><p class="eyebrow">Client portal</p></div><div class="login-body">' + inner + '</div></div></div>';
   }
   function orgView() {
     return loginShell('<div><h1>Sign in</h1><p class="muted" style="margin:4px 0 0">Enter your organization login. You will choose your name and enter your PIN next.</p></div>' +
@@ -404,15 +434,15 @@
       '<div class="card stat"><span class="k">Open jobs</span><span class="v">' + open.length + '</span><span class="s">being worked by HazPack</span></div>' +
       '<div class="card stat"><span class="k">Requests under review</span><span class="v">' + req.length + '</span><span class="s">waiting for HazPack to accept</span></div>' +
       '<div class="card stat"><span class="k">Files added this week</span><span class="v">' + wk + '</span><span class="s">declarations, reports, invoices</span></div></div>' +
-      looseQuotesCard() + '<div class="card"><h2>Routes</h2><div class="pad">' + mapHtml(jobs.filter(isOpen), { label: 'Routes for open jobs', empty: 'Routes for open jobs appear here.', foot: ['Open jobs', 'Airports read from each declaration'] }) + '</div></div>' +
+      looseQuotesCard() + '<div class="card"><h2>Routes</h2><div class="pad">' + globeHtml(jobs.filter(isOpen), { label: 'Routes for open jobs', empty: 'Routes for open jobs appear here.' }) + '</div></div>' +
       '<div class="card"><h2>Jobs</h2>' + (jobs.length ? jobTable(jobs.slice(0, 5)) : emptyS('No jobs yet', 'Start a job request and it appears here.', !staff() ? '' + ihb('New job request', 'type="button" data-act="request"', 'sm') + '' : '')) + '</div>' +
       '<div class="two"><div class="card"><h2>Latest files</h2><ul class="list">' + (recentFiles.length ? recentFiles.map(fileRowCompact).join('') : '<li class="muted">No files yet.</li>') + '</ul></div>' +
       '<div class="card"><h2>Recent activity</h2><ul class="list">' + (feed.length ? feed.map(function (n) { return '<li><div class="t"><b style="font-weight:500">' + esc(clientText(n.text)) + '</b><span class="mono">' + esc(jnId(n.job)) + ' · ' + fmt(n.date) + '</span></div></li>'; }).join('') : '<li class="muted">No activity yet.</li>') + '</ul></div></div>';
   }
   function jobCard(j) {
-    var a = pt(j.from), b = pt(j.to), ok = routeOf(j);
+    var e = ends(j), a = e && e.a, b = e && e.b, ok = !!e;
     return '<button type="button" class="jcard" data-act="job" data-id="' + j.id + '"' + (S.job === j.id ? ' aria-current="true"' : '') + '><div class="r1"><b>' + esc(jn(j)) + '</b>' + pill(j) + '</div>' +
-      (ok ? '<div class="rt"><span class="code">' + a.code + '</span><span class="ln">' + (j.mode === 'Air' ? '<svg viewBox="-13 -11 26 22" aria-hidden="true"><path d="' + PLANE + '"/></svg>' : '') + '</span><span class="code">' + b.code + '</span></div><div class="cities"><span>' + esc(a.city) + '</span><span>' + esc(b.city) + '</span></div>' : '<div class="sub">' + (j.toText ? 'To ' + esc(j.toText) + ' (not on the map yet)' : 'Route not set yet') + '</div>') +
+      (ok ? '<div class="rt"><span class="code">' + esc(sea(j) ? a.city.split(' / ')[0] : a.code) + '</span><span class="ln"><svg viewBox="-13 -11 26 22" aria-hidden="true"><path d="' + modeIcon(j.mode) + '"/></svg></span><span class="code">' + esc(sea(j) ? b.city.split(' / ')[0] : b.code) + '</span></div><div class="cities"><span>' + esc(a.city) + '</span><span>' + esc(b.city) + '</span></div>' : '<div class="sub">' + (j.toText ? 'To ' + esc(j.toText) + ' (not on the map yet)' : 'Route not set yet') + '</div>') +
       '<div class="sub">' + esc(j.item) + '</div><div class="sub">' + j.mode + ' · Opened ' + fmtS(j.ev[0][0]) + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : '') + (showWho() ? ' · ' + esc(repName(j.rep)) : '') + '</div></button>';
   }
   function jobsView() {
@@ -472,7 +502,7 @@
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     return '<div style="display:grid;gap:14px"><button type="button" class="btn ghost sm back-m" data-act="backList">&larr; All jobs</button>' +
       '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h2 class="mono" style="font-family:var(--font-mono);font-size:22px">' + esc(jn(j)) + '</h2><div class="muted">' + esc(j.item) + '' + '</div></div>' + pill(j) + '</div>' + sb +
-      mapHtml([j], { labels: true, empty: sea(j) ? 'Ocean shipment: ' + seaRoute(j) + '. Ports are not shown on the map.' : j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
+      mapHtml([j], { labels: true, empty: sea(j) ? 'Ocean shipment: ' + seaRoute(j) + '. One of these ports is not on the map yet. HazPack can add it.' : j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot }) +
       tabsCard + jobDock(j) + '</div>';
   }
   var FOLDER_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>';
@@ -520,9 +550,9 @@
     document.body.classList.toggle('is-login', S.stage !== 'app'); queueSync();
     document.body.classList.toggle('job-open', S.stage === 'app' && S.view === 'jobs' && S.mobileDetail && !sheetMode());
     var nb = document.getElementById('notebar'); nb.hidden = !(S.demo && S.stage === 'app'); nb.textContent = 'Sample data. Every company, person and file here is made up, and this copy resets from time to time.';
-    if (S.stage === 'org') { app.innerHTML = orgView(); return; }
-    if (S.stage === 'staff') { app.innerHTML = staffView(); return; }
-    if (S.stage === 'pin') { app.innerHTML = pinView(); return; }
+    if (S.stage === 'org') { app.innerHTML = orgView(); RT.mountGlobes(app); return; }
+    if (S.stage === 'staff') { app.innerHTML = staffView(); RT.mountGlobes(app); return; }
+    if (S.stage === 'pin') { app.innerHTML = pinView(); RT.mountGlobes(app); return; }
     var foc = document.activeElement && (document.activeElement.id === 'q' || document.activeElement.id === 'bq') ? document.activeElement.id : null;
     if (!staff() && (S.view === 'billing' || S.view === 'doc' || S.view === 'staffhome')) S.view = 'dashboard';
     if (staff() && S.view === 'invoices') S.view = 'dashboard';
@@ -531,6 +561,7 @@
     var jl = document.getElementById('jlistWrap'), jlTop = jl ? jl.scrollTop : 0; /* keep the job list where it was */
     app.innerHTML = '<div class="shell">' + rail() + '<div class="work" style="position:relative">' + topbar() + '<main class="content">' + body + '</main></div>' + navDock() + '</div>';
     if (jlTop && (jl = document.getElementById('jlistWrap'))) jl.scrollTop = jlTop;
+    RT.mountGlobes(app);
     if (foc) { var q = document.getElementById(foc); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
     fitPaper(); cmDraw(); railAfter(); flipAfter(); dockAfter(); labelTables(); polishAfter(); S.recAnim = false;
   }
@@ -1709,7 +1740,7 @@
     var accept = j.pending ? '<div class="alert" style="border-color:var(--info);background:var(--info-soft)"><b style="color:var(--info)">New request.</b> Check the details below, then accept it to open the job and start the first step.</div>' : '';
     var foot = ok ? [esc(a.city) + ' (' + a.code + ') to ' + esc(b.city) + ' (' + b.code + ')', j.mode + ' route'] : null;
     var mapbar = '<div class="mapbar"><span><b>Route</b> ' + (ok ? esc(a.city) + ' to ' + esc(b.city) + ' · ' + j.mode : sea(j) ? seaRoute(j) + ' · Ocean' : j.toText ? 'to ' + esc(j.toText) : 'not set yet') + '</span><button type="button" class="linkbtn" data-act="mapToggle">' + (S.mapHide ? 'Show map' : 'Hide map') + '</button></div>';
-    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { ar: window.innerWidth <= 800 ? 2.1 : 4, labels: true, empty: sea(j) ? 'Ocean shipment: ' + seaRoute(j) + '. Ports are not shown on the map.' : j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
+    return '<div class="ws">' + head + accept + facts + '<div class="mapwrap">' + mapbar + (S.mapHide ? '' : mapHtml([j], { ar: window.innerWidth <= 800 ? 2.1 : 4, labels: true, empty: sea(j) ? 'Ocean shipment: ' + seaRoute(j) + '. One of these ports is not on the map yet. HazPack can add it.' : j.toText ? 'The destination ' + esc(j.toText) + ' is not on the map yet. HazPack can add it.' : undefined, label: ok ? 'Route from ' + a.city + ' to ' + b.city : 'Route', foot: foot })) + '</div>' +
       '<section class="board trboard">' + taskRows(j) + '</section>' + tabsCard + drawerHtml(j) + jobDock(j) + '</div>';
   }
 

@@ -581,3 +581,17 @@ select:disabled { cursor: default; opacity: .6; }
 .mapcard::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 38px; background: linear-gradient(transparent, var(--map-bg) 80%); pointer-events: none; }
 .map-foot, .mlabel { z-index: 1; }
 .paper .nobank { margin: 0; font-size: 8.5pt; } .paper .nobank span { color: #b45309; font-size: 7.5pt; }
+
+/* ---------- route globe (portal/routes.js) ---------- */
+.globecard { position: relative; background: var(--map-bg); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); }
+.globe { position: relative; width: 100%; aspect-ratio: 16 / 9; max-height: 460px; }
+.globe canvas { position: absolute; inset: 0; display: block; cursor: grab; touch-action: none; }
+.globe canvas:active { cursor: grabbing; }
+.globe-legend { position: absolute; left: 12px; right: 12px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-size: 11.5px; color: #9db0cc; pointer-events: none; }
+.globe-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.globe-legend svg { width: 18px; height: 15px; }
+.globe-legend .globe-hint { margin-left: auto; }
+@media (max-width: 600px) { .globe { aspect-ratio: 1 / 1; } .globe-legend .globe-hint { display: none; } }
+.login-globe { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: .55; }
+.login-globe canvas { position: absolute; inset: 0; display: block; pointer-events: none; }
+.login { position: relative; z-index: 1; }
