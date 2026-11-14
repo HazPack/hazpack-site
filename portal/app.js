@@ -974,7 +974,7 @@
   function edNew(type, orgId, jobId) {
     var org = ORGS[orgId] || null, job = org && jobId ? org.jobs.filter(function (j) { return j.id === jobId; })[0] : null;
     var rep = org ? (job ? org.reps.filter(function (r) { return r.id === job.rep; })[0] : null) || org.reps.filter(function (r) { return r.admin; })[0] : null;
-    var e = { id: null, type: type, orgId: orgId || '', repId: rep ? rep.id : '', jobId: jobId || '', name: '', company: '', addr: '', city: '', email: '', phone: '', bkg: job ? job.ref : '', date: iso(TODAY), docNum: '', payRcvd: '', preparedBy: 'James Whitty', issuedBy: 'James Whitty', rows: blankRows(org), custom: [], disc: '', late: '', notes: '', status: type === 'Invoice' ? 'Unpaid' : 'Open', datePaid: '', fileId: '', split: '', decision: null };
+    var e = { id: null, type: type, orgId: orgId || '', repId: rep ? rep.id : '', jobId: jobId || '', name: '', company: '', addr: '', city: '', email: '', phone: '', bkg: job ? job.ref : '', date: iso(TODAY), docNum: '', preparedBy: 'James Whitty', issuedBy: 'James Whitty', rows: blankRows(org), custom: [], disc: '', late: '', notes: '', status: type === 'Invoice' ? 'Unpaid' : 'Open', fileId: '', split: '', decision: null };
     if (org) { applyBill(e, org, rep); if (org.billing) e.repId = ''; }
     if (job && prefillFromJob(e, job)) e.prefilled = true;
     autoNum(e);
@@ -990,7 +990,7 @@
   }
   function edRecord(e) {
     var lines = e.rows.filter(function (r) { return r.active; }).map(function (r) { return { id: r.id, label: r.label, note: r.note, unit: r.unit, rate: r.rate, qty: r.qty, noteOverride: r.noteOverride }; });
-    return { id: e.id, docNum: e.docNum, type: e.type, orgId: e.orgId, repId: e.repId, jobId: e.jobId, name: e.name, company: e.company, addr: e.addr, city: e.city, email: e.email, phone: e.phone, bkg: e.bkg, date: e.date, payRcvd: e.payRcvd, preparedBy: e.preparedBy, issuedBy: e.issuedBy, lines: lines, custom: JSON.parse(JSON.stringify(e.custom)), disc: e.disc, late: e.late, notes: e.notes, status: e.status, datePaid: e.datePaid, fileId: e.fileId, fromQuote: e.fromQuote || '', decision: e.decision || null };
+    return { id: e.id, docNum: e.docNum, type: e.type, orgId: e.orgId, repId: e.repId, jobId: e.jobId, name: e.name, company: e.company, addr: e.addr, city: e.city, email: e.email, phone: e.phone, bkg: e.bkg, date: e.date, preparedBy: e.preparedBy, issuedBy: e.issuedBy, lines: lines, custom: JSON.parse(JSON.stringify(e.custom)), disc: e.disc, late: e.late, notes: e.notes, status: e.status, fileId: e.fileId, fromQuote: e.fromQuote || '', decision: e.decision || null };
   }
   function edSave() {
     var e = ED;
@@ -1042,7 +1042,7 @@
       '<div class="p-title"><span>' + (inv ? 'INVOICE' : 'QUOTE') + '</span></div>' +
       '<div class="p-row"><div class="p-box"><h4>Bill to</h4><div class="bd">' + fld('Name', 'name', e.name, print) + fld('Company', 'company', e.company, print) + fld('Address', 'addr', e.addr, print) + fld('City / State', 'city', e.city, print) + fld('Email', 'email', e.email, print) + fld('Phone', 'phone', e.phone, print) + fld('BKG #', 'bkg', e.bkg, print) + '</div></div>' +
       '<div class="p-box nw"><h4>Document details</h4><div class="bd">' + fld('Doc #', 'docNum', e.docNum, print, ' placeholder="' + nextDocNum(e.type, e.date) + '" title="The next number for this month. Change it only to use a different number."' + id('edNum')) + fld('Date', 'date', e.date, print) +
-      (inv ? '<div class="fl"><span>Due date</span><span class="v o"' + id('edDue') + '>' + esc(longDate(due)) + '</span></div>' + fld('Payment rcvd', 'payRcvd', e.payRcvd, print, ' placeholder="e.g. 06/12/2026"') : '') + '<div class="fl"><span>Prepared by</span>' + staffSel('preparedBy', e.preparedBy, print) + '</div></div></div></div>' +
+      (inv ? '<div class="fl"><span>Due date</span><span class="v o"' + id('edDue') + '>' + esc(longDate(due)) + '</span></div>' : '') + '<div class="fl"><span>Prepared by</span>' + staffSel('preparedBy', e.preparedBy, print) + '</div></div></div></div>' +
       '<div class="sec rel">' + (print ? '' : '<div class="wm"><img src="' + LOGO_L + '" alt=""></div>') + '<table class="pt sv"><thead><tr>' + (print ? '' : '<th></th>') + '<th>#</th><th class="l">Service</th><th class="l">Notes</th><th>Qty</th><th>Unit</th><th class="r">Rate</th><th class="r">Line total</th></tr></thead><tbody>' + rows + '</tbody></table></div>' + custBlock +
       '<div class="tots">' + (print ? '' : '<button type="button" class="latebtn" data-act="edLate">' + (!e.late ? '+ Late fee' : lateRate(e.late) === 1.5 ? 'Late fee 1.5%, switch to 2.0%' : 'Late fee 2.0%, remove') + '</button>') + '<table><tr><td>Subtotal</td><td' + id('edSub') + '>' + money(s.sub) + '</td></tr><tr><td>Discount ' + (print ? esc(e.disc || '0') : '<input type="number" min="0" max="100" step="0.5" data-ed="disc" value="' + esc(e.disc) + '" placeholder="0">') + '%</td><td' + id('edDisc') + '>' + (s.d > 0 ? '−' + money(s.d) : '—') + '</td></tr>' +
       (e.late ? '<tr><td>Late fee (' + lateRate(e.late) + '%)</td><td' + id('edLate') + '>' + money(s.lf) + '</td></tr>' : '') + '<tr class="gr"><td>TOTAL DUE (USD)</td><td' + id('edTot') + '>' + money(s.total) + '</td></tr></table></div>' +
@@ -1077,14 +1077,14 @@
   }
   document.addEventListener('click', function (e) { if (stOpen && !e.target.closest('.msel.st')) { stOpen = false; render(); } });
   function billingView() {
-    var inv = DOCS.filter(function (x) { return x.type === 'Invoice'; }), tot = 0, paid = 0, out = 0, od = 0, days = [], thisM = 0, lastM = 0, nThis = 0;
+    var inv = DOCS.filter(function (x) { return x.type === 'Invoice'; }), tot = 0, paid = 0, out = 0, od = 0, thisM = 0, lastM = 0, nThis = 0;
     var ym = iso(TODAY).slice(0, 7), lm = iso(new Date(TODAY.getFullYear(), TODAY.getMonth() - 1, 1)).slice(0, 7);
     inv.forEach(function (x) {
       var t = docTotal(x); tot += t;
-      if (x.status === 'Paid') { paid += t; if (x.datePaid) days.push((isoDate(x.datePaid) - isoDate(x.date)) / 864e5); } else if (x.status !== 'Cancelled') { out += t; if (isOverdue(x)) od++; }
+      if (x.status === 'Paid') { paid += t; } else if (x.status !== 'Cancelled') { out += t; if (isOverdue(x)) od++; }
       if (x.status !== 'Cancelled') { if (x.date.slice(0, 7) === ym) { thisM += t; nThis++; } else if (x.date.slice(0, 7) === lm) lastM += t; }
     });
-    var avg = days.length ? (days.reduce(function (a, b) { return a + b; }, 0) / days.length) : null, openQ = DOCS.filter(function (x) { return x.type === 'Quote' && x.status === 'Open'; }).length;
+    var openQ = DOCS.filter(function (x) { return x.type === 'Quote' && x.status === 'Open'; }).length;
     var q = billF.q.toLowerCase();
     var list = DOCS.filter(function (x) { return (!billF.type || x.type === billF.type) && (!billF.st.length || billF.st.some(function (s) { return shownStatus(x) === s || (s === 'Unpaid' && x.type === 'Invoice' && x.status === 'Unpaid'); })) && (!q || (docOrgName(x) + x.docNum + x.bkg + x.jobId).toLowerCase().indexOf(q) > -1); });
     list.sort(function (a, b) { var A = billVal(a, billSort.k), B = billVal(b, billSort.k), c = typeof A === 'number' ? A - B : String(A).localeCompare(String(B)); return (c || b.date.localeCompare(a.date)) * (c ? billSort.dir : 1); });
@@ -1093,17 +1093,17 @@
     var rows = list.map(function (x) {
       var t = docTotal(x);
       return '<tr class="click' + (selMode && sel[x.id] ? ' sel' : '') + '" data-act="' + (selMode ? 'bulkRow' : 'docOpen') + '" data-id="' + x.id + '">' + (selMode ? '<td class="cb"><input type="checkbox" data-act="bulkOne" data-id="' + x.id + '"' + (sel[x.id] ? ' checked' : '') + ' aria-label="Select ' + esc(x.docNum) + '"></td>' : '') + '<td class="mono nw"><b>' + esc(x.docNum) + '</b>' + (x.decision ? '<br><span class="muted" style="font-size:12px;font-family:var(--font-sans)">' + x.decision.action + ' by ' + esc(x.decision.by) + ', ' + mdy(x.decision.when) + '</span>' : '') + '</td><td>' + x.type + '</td><td>' + mdy(x.date) + '</td><td class="nw">' + esc(docOrgName(x)) + '</td><td class="mono nw">' + esc(jnId(x.jobId) || '—') + '</td><td>' + money(t) + '</td><td>' + statusSel(x) + '</td>' +
-        '<td>' + (x.type === 'Invoice' ? mdy(dueOf(x)) : '—') + '</td><td>' + (x.datePaid ? mdy(x.datePaid) : '—') + '</td><td>' + (x.fileId ? '<span class="pill ok">Sent</span>' : '<span class="muted">Not sent</span>') + '</td>' +
+        '<td>' + (x.type === 'Invoice' ? mdy(dueOf(x)) : '—') + '</td><td>' + (x.fileId ? '<span class="pill ok">Sent</span>' : '<span class="muted">Not sent</span>') + '</td>' +
         '<td class="go nw">' + (x.type === 'Quote' && x.status !== 'Declined' ? '<button type="button" class="linkbtn mk" data-act="docToInvoice" data-id="' + x.id + '">Make invoice</button>' : '') + '<span class="vw">Open &rsaquo;</span></td></tr>';
     }).join('');
     var card = function (k, v, s, cls) { return '<div class="card stat cf' + (cls || '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span><span class="s">' + s + '</span></div>'; };
     return '<div class="stats">' + card('Total invoiced', money(tot), inv.length + ' invoices') + card('Invoiced this month', money(thisM), 'Last month ' + money(lastM)) + card('Paid', money(paid), 'marked paid') + card('Outstanding', money(out), od ? od + ' overdue' : 'none overdue', out ? ' attn' : '') +
-      card('Average days to pay', avg === null ? '—' : (Math.round(avg * 10) / 10) + '', 'invoice date to payment') + card('Open quotes', openQ, 'waiting for an answer') + '</div>' +
+      card('Open quotes', openQ, 'waiting for an answer') + '</div>' +
       '<div class="tools"><input id="bq" type="search" placeholder="Search client, document, reference or job" value="' + esc(billF.q) + '" aria-label="Search documents"><select id="bt" aria-label="Type"><option value="">All types</option><option' + (billF.type === 'Quote' ? ' selected' : '') + '>Quote</option><option' + (billF.type === 'Invoice' ? ' selected' : '') + '>Invoice</option></select>' +
       stSelHtml() +
       '<button type="button" class="btn ghost sm" data-act="bulkToggle" aria-pressed="' + selMode + '">' + (selMode ? 'Selecting' : 'Select') + '</button><button type="button" class="btn ghost sm" data-act="docCsv">Export CSV</button><button type="button" class="btn ghost sm" data-act="docNew" data-m="Quote">New quote</button><button type="button" class="btn sm" data-act="docNew" data-m="Invoice">New invoice</button></div>' +
       (selMode ? '<div class="bulkbar"><span><b>' + nSel + '</b> selected</span><span class="grow"></span><button type="button" class="btn ghost sm" data-act="bulkClear">Clear</button><button type="button" class="btn sm dng2" data-act="bulkAsk"' + (nSel ? '' : ' disabled') + '>Delete selected</button></div>' : '') +
-      '<div class="card"><div class="tbl-wrap"><table><thead><tr>' + (selMode ? '<th class="cb"><input type="checkbox" data-act="bulkAll" aria-label="Select all"' + (list.length && list.every(function (x) { return sel[x.id]; }) ? ' checked' : '') + '></th>' : '') + sth('Doc #', 'docNum') + sth('Type', 'type') + sth('Date', 'date') + sth('Client', 'client') + sth('Job', 'job') + sth('Amount', 'amount') + sth('Status', 'status') + sth('Due', 'due') + '<th>Paid</th><th>Client copy</th><th class="act-h">Action</th></tr></thead><tbody>' +
+      '<div class="card"><div class="tbl-wrap"><table><thead><tr>' + (selMode ? '<th class="cb"><input type="checkbox" data-act="bulkAll" aria-label="Select all"' + (list.length && list.every(function (x) { return sel[x.id]; }) ? ' checked' : '') + '></th>' : '') + sth('Doc #', 'docNum') + sth('Type', 'type') + sth('Date', 'date') + sth('Client', 'client') + sth('Job', 'job') + sth('Amount', 'amount') + sth('Status', 'status') + sth('Due', 'due') + '<th>Client copy</th><th class="act-h">Action</th></tr></thead><tbody>' +
       (rows || '<tr><td colspan="' + (selMode ? 12 : 11) + '">' + emptyS('No documents match', 'Change the filters, or start a new quote or invoice.', '') + '</td></tr>') + '</tbody></table></div></div>' +
       '<p class="muted" style="margin:0;font-size:13px">Staff only. Clients never see this screen. A client sees a quote or invoice only after you send it to a job, and then as a file on that job. Only invoices are copied to a company accounts email.</p>';
   }
@@ -1211,7 +1211,7 @@
       var boxRows = function (pairs, w) { font(8.5); return pairs.map(function (p) { return { k: p[0], v: wrap(p[1], w - 72), o: p[2] }; }); };
       var bw2 = 210, bw1 = CW - bw2 - 9;
       var bill = boxRows([['Name', e.name], ['Company', e.company], ['Address', e.addr], ['City / State', e.city], ['Email', e.email], ['Phone', e.phone], ['BKG #', e.bkg]], bw1);
-      var det = boxRows([['Doc #', e.docNum], ['Date', mdy(e.date)]].concat(inv ? [['Due date', longDate(dueOf(e)), true], ['Payment rcvd', e.payRcvd]] : []).concat([['Prepared by', e.preparedBy]]), bw2);
+      var det = boxRows([['Doc #', e.docNum], ['Date', mdy(e.date)]].concat(inv ? [['Due date', longDate(dueOf(e)), true]] : []).concat([['Prepared by', e.preparedBy]]), bw2);
       var rowsH = function (rs) { return rs.reduce(function (a, r) { return a + Math.max(1, r.v.length) * 10 + 1.5; }, 0); };
       var bh = 12 + 5 + Math.max(rowsH(bill), rowsH(det)) + 3;
       var box = function (x, w, label, rs) {
@@ -1359,12 +1359,12 @@
   function applyRates() { if (ED && !ED.id) ED.rows.forEach(function (r) { if (tRow(r.id)) r.rate = rateFor(ORGS[ED.orgId], r.id); }); }
   function csvOut() {
     var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
-    var rows = [['Doc #', 'Type', 'Date', 'Client', 'Job', 'BKG #', 'Amount', 'Status', 'Due', 'Date paid', 'Prepared by']].concat(DOCS.map(function (x) { return [x.docNum, x.type, mdy(x.date), docOrgName(x), jnId(x.jobId), x.bkg, docTotal(x).toFixed(2), x.status, x.type === 'Invoice' ? mdy(dueOf(x)) : '', mdy(x.datePaid), x.preparedBy]; }));
+    var rows = [['Doc #', 'Type', 'Date', 'Client', 'Job', 'BKG #', 'Amount', 'Status', 'Due', 'Prepared by']].concat(DOCS.map(function (x) { return [x.docNum, x.type, mdy(x.date), docOrgName(x), jnId(x.jobId), x.bkg, docTotal(x).toFixed(2), x.status, x.type === 'Invoice' ? mdy(dueOf(x)) : '', x.preparedBy]; }));
     download('HazPack_Billing_' + iso(TODAY) + '.csv', new Blob(['﻿' + rows.map(function (r) { return r.map(q).join(','); }).join('\n')], { type: 'text/csv;charset=utf-8' }));
   }
   function setStatus(x, st) {
     if (st === 'Open') x.decision = null;
-    x.status = st; x.datePaid = st === 'Paid' ? (x.datePaid || iso(TODAY)) : '';
+    x.status = st; 
     var f = x.fileId && ORGS[x.orgId] && ORGS[x.orgId].files.filter(function (y) { return y.id === x.fileId; })[0]; if (f) f.note = fileNote(x);
     var jb = x.jobId && ORGS[x.orgId] && ORGS[x.orgId].jobs.filter(function (y) { return y.id === x.jobId; })[0]; if (jb) logEv(jb, staffName(), x.docNum + ' marked ' + st.toLowerCase());
   }
@@ -1389,7 +1389,7 @@
       case 'docOpen': x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; ED = edFromDoc(x); S.view = 'doc'; render(); window.scrollTo(0, 0); return true;
       case 'docToInvoice':
         x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; if (!x) return true;
-        var ni = edFromDoc(x); ni.id = null; ni.type = 'Invoice'; ni.docNum = ''; ni.autoNum = true; ni.date = iso(TODAY); ni.status = 'Unpaid'; ni.datePaid = ''; ni.fileId = ''; ni.payRcvd = ''; ni.fromQuote = x.id; ni.notes = (ni.notes ? ni.notes + '\n' : '') + 'Based on quote ' + x.docNum + '.'; autoNum(ni);
+        var ni = edFromDoc(x); ni.id = null; ni.type = 'Invoice'; ni.docNum = ''; ni.autoNum = true; ni.date = iso(TODAY); ni.status = 'Unpaid'; ni.fileId = ''; ni.fromQuote = x.id; ni.notes = (ni.notes ? ni.notes + '\n' : '') + 'Based on quote ' + x.docNum + '.'; autoNum(ni);
         ED = ni; S.view = 'doc'; render(); window.scrollTo(0, 0); toast('Invoice started from ' + x.docNum + '. Save it to mark the quote accepted.'); return true;
       case 'docSort': billSort = { k: ds.k, dir: billSort.k === ds.k ? -billSort.dir : (ds.k === 'date' || ds.k === 'amount' ? -1 : 1) }; render(); return true;
       case 'clientRates': ratesModal(ds.org); return true;
@@ -1437,7 +1437,7 @@
     if (d.act === 'bulkAll') { sel = {}; if (el.checked) billIds.forEach(function (id) { sel[id] = true; }); render(); return true; }
     if (d.act === 'docStatus') { var x = DOCS.filter(function (y) { return y.id === d.id; })[0]; if (el.value === 'Overdue') { render(); return true; } setStatus(x, el.value); render(); toast(x.docNum + ' marked ' + el.value.toLowerCase() + '.'); return true; }
     if (d.act === 'edToggle') { var r = ED.rows[+d.i]; r.active = el.checked; if (!el.checked) r.qty = 1; render(); return true; }
-    if (d.act === 'edOrg') { var o = ORGS[el.value]; var keep = ED; ED = edNew(keep.type, el.value, ''); ED.id = keep.id; ED.docNum = keep.docNum; ED.autoNum = keep.autoNum; ED.date = keep.date; ED.rows = keep.rows; if (!keep.id) ED.rows.forEach(function (r) { r.rate = rateFor(o, r.id); }); ED.custom = keep.custom; ED.disc = keep.disc; ED.late = keep.late; ED.notes = keep.notes; ED.preparedBy = keep.preparedBy; ED.issuedBy = keep.issuedBy; ED.status = keep.status; ED.datePaid = keep.datePaid; ED.fileId = keep.fileId; if (!o) { ED.company = keep.company; ED.name = keep.name; ED.email = keep.email; ED.bkg = keep.bkg; } render(); return true; }
+    if (d.act === 'edOrg') { var o = ORGS[el.value]; var keep = ED; ED = edNew(keep.type, el.value, ''); ED.id = keep.id; ED.docNum = keep.docNum; ED.autoNum = keep.autoNum; ED.date = keep.date; ED.rows = keep.rows; if (!keep.id) ED.rows.forEach(function (r) { r.rate = rateFor(o, r.id); }); ED.custom = keep.custom; ED.disc = keep.disc; ED.late = keep.late; ED.notes = keep.notes; ED.preparedBy = keep.preparedBy; ED.issuedBy = keep.issuedBy; ED.status = keep.status; ED.fileId = keep.fileId; if (!o) { ED.company = keep.company; ED.name = keep.name; ED.email = keep.email; ED.bkg = keep.bkg; } render(); return true; }
     if (d.act === 'edRep') { var rp = ORGS[ED.orgId].reps.filter(function (y) { return y.id === el.value; })[0]; ED.repId = el.value; if (rp) putBill(ED, personBill(ORGS[ED.orgId], rp)); else applyBill(ED, ORGS[ED.orgId], null); render(); return true; }
     if (d.act === 'edJob') { var jb = ORGS[ED.orgId].jobs.filter(function (y) { return y.id === el.value; })[0]; var was = ED.jobId && ORGS[ED.orgId].jobs.filter(function (y) { return y.id === ED.jobId; })[0]; if (was && ED.bkg === was.ref) ED.bkg = ''; ED.jobId = el.value; if (jb) { ED.bkg = jb.ref || ED.bkg; if (!ED.id && prefillFromJob(ED, jb)) toast('Lines filled from the job\'s services and piece count. Check them before sending.'); var rq = ORGS[ED.orgId].billing ? null : ORGS[ED.orgId].reps.filter(function (y) { return y.id === jb.rep; })[0]; if (rq) { ED.repId = rq.id; putBill(ED, personBill(ORGS[ED.orgId], rq)); } } render(); return true; }
     if (el.id === 'bt') { billF.type = el.value; render(); return true; }
@@ -1914,10 +1914,9 @@
     return { k: 'overview', label: L.length ? L.length + ' waiting' : 'Nothing waiting', list: L };
   }
   function cmOverviewPanel(o, sc) {
-    var out = 0, od = 0, billed = 0, days = [];
-    sc.inv.forEach(function (x) { var t = docTotal(x); billed += t; if (x.status === 'Unpaid') { out += t; if (isOverdue(x)) od++; } if (x.status === 'Paid' && x.datePaid) days.push((isoDate(x.datePaid) - isoDate(x.date)) / 864e5); });
+    var out = 0, od = 0, billed = 0;
+    sc.inv.forEach(function (x) { var t = docTotal(x); billed += t; if (x.status === 'Unpaid') { out += t; if (isOverdue(x)) od++; } });
     var jobs = sc.jobs, open = jobs.filter(isOpen).length, done = jobs.length - open, fix = jobs.filter(function (j) { return j.fix && isOpen(j); }).length, pend = jobs.filter(function (j) { return j.pending; }).length;
-    var avg = days.length ? Math.round(days.reduce(function (a, b) { return a + b; }, 0) / days.length * 10) / 10 : null;
     var last = null; jobs.forEach(function (j) { j.ev.forEach(function (e) { if (!last || e[0] > last) last = e[0]; }); }); if (!sc.client) o.notifs.forEach(function (n) { if (!last || n.date > last) last = n.date; });
     var months = []; for (var i = 5; i >= 0; i--) { var m = new Date(TODAY.getFullYear(), TODAY.getMonth() - i, 1); months.push({ y: m.getFullYear(), m: m.getMonth(), label: m.toLocaleDateString('en-US', { month: 'short' }), n: 0 }); }
     jobs.forEach(function (j) { var s = j.ev[0][0]; months.forEach(function (mm) { if (s.getFullYear() === mm.y && s.getMonth() === mm.m) mm.n++; }); });
@@ -1925,7 +1924,7 @@
     var bars = months.map(function (mm, i) { return '<div><i class="' + (i === 5 ? 'cur' : '') + '" style="height:' + (mm.n ? Math.max(5, Math.round(mm.n / top * 38)) : 0) + 'px"></i><b>' + mm.n + '</b><span>' + mm.label + '</span></div>'; }).join('');
     var tile = function (v, k, attn) { return '<div class="cm-tile' + (attn ? ' attn' : '') + '"><b>' + v + '</b><span>' + k + '</span></div>'; };
     var tiles = tile(open, 'open jobs') + tile(done, 'completed to date') + tile(fix, 'needs correction', fix) +
-      (sc.client ? tile(pend, 'requests under review') : tile(avg === null ? '—' : avg, 'average days to pay')) + tile(money(out), od ? od + ' overdue' : 'outstanding', od) + tile(money(billed), 'invoiced to date');
+      (sc.client ? tile(pend, 'requests under review') : '') + tile(money(out), od ? od + ' overdue' : 'outstanding', od) + tile(money(billed), 'invoiced to date');
     var them = sc.client ? (S.rep.admin ? 'Your team' : 'You') : 'Client', wc = [], wh = [];
     jobs.forEach(function (j) { if (j.fix && isOpen(j)) wc.push('Correction on <span class="mono">' + esc(jn(j)) + '</span>'); if (j.pending) wh.push((sc.client ? 'Review request ' : 'Accept request ') + '<span class="mono">' + esc(jn(j)) + '</span>'); });
     sc.qs.forEach(function (q) { wc.push('Approve quote <span class="mono">' + esc(q.docNum) + '</span>'); });
@@ -2099,7 +2098,7 @@
       return head('File', esc(f.name), true, '', '') + '<div class="cm-sb">' + body + '</div>' + foot((canView ? '<button type="button" class="btn sm" data-act="view" data-id="' + f.id + '">View</button>' : '') + '<button type="button" class="btn sm ghost" data-act="dl" data-id="' + f.id + '">Download</button>' + jobBtn(f.job, false));
     }
     var x = it.x, inv = it.k === 'inv', stt = inv ? (x.status === 'Paid' ? ['Paid', 'ok'] : isOverdue(x) ? ['Overdue', 'bad'] : ['Due', 'warn']) : ['Waiting for approval', 'warn'];
-    body = row('Amount', money(docTotal(x))) + row('Date', mdy(x.date)) + (inv ? row('Due', mdy(dueOf(x))) + row('Paid', x.datePaid ? mdy(x.datePaid) : '<span class="muted">Not yet</span>') : '') + row('Job', x.jobId ? '<span class="mono">' + esc(jnId(x.jobId)) + '</span>' : '<span class="muted">No job yet</span>') +
+    body = row('Amount', money(docTotal(x))) + row('Date', mdy(x.date)) + (inv ? row('Due', mdy(dueOf(x))) : '') + row('Job', x.jobId ? '<span class="mono">' + esc(jnId(x.jobId)) + '</span>' : '<span class="muted">No job yet</span>') +
       (cl ? '' : row('Bill to', esc(x.name || x.company || '—')) + row('Client copy', x.fileId ? 'Sent' : 'Not sent'));
     var btns;
     if (!cl) btns = '<button type="button" class="btn sm" data-act="docOpen" data-id="' + x.id + '">Open in Billing</button>' + jobBtn(x.jobId, false);

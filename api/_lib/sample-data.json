@@ -884,7 +884,6 @@
    "late": false,
    "notes": "",
    "status": "Unpaid",
-   "datePaid": "",
    "fileId": "f11"
   },
   {
@@ -957,7 +956,6 @@
    "late": false,
    "notes": "",
    "status": "Paid",
-   "datePaid": "2026-10-20",
    "fileId": "f9"
   },
   {
@@ -1021,7 +1019,6 @@
    "late": false,
    "notes": "",
    "status": "Paid",
-   "datePaid": "2026-10-01",
    "fileId": "f12"
   },
   {
@@ -1076,7 +1073,6 @@
    "late": false,
    "notes": "",
    "status": "Open",
-   "datePaid": "",
    "fileId": "f21"
   },
   {
@@ -1131,7 +1127,6 @@
    "late": "",
    "notes": "",
    "status": "Open",
-   "datePaid": "",
    "fileId": "f13",
    "decision": null
   }
