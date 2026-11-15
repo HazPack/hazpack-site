@@ -1,7 +1,6 @@
 /* Design ideas (local sandbox). Loaded after portal.css. Patterns from beautifului.dev: 06, 11, 13, 14, 16. */
 :root { --violet:#6b4fd8; --violet-soft:#ece8fc; --dotgrid:rgba(24,49,82,.14); --ease:cubic-bezier(.2,.8,.2,1); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --violet:#a993ff; --violet-soft:#241c45; --dotgrid:rgba(168,190,222,.13); } }
-:root[data-theme="dark"] { --violet:#a993ff; --violet-soft:#241c45; --dotgrid:rgba(168,190,222,.13); }
+:root { --violet:#a993ff; --violet-soft:#241c45; --dotgrid:rgba(168,190,222,.13); }
 
 .ic { width: 17px; height: 17px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .iconbtn { border: 0; background: transparent; color: var(--muted); width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; cursor: pointer; flex: 0 0 auto; }
@@ -322,3 +321,10 @@ body.has-dock .content { padding-bottom: 28px; }
   .bulkdock .bk-n { font-size: 12.5px; margin-right: 2px; }
 }
 @media (max-width: 800px) { .shell:has(.rail2:not(.min)) .bulkdock, .shell:has(.rail2.min) .bulkdock { left: 12px; right: 12px; } }
+
+/* Sidebar logo: white tile with the full-colour logo, like the site footer. */
+.rail .brand, .rail2 .brand { background: #fff; border-radius: var(--radius-md); padding: 8px 12px; }
+.rail .logo-l, .rail2 .logo-l { display: block; } .rail .logo-d, .rail2 .logo-d { display: none; }
+.rail2.min .brand { padding: 4px; }
+.rail .brand .eyebrow { color: var(--orange-ink); }
+.rail .brand { border: 0; }

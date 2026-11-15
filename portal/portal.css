@@ -14,15 +14,7 @@
   --bg:var(--page); --accent:var(--orange-ink); --accent-soft:var(--orange-soft);
   --ok:var(--success); --ok-soft:var(--success-soft); --warn:var(--warning); --warn-soft:var(--warning-soft); --bad:var(--danger); --bad-soft:var(--danger-soft);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --page:#0c1422; --panel:#131e31; --line:#26354d; --ink:#e6ecf5; --muted:#9aa9bf; --navy-text:#7f9cc4; --on-navy-muted:#a9b8cf;
-    --orange-ink:#f3883a; --on-orange:#0c1422; --orange-soft:#3a2413;
-    --success:#55c58a; --success-soft:#12301f; --warning:#f0b24f; --warning-soft:#3a2a0c; --danger:#f2806b; --danger-soft:#3d1a14; --info:#7db4ee; --info-soft:#14283f;
-    --rail-bg:#0f1a2c; --rail-hover:#1a2840; --map-bg:#091220; color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
+:root {
   --page:#0c1422; --panel:#131e31; --line:#26354d; --ink:#e6ecf5; --muted:#9aa9bf; --navy-text:#7f9cc4; --on-navy-muted:#a9b8cf;
   --orange-ink:#f3883a; --on-orange:#0c1422; --orange-soft:#3a2413;
   --success:#55c58a; --success-soft:#12301f; --warning:#f0b24f; --warning-soft:#3a2a0c; --danger:#f2806b; --danger-soft:#3d1a14; --info:#7db4ee; --info-soft:#14283f;
@@ -37,10 +29,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .mono { font-family: var(--font-mono); font-size: .88em; }
 .muted { color: var(--muted); }
 .logo { display: block; height: 34px; width: auto; }
-.logo-d { display: none; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-l { display: none; } :root:not([data-theme="light"]) .logo-d { display: block; } }
-:root[data-theme="dark"] .logo-l { display: none; }
-:root[data-theme="dark"] .logo-d { display: block; }
+.logo-l { display: none; }
 .eyebrow { font-family: var(--font-narrow); text-transform: uppercase; letter-spacing: .16em; font-weight: 700; font-size: .8rem; color: var(--accent); margin: 0; }
 
 .btn { border: 0; border-radius: var(--radius-md); padding: 10px 16px; font-weight: 700; cursor: pointer; background: var(--orange); color: var(--on-orange); }
