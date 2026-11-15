@@ -480,14 +480,14 @@
     return clientJobsView();
     var q = S.q.toLowerCase();
     var list = vis().filter(function (j) {
-      if (S.f === 'air' && j.mode !== 'Air') return false; if (S.f === 'ground' && j.mode !== 'Ground') return false; if (S.f === 'attn' && !j.fix) return false; if (S.f === 'open' && !isOpen(j)) return false;
+      if (S.f === 'air' && j.mode !== 'Air') return false; if (S.f === 'ocean' && j.mode !== 'Ocean') return false; if (S.f === 'ground' && j.mode !== 'Ground') return false; if (S.f === 'attn' && !j.fix) return false; if (S.f === 'open' && !isOpen(j)) return false;
       if (showWho() && S.fp !== 'all' && j.rep !== S.fp) return false;
       return !q || (j.id + j.item + j.un + j.ref + (pt(j.to) ? pt(j.to).city + j.to : '')).toLowerCase().indexOf(q) > -1;
     });
     list = sortJobs(list);
     if ((!S.job || !list.some(function (j) { return j.id === S.job; })) && list.length) S.job = list[0].id;
     if (!list.length) S.job = null;
-    var chips = [['all', 'All'], ['open', 'Open'], ['air', 'Air'], ['ground', 'Ground'], ['attn', 'Needs correction']].map(function (c) { return '<button type="button" class="chip" data-act="filter" data-f="' + c[0] + '" aria-pressed="' + (S.f === c[0]) + '">' + c[1] + '</button>'; }).join('');
+    var chips = [['all', 'All'], ['open', 'Open'], ['air', 'Air'], ['ocean', 'Ocean'], ['ground', 'Ground'], ['attn', 'Needs correction']].map(function (c) { return '<button type="button" class="chip" data-act="filter" data-f="' + c[0] + '" aria-pressed="' + (S.f === c[0]) + '">' + c[1] + '</button>'; }).join('');
     var who = showWho() ? '<select id="fp" aria-label="Filter by person"><option value="all">Everyone at ' + esc(S.org.name) + '</option>' + S.org.reps.map(function (r) { return '<option value="' + r.id + '"' + (S.fp === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select>' : '';
     return '<div class="split"><div class="jlist-wrap" id="jlistWrap"><div class="jlist"><input id="q" type="search" placeholder="Search job, contents, UN number" value="' + esc(S.q) + '" aria-label="Search jobs">' + who + jobSortSel() + '<div class="chips">' + chips + '</div>' +
       (list.length ? list.map(jobCard).join('') : emptyS('No jobs match', 'Try a different search or filter.', '')) + '</div></div><div class="jdetail">' + (S.job && getJob(S.job) ? detail(getJob(S.job)) : '<p class="muted">Select a job.</p>') + '</div></div>';
@@ -1737,13 +1737,13 @@
       var o = orgOfJob(j.id);
       if (sc && o.id !== sc) return false;
       if (so === 'none' && j.owner) return false; if (so && so !== 'none' && j.owner !== so) return false;
-      if (S.f === 'air' && j.mode !== 'Air') return false; if (S.f === 'ground' && j.mode !== 'Ground') return false; if (S.f === 'attn' && !j.fix) return false; if (S.f === 'open' && !isOpen(j)) return false;
+      if (S.f === 'air' && j.mode !== 'Air') return false; if (S.f === 'ocean' && j.mode !== 'Ocean') return false; if (S.f === 'ground' && j.mode !== 'Ground') return false; if (S.f === 'attn' && !j.fix) return false; if (S.f === 'open' && !isOpen(j)) return false;
       return !q || (j.id + j.item + j.un + j.ref + o.name + j.owner).toLowerCase().indexOf(q) > -1;
     });
     list = sortJobs(list);
     var open = all.filter(isOpen).length, fix = all.filter(function (j) { return j.fix; }).length, req = all.filter(function (j) { return j.pending; }).length;
     var stat = function (v, k) { return '<div class="sl"><b>' + v + '</b><span>' + k + '</span></div>'; };
-    var chips = [['all', 'All'], ['open', 'Open'], ['air', 'Air'], ['ground', 'Ground'], ['attn', 'Needs correction']].map(function (c) { return '<button type="button" class="chip" data-act="filter" data-f="' + c[0] + '" aria-pressed="' + (S.f === c[0]) + '">' + c[1] + '</button>'; }).join('');
+    var chips = [['all', 'All'], ['open', 'Open'], ['air', 'Air'], ['ocean', 'Ocean'], ['ground', 'Ground'], ['attn', 'Needs correction']].map(function (c) { return '<button type="button" class="chip" data-act="filter" data-f="' + c[0] + '" aria-pressed="' + (S.f === c[0]) + '">' + c[1] + '</button>'; }).join('');
     var rows = list.map(function (j) {
       var o = orgOfJob(j.id), s = jobStatus(j);
       return '<tr class="click" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '"><td><b class="mono">' + esc(jn(j)) + '</b><br><span class="muted">' + esc(j.item) + '</span></td><td>' + esc(o.name) + '<br><span class="muted">' + esc(repName2(o, j.rep)) + '</span></td><td>' + ownChip(j) + '</td><td><span class="pill ' + s[1] + '">' + s[0] + '</span></td><td><span class="pcell">' + progBar(j) + '</span></td><td>' + priChip(j) + '</td><td>' + (j.req ? '<span class="dcell2">' + fmtS(isoDate(j.req)) + '</span>' : '<span class="muted">Not set</span>') + '</td><td class="go"><span class="qa">' + qaButtons(o, j) + '</span><span class="vw">View &rsaquo;</span></td></tr>';
@@ -1947,7 +1947,7 @@
     } else it = g.list.filter(function (x) { return x.id === S.cmItem; })[0] || (g.k === 'overview' ? null : g.list[0]) || null;
     return { o: o, sc: sc, gs: gs, g: g, list: list, folder: folder, it: it };
   }
-  var CM_MAX = 7;
+
   function cmInfo(it) {
     if (it.k === 'folder') { var nf = it.files.length; return { name: it.job ? jnId(it.job) : 'No job yet', sans: !it.job, chip: [nf + (nf === 1 ? ' file' : ' files'), 'done'], sub: (it.j ? it.j.item.split(/[,(]/)[0].trim() : it.job ? 'Job' : 'Not tied to a job') + ' · latest ' + fmtS(it.files[0].date) }; }
     if (it.k === 'rep') return { name: it.r.name, sans: true, chip: it.r.admin ? ['Admin', 'info'] : ['Member', 'done'], sub: it.r.title || 'Team member' };
@@ -2004,7 +2004,7 @@
     if (side && (mode !== 'none' || CM_PREV.i !== key.i)) side.classList.add('swap');
     CM_PREV = key;
     el.style.height = ''; if (side) side.style.height = ''; var W = el.clientWidth;
-    var shown = st.list.slice(0, st.list.length > CM_MAX ? CM_MAX - 1 : CM_MAX), more = st.list.length - shown.length;
+    var cap = 1e9, shown = st.list.slice(0, st.list.length > cap ? cap - 1 : cap), more = st.list.length - shown.length;
     var card = function (g, style) {
       return '<button type="button" class="cm-card' + (g.k === 'overview' ? ' ov' : '') + '" data-act="cmGroup" data-g="' + g.k + '" aria-pressed="' + (g === st.g) + '"' + (style ? ' style="' + style + '"' : '') + '><span class="ci"><svg viewBox="0 0 16 16" aria-hidden="true">' + CM_ICON[g.k] + '</svg><b>' + (g.k === 'overview' ? 'Overview' : g.count != null ? g.count : g.list.length) + '</b></span><span class="cl">' + esc(g.label) + (g.k === 'files' && g.list.length ? ' · ' + g.list.length + (g.list.length === 1 ? ' job' : ' jobs') : '') + '</span></button>';
     };
@@ -2021,7 +2021,7 @@
     el.className = 'cm-canvas' + (mode !== 'none' ? ' anim-' + mode : '');
     /* One height for every group (and every company, for staff): room for the cards around Overview, the largest fan and the tallest side panel. */
     var ov = 0; st.gs.forEach(function (g, i) { if (g.k === 'overview') ov = i; });
-    var mid = (st.gs.length - 1) / 2, reach = Math.max(mid, 0.5), n = shown.length, nx = 92, cx = 196, cw = 150, R = Math.max(250, Math.min(W - nx - 262, 440)), deg = Math.PI / 180, MAXA = 72;
+    var mid = (st.gs.length - 1) / 2, reach = Math.max(mid, 0.5), n = shown.length, nx = 92, cx = 196, cw = 150, R = Math.max(250, Math.min(W - nx - 262, 440)), deg = Math.PI / 180, MAXA = Math.max(72, Math.min(150, (n - 1) * 9));
     var slots = n + (more ? 1 : 0), stepA = slots > 1 ? Math.min(13, MAXA / (slots - 1)) : 0, half = (slots - 1) / 2 * stepA;
     var H = Math.max(2 * reach * 84 + 130, 2 * R * Math.sin(MAXA / 2 * deg) + 150, side ? cmPanelMax(side) : 0), cy = H / 2;
     el.style.height = H + 'px'; if (side) side.style.height = H + 'px';
@@ -2439,7 +2439,7 @@
     if (S.mobileDetail && S.job && getJob(S.job) && !sheetMode()) return detail(getJob(S.job));
     var q = S.q.toLowerCase();
     var base = vis().filter(function (j) {
-      if (S.fm === 'Air' && j.mode !== 'Air') return false; if (S.fm === 'Ground' && j.mode !== 'Ground') return false;
+      if ((S.fm === 'Air' || S.fm === 'Ocean' || S.fm === 'Ground') && j.mode !== S.fm) return false;
       if (showWho() && S.fp !== 'all' && j.rep !== S.fp) return false;
       return !q || (j.id + j.item + j.un + j.ref + (pt(j.to) ? pt(j.to).city + j.to : '')).toLowerCase().indexOf(q) > -1;
     });
@@ -2449,7 +2449,7 @@
       return '<button type="button" class="fchip" data-act="fstat" data-s="' + esc(c[0]) + '" aria-pressed="' + (S.fs === c[0]) + '">' + (c[0] === 'all' ? '' : '<i class="sdot ' + STATUS_DOT[c[0]] + '"></i>') + esc(c[1]) + '<span class="n">' + count(c[0]) + '</span></button>';
     }).join('');
     var who = showWho() ? '<select id="fp" class="mini" aria-label="Filter by person"><option value="all">Everyone</option>' + S.org.reps.map(function (r) { return '<option value="' + r.id + '"' + (S.fp === r.id ? ' selected' : '') + '>' + esc(r.name) + '</option>'; }).join('') + '</select>' : '';
-    var mode = '<select id="fm" class="mini" aria-label="Filter by transport"><option value="all">Any transport</option><option' + (S.fm === 'Air' ? ' selected' : '') + '>Air</option><option' + (S.fm === 'Ground' ? ' selected' : '') + '>Ground</option></select>';
+    var mode = '<select id="fm" class="mini" aria-label="Filter by transport"><option value="all">Any transport</option><option' + (S.fm === 'Air' ? ' selected' : '') + '>Air</option><option' + (S.fm === 'Ocean' ? ' selected' : '') + '>Ocean</option><option' + (S.fm === 'Ground' ? ' selected' : '') + '>Ground</option></select>';
     var rows = list.map(function (j) {
       var rt = routeOf(j) ? j.from + ' → ' + j.to : sea(j) ? esc(j.pol) + ' → ' + esc(j.toText || '—') : j.toText ? (j.from || 'LAX') + ' → ' + esc(j.toText) : '—';
       var on = !!S.sel[j.id];
@@ -2562,7 +2562,7 @@
       var o = orgOfJob(j.id);
       if (sc && o.id !== sc) return false;
       if (so === 'none' && j.owner) return false; if (so && so !== 'none' && j.owner !== so) return false;
-      if (S.fm === 'Air' && j.mode !== 'Air') return false; if (S.fm === 'Ground' && j.mode !== 'Ground') return false;
+      if ((S.fm === 'Air' || S.fm === 'Ocean' || S.fm === 'Ground') && j.mode !== S.fm) return false;
       return !q || (j.id + j.item + j.un + j.ref + o.name + j.owner).toLowerCase().indexOf(q) > -1;
     });
     var count = function (k) { return k === 'all' ? base.length : base.filter(function (j) { return jobStatus(j)[0] === k; }).length; };
@@ -2573,7 +2573,7 @@
     var tools = '<label class="fsearch">' + ico('search') + '<input id="q" type="search" placeholder="Search jobs, clients, owners" value="' + esc(S.q) + '" aria-label="Search jobs"></label>' +
       '<select id="sc" class="mini" aria-label="Client company"><option value="">All companies</option>' + Object.keys(ORGS).map(function (k) { return '<option value="' + k + '"' + (sc === k ? ' selected' : '') + '>' + esc(ORGS[k].name) + '</option>'; }).join('') + '</select>' +
       '<select id="so" class="mini" aria-label="Owner"><option value="">All owners</option>' + OWNERS.map(function (n) { return '<option value="' + n + '"' + (so === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '<option value="none"' + (so === 'none' ? ' selected' : '') + '>Unassigned</option></select>' +
-      '<select id="fm" class="mini" aria-label="Filter by transport"><option value="all">Any transport</option><option' + (S.fm === 'Air' ? ' selected' : '') + '>Air</option><option' + (S.fm === 'Ground' ? ' selected' : '') + '>Ground</option></select>' + jobSortSel().replace('<select', '<select class="mini"');
+      '<select id="fm" class="mini" aria-label="Filter by transport"><option value="all">Any transport</option><option' + (S.fm === 'Air' ? ' selected' : '') + '>Air</option><option' + (S.fm === 'Ocean' ? ' selected' : '') + '>Ocean</option><option' + (S.fm === 'Ground' ? ' selected' : '') + '>Ground</option></select>' + jobSortSel().replace('<select', '<select class="mini"');
     var rows = list.map(function (j) {
       var o = orgOfJob(j.id), on = !!S.sel[j.id];
       return '<tr class="click' + (on ? ' sel' : '') + '" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '" data-flip="job-' + j.id + '"><td class="cbc"><button type="button" class="cbx" role="checkbox" aria-checked="' + on + '" aria-label="Select ' + esc(jn(j)) + '" data-act="selRow" data-id="' + j.id + '">' + ico('check') + '</button></td>' +
