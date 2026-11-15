@@ -1101,7 +1101,7 @@
       card('Open quotes', openQ, 'waiting for an answer') + '</div>' +
       '<div class="tools"><input id="bq" type="search" placeholder="Search client, document, reference or job" value="' + esc(billF.q) + '" aria-label="Search documents"><select id="bt" aria-label="Type"><option value="">All types</option><option' + (billF.type === 'Quote' ? ' selected' : '') + '>Quote</option><option' + (billF.type === 'Invoice' ? ' selected' : '') + '>Invoice</option></select>' +
       stSelHtml() +
-      '<button type="button" class="btn ghost sm" data-act="bulkToggle" aria-pressed="' + selMode + '">' + (selMode ? 'Selecting' : 'Select') + '</button><button type="button" class="btn ghost sm" data-act="docCsv">Export CSV</button><button type="button" class="btn ghost sm" data-act="docNew" data-m="Quote">New quote</button><button type="button" class="btn sm" data-act="docNew" data-m="Invoice">New invoice</button></div>' +
+      '<button type="button" class="btn ghost sm" data-act="bulkToggle" aria-pressed="' + selMode + '">' + (selMode ? 'Selecting' : 'Select') + '</button><button type="button" class="btn ghost sm" data-act="docCsv">Export CSV</button><button type="button" class="btn ghost sm" data-act="stmtOpen">Statement of accounts</button><button type="button" class="btn ghost sm" data-act="docNew" data-m="Quote">New quote</button><button type="button" class="btn sm" data-act="docNew" data-m="Invoice">New invoice</button></div>' +
       (selMode ? '<div class="bulkbar"><span><b>' + nSel + '</b> selected</span><span class="grow"></span><button type="button" class="btn ghost sm" data-act="bulkClear">Clear</button><button type="button" class="btn sm dng2" data-act="bulkAsk"' + (nSel ? '' : ' disabled') + '>Delete selected</button></div>' : '') +
       '<div class="card"><div class="tbl-wrap"><table><thead><tr>' + (selMode ? '<th class="cb"><input type="checkbox" data-act="bulkAll" aria-label="Select all"' + (list.length && list.every(function (x) { return sel[x.id]; }) ? ' checked' : '') + '></th>' : '') + sth('Doc #', 'docNum') + sth('Type', 'type') + sth('Date', 'date') + sth('Client', 'client') + sth('Job', 'job') + sth('Amount', 'amount') + sth('Status', 'status') + sth('Due', 'due') + '<th>Client copy</th><th class="act-h">Action</th></tr></thead><tbody>' +
       (rows || '<tr><td colspan="' + (selMode ? 12 : 11) + '">' + emptyS('No documents match', 'Change the filters, or start a new quote or invoice.', '') + '</td></tr>') + '</tbody></table></div></div>' +
@@ -1362,6 +1362,94 @@
     var rows = [['Doc #', 'Type', 'Date', 'Client', 'Job', 'BKG #', 'Amount', 'Status', 'Due', 'Prepared by']].concat(DOCS.map(function (x) { return [x.docNum, x.type, mdy(x.date), docOrgName(x), jnId(x.jobId), x.bkg, docTotal(x).toFixed(2), x.status, x.type === 'Invoice' ? mdy(dueOf(x)) : '', x.preparedBy]; }));
     download('HazPack_Billing_' + iso(TODAY) + '.csv', new Blob(['﻿' + rows.map(function (r) { return r.map(q).join(','); }).join('\n')], { type: 'text/csv;charset=utf-8' }));
   }
+  /* ----- Statement of accounts (staff, Billing tab): one company's invoices, what is paid and what is still owed ----- */
+  var ST = { org: '', from: '', to: '' };
+  function stmtData() {
+    var o = ORGS[ST.org], rows = [], inv = 0, paid = 0, due = 0, over = 0, ag = { cur: 0, d30: 0, d60: 0, d61: 0 };
+    DOCS.filter(function (x) { return x.type === 'Invoice' && x.orgId === ST.org && x.status !== 'Cancelled' && (!ST.from || x.date >= ST.from) && (!ST.to || x.date <= ST.to); })
+      .sort(function (a, b) { return a.date.localeCompare(b.date) || String(a.docNum).localeCompare(String(b.docNum)); }).forEach(function (x) {
+        var t = docTotal(x), isPaid = x.status === 'Paid', late = !isPaid && isOverdue(x) ? -daysTo(dueOf(x)) : 0;
+        inv += t; if (isPaid) paid += t; else { due += t; if (late) over += t; if (!late) ag.cur += t; else if (late <= 30) ag.d30 += t; else if (late <= 60) ag.d60 += t; else ag.d61 += t; }
+        rows.push({ x: x, t: t, paid: isPaid, bal: isPaid ? 0 : t, late: late });
+      });
+    return { o: o, rows: rows, inv: inv, paid: paid, due: due, over: over, ag: ag };
+  }
+  function stmtBody() {
+    var d = stmtData(), r = d.rows;
+    var sumBox = function (k, v, cls) { return '<div class="card stat' + (cls || '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span></div>'; };
+    var ag = function (k, v) { return '<div class="sl"><b>' + money(v) + '</b><span>' + k + '</span></div>'; };
+    return '<div class="stats">' + sumBox('Invoiced', money(d.inv)) + sumBox('Paid', money(d.paid)) + sumBox('Balance due', money(d.due), d.due ? ' attn' : '') + sumBox('Overdue', money(d.over), d.over ? ' attn' : '') + '</div>' +
+      '<div class="statline" aria-label="Balance by age">' + ag('Not yet due', d.ag.cur) + ag('1 to 30 days late', d.ag.d30) + ag('31 to 60 days late', d.ag.d60) + ag('Over 60 days late', d.ag.d61) + '</div>' +
+      '<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Invoice</th><th>Job</th><th>Due</th><th>Amount</th><th>Status</th><th>Balance</th></tr></thead><tbody>' +
+      (r.length ? r.map(function (w) { var x = w.x; return '<tr><td>' + mdy(x.date) + '</td><td class="mono nw">' + esc(x.docNum) + '</td><td class="mono nw">' + esc(jnId(x.jobId) || '—') + '</td><td>' + mdy(dueOf(x)) + '</td><td>' + money(w.t) + '</td><td>' + (w.paid ? '<span class="pill ok">Paid</span>' : w.late ? '<span class="pill bad">' + w.late + (w.late === 1 ? ' day late' : ' days late') + '</span>' : '<span class="pill warn">Due</span>') + '</td><td><b>' + money(w.bal) + '</b></td></tr>'; }).join('') + '<tr><td colspan="4"><b>Total</b></td><td><b>' + money(d.inv) + '</b></td><td></td><td><b>' + money(d.due) + '</b></td></tr>'
+        : '<tr><td colspan="7">' + emptyS('No invoices in this period', 'Change the dates, or pick another company.', '') + '</td></tr>') + '</tbody></table></div>';
+  }
+  function stmtModal() {
+    var keys = Object.keys(ORGS);
+    if (!ORGS[ST.org]) { var withDue = keys.filter(function (k) { return DOCS.some(function (x) { return x.type === 'Invoice' && x.orgId === k && x.status === 'Unpaid'; }); }); ST.org = withDue[0] || keys[0] || ''; }
+    openModal('<div class="modal" style="width:min(100%,860px)" role="dialog" aria-modal="true" aria-label="Statement of accounts"><h2>Statement of accounts</h2>' +
+      '<p class="muted" style="margin:0">Every invoice for one company in the period, what has been paid and what is still owed. Quotes and cancelled invoices are left out.</p>' +
+      '<div class="form-row"><label class="f" for="stOrg">Company<select id="stOrg">' + keys.map(function (k) { return '<option value="' + k + '"' + (k === ST.org ? ' selected' : '') + '>' + esc(ORGS[k].name) + '</option>'; }).join('') + '</select></label>' +
+      '<label class="f" for="stFrom">From<input id="stFrom" type="date" value="' + esc(ST.from) + '"></label><label class="f" for="stTo">To<input id="stTo" type="date" value="' + esc(ST.to) + '"></label></div>' +
+      '<div id="stmtBody" style="display:grid;gap:12px">' + stmtBody() + '</div>' +
+      '<div class="row"><button type="button" class="btn ghost" data-act="closeModal">Close</button><button type="button" class="btn" data-act="stmtPdf">Download PDF</button></div></div>');
+  }
+  function stmtPdf() {
+    var d = stmtData(), o = d.o; if (!o) return Promise.resolve(null);
+    return Promise.all([loadScript('/portal/vendor/jspdf.umd.min.js', function () { return window.jspdf; }), logoPng()]).then(function (got) {
+      var logo = got[1], pdf = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter', orientation: 'portrait', compress: true });
+      var PW = 612, PH = 792, ML = 32, CW = PW - 2 * ML, R = ML + CW, TOP = 30, FOOT_H = 26, FOOT_Y = PH - 24 - FOOT_H, BOTTOM = FOOT_Y - 10;
+      var NAVY = [27, 42, 74], ORANGE = [244, 123, 32], GRAY = [107, 114, 128], LINE = [208, 211, 220], INK = [26, 26, 46], WHITE = [255, 255, 255], RED = [179, 52, 29], GREEN = [23, 121, 74], y = TOP;
+      var font = function (size, style, color) { pdf.setFont('helvetica', style || 'normal'); pdf.setFontSize(size); pdf.setTextColor.apply(pdf, color || INK); };
+      var text = function (v, x, yy, opt) { pdf.text(pdfText(v), x, yy, opt); };
+      var fillRect = function (x, yy, w, h, c) { pdf.setFillColor.apply(pdf, c); pdf.rect(x, yy, w, h, 'F'); };
+      var hline = function (x1, x2, yy, c, lw) { pdf.setDrawColor.apply(pdf, c || LINE); pdf.setLineWidth(lw || 0.75); pdf.line(x1, yy, x2, yy); };
+      var LW = 104, LH = LW * 458 / 1449;
+      if (logo) pdf.addImage(logo, 'PNG', ML, y + 4, LW, LH, 'logo', 'FAST'); else { font(16, 'bold', NAVY); text('HazPack Compliance', ML, y + 24); }
+      font(12, 'bold', NAVY); text('HazPack Compliance Solutions LLC', R, y + 10, { align: 'right' });
+      font(8, 'normal', GRAY); text('Dangerous Goods Compliance & Inspection Services', R, y + 20, { align: 'right' }); text(FROM_EMAIL + '  |  +1 (310) 425-3712', R, y + 29.5, { align: 'right' }); text('www.hazpackcompliance.com  |  Los Angeles, CA', R, y + 39, { align: 'right' });
+      font(7.5, 'bold', ORANGE); text('IATA DGR Certified  ·  IMDG Certified  ·  49 CFR Certified', R, y + 49, { align: 'right', charSpace: 0.2 });
+      y += 55; hline(ML, R, y, NAVY, 1.9); y += 10;
+      var title = 'STATEMENT OF ACCOUNT'; font(18, 'bold', NAVY); var tw = pdf.getTextWidth(title) + 2 * (title.length - 1), tx0 = ML + (CW - tw) / 2;
+      text(title, tx0, y + 15, { charSpace: 2 }); hline(tx0, tx0 + tw, y + 20, ORANGE, 1.9); y += 34;
+      /* client and statement details */
+      var b = o.billing || {}, bl = [b.company || o.name, b.name, b.addr, b.city, b.email].filter(Boolean), per = (ST.from ? mdy(ST.from) : 'First invoice') + ' to ' + (ST.to ? mdy(ST.to) : mdy(iso(TODAY)));
+      font(8, 'bold', NAVY); text('STATEMENT FOR', ML, y + 7, { charSpace: 0.4 }); text('STATEMENT DETAILS', R - 200, y + 7, { charSpace: 0.4 });
+      font(9.5, 'bold', INK); text(bl[0] || o.name, ML, y + 20); font(8.5, 'normal', INK); bl.slice(1).forEach(function (ln, i) { text(ln, ML, y + 31 + i * 11); });
+      font(8.5, 'normal', GRAY); text('Statement date', R - 200, y + 20); text('Period', R - 200, y + 31); text('Open invoices', R - 200, y + 42);
+      font(8.5, 'bold', INK); text(mdy(iso(TODAY)), R, y + 20, { align: 'right' }); text(per, R, y + 31, { align: 'right' }); text(String(d.rows.filter(function (w) { return !w.paid; }).length), R, y + 42, { align: 'right' });
+      y += Math.max(54, 31 + (bl.length - 1) * 11 + 6); hline(ML, R, y); y += 12;
+      /* summary boxes */
+      var bw = (CW - 3 * 8) / 4; [['Invoiced', d.inv, INK], ['Paid', d.paid, GREEN], ['Balance due', d.due, d.due ? RED : INK], ['Overdue', d.over, d.over ? RED : INK]].forEach(function (c, i) {
+        var x = ML + i * (bw + 8); pdf.setDrawColor.apply(pdf, LINE); pdf.setLineWidth(0.75); pdf.roundedRect(x, y, bw, 38, 3, 3, 'S');
+        font(7.5, 'bold', GRAY); text(c[0].toUpperCase(), x + 8, y + 12, { charSpace: 0.4 }); font(14, 'bold', c[2]); text(money(c[1]), x + 8, y + 30);
+      }); y += 50;
+      var agr = [['Not yet due', d.ag.cur], ['1 to 30 days late', d.ag.d30], ['31 to 60 days late', d.ag.d60], ['Over 60 days late', d.ag.d61]];
+      font(8, 'bold', NAVY); text('BALANCE BY AGE', ML, y + 7, { charSpace: 0.4 }); y += 12;
+      agr.forEach(function (c, i) { var x = ML + i * (bw + 8); font(7.5, 'normal', GRAY); text(c[0], x + 2, y + 8); font(10, 'bold', INK); text(money(c[1]), x + 2, y + 21); }); y += 32;
+      /* table */
+      var cols = [{ h: 'DATE', w: 62, a: 'l' }, { h: 'INVOICE', w: 118, a: 'l' }, { h: 'JOB', w: 78, a: 'l' }, { h: 'DUE', w: 62, a: 'l' }, { h: 'AMOUNT', w: 76, a: 'r' }, { h: 'STATUS', w: 78, a: 'l' }, { h: 'BALANCE', w: CW - 474, a: 'r' }];
+      var head = function () { fillRect(ML, y, CW, 14, NAVY); font(7.5, 'bold', WHITE); var x = ML; cols.forEach(function (c) { text(c.h, c.a === 'r' ? x + c.w - 5 : x + 5, y + 9.6, { align: c.a === 'r' ? 'right' : 'left' }); x += c.w; }); y += 14; };
+      if (y + 40 > BOTTOM) { pdf.addPage(); y = TOP; } head();
+      var line = function (cells, bold, colors) { var h = 16; if (y + h > BOTTOM) { pdf.addPage(); y = TOP; head(); } var x = ML; cells.forEach(function (v, i) { font(8.5, bold ? 'bold' : 'normal', colors && colors[i] || INK); text(v, cols[i].a === 'r' ? x + cols[i].w - 5 : x + 5, y + 11, { align: cols[i].a === 'r' ? 'right' : 'left' }); x += cols[i].w; }); y += h; hline(ML, R, y); };
+      if (!d.rows.length) { font(9, 'italic', GRAY); text('No invoices in this period.', ML + 5, y + 14); y += 22; }
+      d.rows.forEach(function (w) { var x = w.x; line([mdy(x.date), x.docNum, jnId(x.jobId) || '-', mdy(dueOf(x)), money(w.t), w.paid ? 'Paid' : w.late ? w.late + (w.late === 1 ? ' day late' : ' days late') : 'Due', money(w.bal)], false, [0, 0, 0, 0, 0, w.paid ? GREEN : w.late ? RED : INK, 0]); });
+      if (d.rows.length) line(['', 'TOTAL', '', '', money(d.inv), '', money(d.due)], true);
+      y += 12; if (y + 40 > BOTTOM) { pdf.addPage(); y = TOP; }
+      font(8, 'bold', NAVY); text('PAYMENT', ML, y + 7, { charSpace: 0.4 }); font(8.5, 'italic', GRAY); text('Invoices are due 15 days from the invoice date. Questions about this statement: ' + FROM_EMAIL + ' or +1 (310) 425-3712.', ML, y + 20);
+      var pages = pdf.getNumberOfPages();
+      for (var p = 1; p <= pages; p++) {
+        pdf.setPage(p); pdf.setFillColor.apply(pdf, NAVY); pdf.roundedRect(ML, FOOT_Y, CW, FOOT_H, 2, 2, 'F');
+        var a = 'HazPack Compliance Solutions LLC', bb = '  |  ' + FROM_EMAIL + '  |  +1 (310) 425-3712  |  www.hazpackcompliance.com';
+        font(7.5, 'bold', WHITE); var wa = pdf.getTextWidth(a); font(7.5, 'normal', WHITE); var wb = pdf.getTextWidth(bb), fx = ML + (CW - wa - wb) / 2;
+        font(7.5, 'bold', WHITE); text(a, fx, FOOT_Y + 10.5); font(7.5, 'normal', WHITE); text(bb, fx + wa, FOOT_Y + 10.5);
+        font(7, 'normal', [190, 196, 210]); text('IATA DGR Certified  ·  IMDG Certified  ·  49 CFR Certified  ·  Los Angeles, CA', PW / 2, FOOT_Y + 20, { align: 'center' });
+        if (pages > 1) { font(7, 'normal', GRAY); text('Statement of account  ·  Page ' + p + ' of ' + pages, R, FOOT_Y - 4, { align: 'right' }); }
+      }
+      pdf.setProperties({ title: 'Statement of account ' + pdfText(o.name), subject: pdfText(o.name), author: 'HazPack Compliance Solutions LLC', creator: 'HazPack client portal' });
+      return pdf.output('blob');
+    });
+  }
   function setStatus(x, st) {
     if (st === 'Open') x.decision = null;
     x.status = st; 
@@ -1401,6 +1489,8 @@
         if (armDel !== ds.id) { armDel = ds.id; render(); setTimeout(function () { if (armDel === ds.id) { armDel = null; if (S.view === 'billing') render(); } }, 3000); return true; }
         x = DOCS.filter(function (y) { return y.id === ds.id; })[0]; if (x.fileId) noteDocNum(x.docNum); DOCS.splice(DOCS.indexOf(x), 1); armDel = null; if (S.view === 'doc') { S.view = 'billing'; ED = null; } render(); toast('Deleted ' + x.docNum + (x.fileId ? '. The copy already sent to the client stays on their job.' : '.')); return true;
       case 'docCsv': csvOut(); return true;
+      case 'stmtOpen': stmtModal(); return true;
+      case 'stmtPdf': stmtPdf().then(function (b) { if (b) download(('Statement_' + ST.org + '_' + iso(TODAY)).replace(/[^a-zA-Z0-9_-]+/g, '_') + '.pdf', b); }, function () { toast('Could not make the PDF. Check your connection and try again.'); }); return true;
       case 'edMode': if (!ED.id) { ED.type = ds.m; ED.status = ds.m === 'Invoice' ? 'Unpaid' : 'Open'; autoNum(ED); render(); } return true;
       case 'edAddLine': ED.custom.push({ desc: '', note: '', qty: 1, unit: 'each', rate: 0 }); render(); return true;
       case 'edDelLine': ED.custom.splice(+ds.i, 1); render(); return true;
@@ -1441,6 +1531,7 @@
     if (d.act === 'edRep') { var rp = ORGS[ED.orgId].reps.filter(function (y) { return y.id === el.value; })[0]; ED.repId = el.value; if (rp) putBill(ED, personBill(ORGS[ED.orgId], rp)); else applyBill(ED, ORGS[ED.orgId], null); render(); return true; }
     if (d.act === 'edJob') { var jb = ORGS[ED.orgId].jobs.filter(function (y) { return y.id === el.value; })[0]; var was = ED.jobId && ORGS[ED.orgId].jobs.filter(function (y) { return y.id === ED.jobId; })[0]; if (was && ED.bkg === was.ref) ED.bkg = ''; ED.jobId = el.value; if (jb) { ED.bkg = jb.ref || ED.bkg; if (!ED.id && prefillFromJob(ED, jb)) toast('Lines filled from the job\'s services and piece count. Check them before sending.'); var rq = ORGS[ED.orgId].billing ? null : ORGS[ED.orgId].reps.filter(function (y) { return y.id === jb.rep; })[0]; if (rq) { ED.repId = rq.id; putBill(ED, personBill(ORGS[ED.orgId], rq)); } } render(); return true; }
     if (el.id === 'bt') { billF.type = el.value; render(); return true; }
+    if (el.id === 'stOrg' || el.id === 'stFrom' || el.id === 'stTo') { ST[el.id === 'stOrg' ? 'org' : el.id === 'stFrom' ? 'from' : 'to'] = el.value; document.getElementById('stmtBody').innerHTML = stmtBody(); return true; }
     if (d.act === 'stOne') { var ix = billF.st.indexOf(d.v); if (el.checked && ix < 0) billF.st.push(d.v); else if (!el.checked && ix > -1) billF.st.splice(ix, 1); render(); return true; }
     return false;
   }
