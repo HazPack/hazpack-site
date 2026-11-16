@@ -263,7 +263,7 @@ body.has-dock .content { padding-bottom: 28px; }
 .ftbl-card .sub2 { font-size: 12.5px; color: var(--muted); max-width: 210px; }
 .ftbl-card td.qa-c { white-space: nowrap; text-align: right; }
 .ftbl-card .qa { display: inline-flex; gap: 6px; margin-right: 0; }
-.qa .qi { width: 32px; padding-left: 0; padding-right: 0; justify-content: center; } .qa .qi .ic { width: 16px; height: 16px; }
+.qa .qi { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; line-height: 0; } .qa .qi .ic { width: 16px; height: 16px; display: block; }
 .qa .qdel { color: var(--muted); } .qa .qdel:hover, .qa .qdel:focus-visible { color: var(--bad); border-color: var(--bad); }
 .board.trboard { padding: 4px 20px 20px; }
 .board.trboard .trhead { border-top: 0; }
