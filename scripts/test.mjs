@@ -256,6 +256,29 @@ try {
   org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
   check('saving again does not email the same alert twice', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200 && mails.length === before + 1);
   {
+    // Invoice emails carry the invoice PDF itself, found by the file id on the notification or by its name.
+    const upInv = await post({ action: 'uploadFile', orgId: 'test-co', jobId: 'HP-2611-900', type: 'Invoice', name: 'Invoice_I-2099-01-HP-002.pdf', data: b64(PDF), docId: 'd-att' });
+    check('staff upload an invoice PDF to a job', upInv.status === 200 && upInv.data.file?.id);
+    const fid = upInv.data.file?.id, fname = upInv.data.file?.name;
+    org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+    org.notifs.unshift({ id: 'n-att1', to: 'client', job: 'HP-2611-900', text: `HazPack added ${fname} (invoice) on HP-2611-900.`, date: new Date().toISOString(), read: {}, acct: true, file: fid });
+    let at = mails.length;
+    await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] });
+    const a1 = mails.slice(at)[0]?.attachments?.[0];
+    check('the invoice email attaches the invoice PDF', a1 && a1.filename === fname && Buffer.from(a1.content, 'base64').equals(PDF), JSON.stringify(a1 && { ...a1, content: a1.content.slice(0, 12) }));
+    org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+    org.notifs.unshift({ id: 'n-att2', to: 'client', job: 'HP-2611-900', text: `HazPack updated ${fname} (invoice) on HP-2611-900.`, date: new Date().toISOString(), read: {} });
+    org.notifs.unshift({ id: 'n-att3', to: 'client', job: 'HP-2611-900', text: 'HazPack added Q-1.pdf (quote) on HP-2611-900. It is waiting for your approval.', date: new Date().toISOString(), read: {}, file: fid });
+    at = mails.length;
+    await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] });
+    const got = mails.slice(at);
+    check('an invoice alert without a file id finds the PDF by name', got.find((m) => /^Updated invoice/.test(m.subject))?.attachments?.[0]?.filename === fname);
+    check('quote emails attach nothing', got.some((m) => /^Quote for/.test(m.subject)) && !got.find((m) => /^Quote for/.test(m.subject)).attachments);
+    org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+    org.files = org.files.filter((f) => f.id !== fid); org.notifs = org.notifs.filter((n) => !/^n-att/.test(n.id));
+    check('test invoice file removed', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200);
+  }
+  {
     // Which client notifications send an email, and what each says.
     org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
     const J = 'HP-2611-900';

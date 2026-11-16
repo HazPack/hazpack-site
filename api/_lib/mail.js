@@ -10,6 +10,7 @@
 // each goes to every person at that company who has email alerts on and can see the job (admins see every job).
 // Invoices also copy the company's accounts email. Sample addresses (.example, .test, .invalid, localhost) are skipped.
 
+import { getFile } from './store.js';
 const DEFAULT_FROM = 'HazPack Compliance <lax-dgr@hazpackcompliance.com>';
 const API = () => process.env.RESEND_API_URL || 'https://api.resend.com/emails';
 const EMAIL = /^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/;
@@ -49,6 +50,15 @@ export function clientKind(n) {
   return null;
 }
 
+// Invoice emails carry the invoice PDF itself. The portal puts the file's id on the notification (n.file); older
+// notifications are matched by the file name in their wording. Only an Invoice file on that same job is attached.
+function invoiceFile(org, n, job, kind) {
+  if (kind !== 'invoice' && kind !== 'invoiceUpdated') return null;
+  const name = /^HazPack (?:added|updated) (.+) \(invoice\)/.exec(String(n.text || ''))?.[1];
+  const f = (n.file && org.files.find((x) => x.id === n.file)) || [...org.files].reverse().find((x) => x.job === job.id && x.type === 'Invoice' && x.name === name);
+  return f && f.job === job.id && f.type === 'Invoice' ? { id: f.id, name: f.name } : null;
+}
+
 // The emails for every notification added since `before`. Built inside the database change, sent after it is saved.
 export function newMail(db, before) {
   const out = [];
@@ -69,8 +79,9 @@ export function newMail(db, before) {
       const subject = CLIENT[kind].subject(ref).slice(0, 150);
       const people = org.reps.filter((r) => r.notify && realAddress(r.email) && canSee(r, job));
       const cc = n.acct && realAddress(org.accountsEmail) ? [org.accountsEmail.trim()] : [];
-      people.forEach((r, i) => out.push({ to: [r.email.trim()], cc: i === 0 ? cc.filter((c) => c.toLowerCase() !== r.email.trim().toLowerCase()) : [], subject, kind, ref, name: r.name }));
-      if (!people.length && cc.length) out.push({ to: cc, cc: [], subject, kind, ref, name: '' });
+      const attach = invoiceFile(org, n, job, kind);
+      people.forEach((r, i) => out.push({ to: [r.email.trim()], cc: i === 0 ? cc.filter((c) => c.toLowerCase() !== r.email.trim().toLowerCase()) : [], subject, kind, ref, name: r.name, attach }));
+      if (!people.length && cc.length) out.push({ to: cc, cc: [], subject, kind, ref, name: '', attach });
     }
   }
   return out.filter((m) => m.to.every(realAddress));
@@ -189,9 +200,16 @@ function renderStaff(m) {
 export async function sendMail(list) {
   if (!mailOn() || !list.length) return 0;
   const from = process.env.PORTAL_MAIL_FROM || DEFAULT_FROM;
+  const files = new Map(); // one read per attached file, however many people get it
+  const fileB64 = (id) => { if (!files.has(id)) files.set(id, Promise.resolve().then(() => getFile(id)).then((b) => (b?.length ? Buffer.from(b).toString('base64') : null), () => null)); return files.get(id); };
   const results = await Promise.allSettled(list.slice(0, 40).map(async (m) => {
     const body = { from, to: m.to, subject: m.subject, ...render(m) };
     if (m.cc?.length) body.cc = m.cc;
+    if (m.attach) { // if the file cannot be read, the email still goes, with the portal link
+      const content = await fileB64(m.attach.id);
+      if (content) body.attachments = [{ filename: m.attach.name, content }];
+      else console.error('[portal mail] could not read the invoice to attach:', m.attach.name);
+    }
     if (!m.staff) body.reply_to = staffInbox();
     const res = await fetch(API(), {
       method: 'POST',

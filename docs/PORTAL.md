@@ -107,7 +107,7 @@ No email for: a job moving to its next step, a correction resolved, or a quote s
 
 Who gets what:
 - **Clients:** each person at the company with email alerts on (Team page) who can see the job; admins see every job.
-  Invoices also copy the company's accounts email. Replies go to `PORTAL_STAFF_EMAIL`.
+  Invoices also copy the company's accounts email, and the invoice PDF is attached to the email. Replies go to `PORTAL_STAFF_EMAIL`.
 - **HazPack:** new job requests, withdrawn requests, client uploads, corrected files and corrections, messages, and quotes accepted or declined.
 - Emails name jobs by the client's reference. Sample addresses (`.example`, `.test`) are never emailed, so the demo data is safe.
 - The portal's email previews say "Email sent" when email is on, and "not set up yet" when it is off.

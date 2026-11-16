@@ -619,7 +619,7 @@
       return dl.save({ filename: name, data: blob }).catch(function (e) { if (!e || e.code !== 'declined') toast('Could not save the file.'); });
     });
   }
-  function notify(job, text, to, acct) { var n = { id: nid('n'), to: to, job: job, text: text, date: TODAY, read: {} }; if (acct) n.acct = true; S.org.notifs.unshift(n); }
+  function notify(job, text, to, acct, fileId) { var n = { id: nid('n'), to: to, job: job, text: text, date: TODAY, read: {} }; if (acct) n.acct = true; if (fileId) n.file = fileId; S.org.notifs.unshift(n); }
   function recipients(job) { return S.org.reps.filter(function (r) { return r.notify && canSee(r, job); }); }
   function mailBox(from, toHtml, subject, bodyHtml, extra, ccHtml) {
     return '<div class="mail"><div class="h">' + (MAIL_ON ? '<b>Email sent.</b> People with email alerts on get this.' : '<b>Email preview.</b> Email is not set up yet, so this was not sent.') + '</div><div class="h">From: ' + from + '</div><div class="h">To: ' + toHtml + '</div>' + (ccHtml ? '<div class="h">Cc: ' + ccHtml + '</div>' : '') + '<div><b>Subject:</b> ' + esc(subject) + '</div><div>' + bodyHtml + '</div>' + (extra || '') + '</div>';
@@ -1380,11 +1380,11 @@
       rec.fileId = f.id; f.note = fileNote(rec); f.docId = rec.id; f.job = job ? job.id : ''; var size = f.size;
       logEv(job, staffName(), rec.type + ' ' + rec.docNum + ' sent to the client (' + fileNote(rec) + ')');
       var prev = S.org, cc = rec.type === 'Invoice' && org.accountsEmail ? esc(org.accountsEmail) : ''; S.org = org;
-      notify(job ? job.id : '', ('HazPack ' + (again ? 'updated' : 'added') + ' ' + name + ' (' + rec.type.toLowerCase() + ')' + (job ? ' on ' + job.id : ' for ' + org.name) + (rec.type === 'Quote' ? '. It is waiting for your approval.' : '.')).replace(/\.\./g, '.'), 'client', rec.type === 'Invoice');
+      notify(job ? job.id : '', ('HazPack ' + (again ? 'updated' : 'added') + ' ' + name + ' (' + rec.type.toLowerCase() + ')' + (job ? ' on ' + job.id : ' for ' + org.name) + (rec.type === 'Quote' ? '. It is waiting for your approval.' : '.')).replace(/\.\./g, '.'), 'client', rec.type === 'Invoice', rec.type === 'Invoice' ? f.id : '');
       var to = peopleList(job ? recipients(job) : org.reps.filter(function (r) { return r.notify && (r.admin || r.id === rec.repId); })); S.org = prev;
       render();
       openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Sent to client"><h2>' + rec.type + ' sent to ' + esc(org.name) + '</h2><p class="muted" style="margin:0">' + esc(name) + ' ' + (job ? 'is now a file on job ' + esc(jn(job)) + '. People who can see the job have a portal notification.' : 'was sent to the company with no job yet. Company admins and the contact see it on their dashboard. Accepting it opens a new job request.') + (reopened ? ' The quote changed after it was answered, so it is open for approval again.' : '') + (cc ? ' The company accounts email is copied on the invoice email.' : '') + '</p>' +
-        (job ? mailBox(HP_FROM, to, (again ? 'Updated ' + rec.type.toLowerCase() : rec.type) + ' for ' + jn(job), rec.type === 'Invoice' ? 'Here is the ' + (again ? 'updated ' : '') + 'invoice for ' + esc(jn(job)) + '. Please let us know if you have any questions!' : 'A quote for ' + esc(jn(job)) + ' is waiting for your approval. Please open the client portal to review.', '', cc) : '<p class="muted">No email is sent for a quote with no job yet.</p>') +
+        (job ? mailBox(HP_FROM, to, (again ? 'Updated ' + rec.type.toLowerCase() : rec.type) + ' for ' + jn(job), rec.type === 'Invoice' ? 'Here is the ' + (again ? 'updated ' : '') + 'invoice for ' + esc(jn(job)) + '. Please let us know if you have any questions!' : 'A quote for ' + esc(jn(job)) + ' is waiting for your approval. Please open the client portal to review.', rec.type === 'Invoice' ? '<div class="h" style="margin-top:6px"><b>Attached:</b> ' + esc(f.name) + '</div>' : '', cc) : '<p class="muted">No email is sent for a quote with no job yet.</p>') +
         '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
       });
     }, function () { toast('Could not make the PDF. Check your connection and try again.'); });
