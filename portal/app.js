@@ -840,6 +840,7 @@
       if (e.target.id !== 'rv6') return; var sea = e.target.value === 'Ocean';
       document.getElementById('rtAir').style.display = sea ? 'none' : 'contents'; document.getElementById('rtSea').style.display = sea ? 'contents' : 'none';
     });
+    ['rq0', 'rq9'].forEach(function (id) { document.getElementById(id).addEventListener('change', function () { var er = document.getElementById('rqerr'); if (er) er.textContent = ''; }); });
     document.getElementById('rq0').addEventListener('change', function () {
       var f = this.files[0], box = document.getElementById('found'); reqDetect = null; if (!f) { box.hidden = true; return; }
       box.hidden = false; box.innerHTML = '<b>Reading your DGD</b><p class="muted" style="margin:0;font-size:13px">This takes a few seconds.</p>';

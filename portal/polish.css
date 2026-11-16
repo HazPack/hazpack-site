@@ -253,3 +253,8 @@ label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px;
 .costs-m td input[type=number] { width: 100%; min-width: 0; text-align: right; }
 .costs-m th:nth-child(3), .costs-m th:nth-child(4), .costs-m td:nth-child(3) { text-align: right; }
 .costs-m thead th { position: sticky; top: 0; z-index: 1; }
+
+/* Billing table on a tablet: drop Due and Sent (both are on the invoice itself) so it fits without sideways scrolling */
+@media (min-width: 641px) and (max-width: 960px) {
+  .bill-t th:nth-last-child(2), .bill-t td:nth-last-child(2), .bill-t th:nth-last-child(3), .bill-t td:nth-last-child(3) { display: none; }
+}
