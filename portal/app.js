@@ -1360,7 +1360,13 @@
       return pdf.output('blob');
     });
   }
-  function pdfName(rec) { return (rec.type + '_' + rec.docNum).replace(/[^a-zA-Z0-9_-]+/g, '_') + '.pdf'; }
+  /* File name for a quote or invoice PDF: "I-2026-11-HP-004 - Company Name REF123.pdf" (number, Bill to company, BKG / reference).
+     Only letters, numbers, spaces, dots, dashes and underscores, which is what the server keeps; at most 76 characters before .pdf. */
+  function pdfName(rec) {
+    var org = ORGS[rec.orgId], co = (rec.company || (org && org.name) || '').trim(), ref = (rec.bkg || '').trim();
+    var n = (rec.docNum + (co || ref ? ' - ' + [co, ref].filter(Boolean).join(' ') : '')).replace(/[^A-Za-z0-9._ -]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return n.slice(0, 76).replace(/[ .-]+$/, '') + '.pdf';
+  }
   function edPdf() {
     var rec = edSave(); if (!rec) return; toast('Making the PDF'); render();
     docPdf(edFromDoc(rec)).then(function (b) { download(pdfName(rec), b); }, function () { toast('Could not make the PDF. Check your connection and try again.'); });
