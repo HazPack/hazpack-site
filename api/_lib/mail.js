@@ -100,7 +100,7 @@ export function greeting(now = new Date()) {
 const SITE = 'https://hazpackcompliance.com';
 // Signature logo: the logo on a solid white background (email-logo.png), so it reads the same in dark mode, where mail apps darken the page but never change images.
 const SIG_LOGO = `${SITE}/email-logo.png`;
-const LOGO = `${SITE}/logo.png`; // served by the live site today and kept at the repo root for after the merge
+const LOGO = `${SITE}/assets/logo.png`; // /logo.png redirects here (vercel.json), so point at the final address
 const NAVY = '#1B2A4A', ORANGE = '#E8792B', INK = '#1f2937', GREY = '#6b7280', LIGHT = '#9ca3af';
 const SIG = {
   name: 'Alexander Walsh',
