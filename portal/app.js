@@ -959,7 +959,7 @@
   function noteDocNum(num) { var m = /^([QI]-\d{4}-\d{2})-HP-(\d+)$/.exec(num || ''); if (m) SEQ[m[1]] = Math.max(SEQ[m[1]] || 0, parseInt(m[2], 10)); }
 
   /* ----- editor state ----- */
-  function rateFor(org, id) { var o = org && org.rates && org.rates[id]; return (o !== undefined && o !== null && o !== '') ? o : tRow(id).rate; }
+  function rateFor(org, id) { var o = org && org.rates && org.rates[id]; return (o !== undefined && o !== null && o !== '') ? o : (tRow(id) ? tRow(id).rate : 0); }
   function customRates(org) { return org && org.rates ? Object.keys(org.rates).length : 0; }
   function ratesNote(org) { return org ? (customRates(org) ? 'Using the ' + esc(org.name) + ' rates (' + customRates(org) + ' custom). ' : 'No custom rates for ' + esc(org.name) + ', so standard rates apply. ') + 'Change rates on the Clients page. ' : ''; }
   function blankRows(org) { return TARIFF.map(function (t) { return { id: t.id, label: t.label, note: t.note, unit: t.unit, rate: rateFor(org, t.id), active: !!ON0[t.id], qty: 1, noteOverride: '' }; }); }
@@ -999,6 +999,7 @@
       var l = x.lines.filter(function (y) { return y.id === t.id; })[0];
       return l ? { id: l.id, label: l.label, note: l.note, unit: l.unit, rate: l.rate, active: true, qty: l.qty, noteOverride: l.noteOverride || '', cost: l.cost } : { id: t.id, label: t.label, note: t.note, unit: t.unit, rate: t.rate, active: false, qty: 1, noteOverride: '' };
     });
+    x.lines.forEach(function (l) { if (!tRow(l.id)) e.rows.push({ id: l.id, label: l.label, note: l.note, unit: l.unit, rate: l.rate, active: true, qty: l.qty, noteOverride: l.noteOverride || '', cost: l.cost }); });
     delete e.lines; e.split = ''; e.costs = e.costs || []; return e;
   }
   function edRecord(e) {
@@ -1404,11 +1405,40 @@
       '<div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Service</th><th style="width:110px">Rate</th><th>Unit</th></tr></thead><tbody>' + TARIFF.map(function (t, i) { return '<tr><td>' + esc(t.label) + '</td><td><input type="number" min="0" step="0.01" id="te' + i + '" value="' + t.rate + '" aria-label="Rate for ' + esc(t.label) + '"></td><td>' + esc(t.unit) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
       '<div class="row"><button type="button" class="btn ghost" data-act="tariffReset">Reset to defaults</button><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn" data-act="tariffSave">Save rates</button></div></div>');
   }
-  /* Our cost per unit for each service. The same for every company; profit differs because each company pays its own rate. Staff only. */
-  function costsModal() {
-    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Our costs"><h2>Our costs</h2><p class="muted" style="margin:0">What one unit of each service costs HazPack (staff time, materials). This is the same for every company. Profit on a job is what the company pays at its own rates, minus these costs, so the same job can make a different profit for different companies. Staff only, never shown to clients. A change applies to new documents. Saved documents keep the costs they were made with.</p>' +
-      '<div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Service</th><th style="width:110px">Our cost</th><th>Unit</th></tr></thead><tbody>' + TARIFF.map(function (t, i) { return '<tr><td>' + esc(t.label) + '</td><td><input type="number" min="0" step="0.01" id="tc' + i + '" value="' + (t.cost != null ? t.cost : '') + '" placeholder="Not set" aria-label="Our cost for ' + esc(t.label) + '"></td><td>' + esc(t.unit) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
-      '<div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn" data-act="costsSave">Save costs</button></div></div>');
+  /* Our costs and services (Billing tab). One list for every company: add or rename a service, change its unit, set what it costs us.
+     Saving also updates the quote/invoice being edited: names, units and notes change on every row, new services appear as unticked rows,
+     and (on a document that is not saved yet) rates follow the list. Documents already saved keep the rates they were made with. Staff only. */
+  var CM = null;
+  function readCM() {
+    if (!CM) return;
+    CM.forEach(function (t, i) {
+      var g = function (k) { var el = document.getElementById(k + i); return el ? el.value : null; };
+      var n = g('tn'); if (n !== null) t.label = n; var u = g('tu'); if (u !== null) t.unit = u; var c = g('tc'); if (c !== null) t.cost = c.trim() === '' ? undefined : (parseFloat(c) || 0);
+      var r = g('tr'); if (r !== null) t.rate = parseFloat(r) || 0; var d = g('td'); if (d !== null) t.note = d;
+    });
+  }
+  function costsModal(keep) {
+    if (!keep || !CM) CM = JSON.parse(JSON.stringify(TARIFF));
+    var rows = CM.map(function (t, i) {
+      return '<tr><td><input type="text" id="tn' + i + '" value="' + esc(t.label) + '" placeholder="Service name" aria-label="Service name"' + (t.fresh ? ' data-fresh="1"' : '') + '>' + (t.fresh ? '<input type="text" id="td' + i + '" value="' + esc(t.note || '') + '" placeholder="Short description for the quote (optional)" aria-label="Description" style="margin-top:4px">' : '') + '</td>' +
+        '<td><input type="text" id="tu' + i + '" value="' + esc(t.unit) + '" placeholder="each" aria-label="Unit"></td>' +
+        '<td>' + (t.fresh ? '<input type="number" min="0" step="0.01" id="tr' + i + '" value="' + (t.rate || '') + '" placeholder="0.00" aria-label="Standard rate">' : money(t.rate)) + '</td>' +
+        '<td><input type="number" min="0" step="0.01" id="tc' + i + '" value="' + (t.cost != null ? t.cost : '') + '" placeholder="Not set" aria-label="Our cost for ' + esc(t.label) + '"></td>' +
+        '<td><button type="button" class="x" data-act="costDel" data-i="' + i + '" aria-label="Remove ' + esc(t.label || 'service') + '">&times;</button></td></tr>';
+    }).join('');
+    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Our costs"><h2>Our costs and services</h2><p class="muted" style="margin:0">One list for every company. Add or rename a service, change its unit, and set what one unit costs HazPack. Profit on a job is what the company pays at its own rates minus these costs. Changes show straight away in the quote or invoice you have open. Saved documents keep the rates and costs they were made with. Staff only, never shown to clients.</p>' +
+      '<div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Service</th><th style="width:120px">Unit</th><th style="width:110px">Standard rate</th><th style="width:110px">Our cost</th><th style="width:30px"></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div><button type="button" class="addln" data-act="costAdd">+ Add a service</button></div>' +
+      '<div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn" data-act="costsSave">Save</button></div></div>');
+  }
+  function syncEditorServices() {
+    if (!ED) return;
+    var old = ED.rows, fresh = !ED.id;
+    ED.rows = TARIFF.map(function (t) {
+      var r = old.filter(function (y) { return y.id === t.id; })[0];
+      if (r) { r.label = t.label; r.note = t.note; r.unit = t.unit; if (fresh) r.rate = rateFor(ORGS[ED.orgId], t.id); return r; }
+      return { id: t.id, label: t.label, note: t.note, unit: t.unit, rate: rateFor(ORGS[ED.orgId], t.id), active: false, qty: 1, noteOverride: '' };
+    }).concat(fresh ? [] : old.filter(function (y) { return !tRow(y.id); }));
   }
   function applyRates() { if (ED && !ED.id) ED.rows.forEach(function (r) { if (tRow(r.id)) r.rate = rateFor(ORGS[ED.orgId], r.id); }); }
   function csvOut() {
@@ -1573,11 +1603,17 @@
       case 'tariff': tariffModal(); return true;
       case 'tariffSave': TARIFF.forEach(function (t, i) { t.rate = parseFloat(document.getElementById('te' + i).value) || 0; }); applyRates(); closeModal(); render(); toast('Rates saved.'); return true;
       case 'costs': costsModal(); return true;
-      case 'costsSave': TARIFF.forEach(function (t, i) { var cv = document.getElementById('tc' + i).value.trim(); if (cv === '') delete t.cost; else t.cost = parseFloat(cv) || 0; }); closeModal(); render(); toast('Costs saved.'); return true;
+      case 'costAdd': readCM(); CM.push({ id: 'svc' + Date.now().toString(36), label: '', note: '', unit: 'each', rate: 0, fresh: true }); costsModal(true); var nn = document.getElementById('tn' + (CM.length - 1)); if (nn) nn.focus(); return true;
+      case 'costDel': readCM(); var gone = CM[+ds.i]; if (gone && (gone.fresh || window.confirm('Remove ' + (gone.label || 'this service') + ' from the list? It stays on documents already saved.'))) { CM.splice(+ds.i, 1); costsModal(true); } return true;
+      case 'costsSave':
+        readCM();
+        if (CM.some(function (t) { return !String(t.label).trim(); })) { toast('Give every service a name.'); return true; }
+        TARIFF = CM.map(function (t) { var o = { id: t.id, label: t.label.trim(), note: t.note || '', unit: String(t.unit).trim() || 'each', rate: t.rate }; if (t.cost != null) o.cost = t.cost; return o; });
+        CM = null; syncEditorServices(); closeModal(); render(); toast('Services and costs saved.'); return true;
       case 'tariffReset':
         var b = document.querySelector('[data-act="tariffReset"]');
         if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Click again to confirm'; return true; }
-        var kept = {}; TARIFF.forEach(function (t) { if (t.cost != null) kept[t.id] = t.cost; }); TARIFF = JSON.parse(JSON.stringify(TARIFF0)); TARIFF.forEach(function (t) { if (kept[t.id] != null) t.cost = kept[t.id]; }); applyRates(); closeModal(); render(); toast('Rates reset. Your costs are kept.'); return true;
+        var kept = {}, extra = TARIFF.filter(function (t) { return !TARIFF0.some(function (z) { return z.id === t.id; }); }); TARIFF.forEach(function (t) { if (t.cost != null) kept[t.id] = t.cost; }); TARIFF = JSON.parse(JSON.stringify(TARIFF0)); TARIFF.forEach(function (t) { if (kept[t.id] != null) t.cost = kept[t.id]; }); TARIFF = TARIFF.concat(extra); syncEditorServices(); applyRates(); closeModal(); render(); toast('Rates reset. Your costs are kept.'); return true;
     }
     return false;
   }
