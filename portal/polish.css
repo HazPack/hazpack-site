@@ -234,3 +234,12 @@ label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px;
 .costpanel .cp-t input[type=text] { width: 100%; }
 .costpanel .cp-sub td { font-weight: 700; padding-top: 14px; }
 @media (max-width: 640px) { .costpanel .cp-sum { grid-template-columns: repeat(2, 1fr); } }
+
+/* Billing table: tighter so it fits without sideways scrolling */
+.bill-t { font-size: 13px; } .bill-t th, .bill-t td { padding-left: 6px; padding-right: 6px; } .bill-t th { font-size: 11px; } .bill-t td.mono { font-size: 12px; }
+.bill-t th { letter-spacing: .02em; }
+.bill-t td.go { min-width: 0; }
+.bill-t td.go .mk { margin-right: 6px; }
+.bill-t td.nw:nth-child(3) { white-space: normal; min-width: 110px; }
+.bill-t td.go { padding-left: 4px; }
+.bill-t th { letter-spacing: 0; } .bill-t td.go { padding-right: 2px; } .bill-t td.go .mk { margin-right: 2px; }
