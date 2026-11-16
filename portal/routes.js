@@ -228,7 +228,7 @@
     var W = Math.round(w * dpr), H = Math.round(h * dpr);
     if (W === g.W && H === g.Hh) return false;
     g.cv.width = W; g.cv.height = H; g.cv.style.width = w + 'px'; g.cv.style.height = h + 'px';
-    g.W = W; g.Hh = H; g.dpr = dpr; g.R = g.spin ? Math.max(W, H) * 0.36 : Math.min(W, H) * 0.43; g.bg = null;
+    g.W = W; g.Hh = H; g.dpr = dpr; g.R = g.spin ? Math.min(W, H) * 0.38 : Math.min(W, H) * 0.43; g.bg = null;
     return true;
   }
   function loop() {
