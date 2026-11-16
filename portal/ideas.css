@@ -264,6 +264,7 @@ body.has-dock .content { padding-bottom: 28px; }
 .ftbl-card td.qa-c { white-space: nowrap; text-align: right; }
 .ftbl-card .qa { display: inline-flex; gap: 6px; margin-right: 0; }
 .qa .qi { width: 32px; padding-left: 0; padding-right: 0; justify-content: center; } .qa .qi .ic { width: 16px; height: 16px; }
+.qa .qdel { color: var(--muted); } .qa .qdel:hover, .qa .qdel:focus-visible { color: var(--bad); border-color: var(--bad); }
 .board.trboard { padding: 4px 20px 20px; }
 .board.trboard .trhead { border-top: 0; }
 .tr-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 2px 14px 12px 46px; }

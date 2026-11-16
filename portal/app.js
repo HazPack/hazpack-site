@@ -1913,9 +1913,10 @@
   function ownChip(j) { return j.owner ? '<span class="own"><i>' + initials(j.owner) + '</i>' + esc(j.owner.split(' ')[0]) + '</span>' : '<span class="muted">Unassigned</span>'; }
   function qaButtons(o, j) {
     var a = ' data-org="' + o.id + '" data-id="' + j.id + '"';
-    if (j.pending) return '<button type="button" class="btn sm" data-act="qAccept"' + a + '>Accept</button>';
-    if (!isOpen(j)) return '';
-    return '<button type="button" class="btn ghost sm qi" data-act="qStep"' + a + ' title="Complete: ' + esc(j.steps[j.done]) + '" aria-label="Complete step: ' + esc(j.steps[j.done]) + '">' + ico('check') + '</button><button type="button" class="btn ghost sm qi" data-act="qFlag"' + a + ' title="Flag for correction" aria-label="Flag for correction">' + ico('flag') + '</button>';
+    var del = '<button type="button" class="btn ghost sm qi qdel" data-act="qDel"' + a + ' title="Delete job" aria-label="Delete job ' + esc(jn(j)) + '">' + ico('x') + '</button>';
+    if (j.pending) return '<button type="button" class="btn sm" data-act="qAccept"' + a + '>Accept</button>' + del;
+    if (!isOpen(j)) return del;
+    return '<button type="button" class="btn ghost sm qi" data-act="qStep"' + a + ' title="Complete: ' + esc(j.steps[j.done]) + '" aria-label="Complete step: ' + esc(j.steps[j.done]) + '">' + ico('check') + '</button><button type="button" class="btn ghost sm qi" data-act="qFlag"' + a + ' title="Flag for correction" aria-label="Flag for correction">' + ico('flag') + '</button>' + del;
   }
   function staffJobs() {
     if (S.mobileDetail && S.job && getJob(S.job) && !sheetMode()) return detail(getJob(S.job));
@@ -2327,6 +2328,17 @@
       case 'qAccept': withOrg(ds.org, function () { act('accept', { id: ds.id }); }); return true;
       case 'qFlag':
         openModal('<form class="modal" id="qfForm" data-org="' + ds.org + '" data-id="' + ds.id + '" role="dialog" aria-modal="true" aria-label="Flag a correction"><h2>Flag a correction on ' + esc(ds.id) + '</h2><p class="muted" style="margin:0">The client is notified that this job needs a correction before it can be cleared to ship.</p><label class="f" for="fixnote">What needs correcting<input id="fixnote" type="text" required></label><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="submit" class="btn">Flag for correction</button></div></form>'); return true;
+      case 'qDel':
+        var dO = ORGS[ds.org], dJ = dO && dO.jobs.filter(function (x) { return x.id === ds.id; })[0]; if (!dJ) return true;
+        var nF = dO.files.filter(function (f) { return f.job === dJ.id; }).length;
+        openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Delete job"><h2>Delete job ' + esc(dJ.ref || dJ.id) + '?</h2><p style="margin:0">' + esc(dJ.item) + ' for ' + esc(dO.name) + (/\.$/.test(dO.name) ? '' : '.') + '</p><p style="margin:0">This removes the job' + (nF ? ', its ' + nF + (nF === 1 ? ' file' : ' files') : '') + ' and its alerts for everyone, including the client. Quotes and invoices stay in Billing. This cannot be undone.</p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn dng2" data-act="qDelGo" data-org="' + dO.id + '" data-id="' + dJ.id + '">Delete job</button></div></div>'); return true;
+      case 'qDelGo':
+        var gO = ORGS[ds.org]; if (!gO) return true;
+        gO.jobs = gO.jobs.filter(function (x) { return x.id !== ds.id; });
+        gO.files = gO.files.filter(function (f) { return f.job !== ds.id; });
+        gO.notifs = gO.notifs.filter(function (n) { return n.job !== ds.id; });
+        if (S.sel) delete S.sel[ds.id]; if (S.job === ds.id) { S.job = null; S.mobileDetail = false; }
+        closeModal(); render(); toast('Job deleted.'); return true;
       case 'zipJob': zipJob(ds.id); return true;
       case 'reqToggle': S.openReq = S.openReq || {}; S.openReq[ds.id] = !S.openReq[ds.id]; render(); return true;
       case 'quoteAccept': quoteModal(ds.id, true); return true;

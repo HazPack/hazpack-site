@@ -279,6 +279,17 @@ try {
     check('test invoice file removed', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200);
   }
   {
+    // Staff can delete a job; its number is never handed out again.
+    org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+    org.jobs.push({ ...org.jobs[0], id: 'HP-2611-950', ref: 'DEL-1' });
+    await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] });
+    org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
+    org.jobs = org.jobs.filter((j) => j.id !== 'HP-2611-950');
+    check('staff delete a job', (await post({ action: 'saveOrg', orgId: 'test-co', rev: org.rev, org, docs: [] })).status === 200 && !(await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co').jobs.some((j) => j.id === 'HP-2611-950'));
+    const rq2 = await act(D.c, { action: 'requestJob', svc: ['dgd'], item: 'After delete', un: 'UN1950', cls: '2.1', mode: 'Ground', from: 'LAX', to: 'PHX', ref: 'PO-2', req: '2026-12-01' });
+    check('a deleted job\'s number is not reused', rq2.status === 200 && /-951$/.test(rq2.data.jobId), rq2.data?.jobId);
+  }
+  {
     // Which client notifications send an email, and what each says.
     org = (await S.json('/api/portal-state')).data.orgs.find((o) => o.id === 'test-co');
     const J = 'HP-2611-900';

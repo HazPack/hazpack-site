@@ -196,9 +196,12 @@ function stepsFor(svc) {
 }
 const logEv = (j, who, text) => { j.log.push({ date: nowIso(), who, text }); if (j.log.length > 400) j.log.splice(0, j.log.length - 400); };
 const notify = (org, job, text, to) => { org.notifs.unshift({ id: randomUUID(), to, job: job || '', text: clean(text, 400), date: nowIso(), read: {} }); if (org.notifs.length > 300) org.notifs.length = 300; };
+// Job numbers count up and are never reused, even after staff delete a job: db.meta.jobMax remembers the highest one.
+const jobNum = (id) => parseInt(String(id).slice(-3), 10) || 0;
 function nextJobId(db) {
-  let max = 0;
-  for (const o of db.orgs) for (const j of o.jobs) { const n = parseInt(String(j.id).slice(-3), 10); if (n > max) max = n; }
+  let max = db.meta.jobMax || 0;
+  for (const o of db.orgs) for (const j of o.jobs) max = Math.max(max, jobNum(j.id));
+  db.meta.jobMax = max + 1;
   const d = new Date();
   return `HP-${String(d.getFullYear()).slice(2)}${String(d.getMonth() + 1).padStart(2, '0')}-${String(max + 1).padStart(3, '0')}`;
 }
@@ -466,6 +469,7 @@ const STAFF_ACTIONS = {
     org.name = clean(inc.name, 80) || org.name;
     org.accountsEmail = clean(inc.accountsEmail, 120);
     org.rates = inc.rates && typeof inc.rates === 'object' ? inc.rates : {};
+    for (const j of org.jobs) db.meta.jobMax = Math.max(db.meta.jobMax || 0, jobNum(j.id)); // a deleted job keeps its number taken
     org.reps = reps; org.jobs = inc.jobs; org.files = files; org.notifs = inc.notifs;
     if (inc.billing && typeof inc.billing === 'object') {
       const bl = inc.billing;
