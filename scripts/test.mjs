@@ -209,7 +209,12 @@ try {
   check('accept a quote', acc.status === 200 && acc.data.state.docs.find((d) => d.id === quoteFile.docId).status === 'Accepted');
   check('answering twice refused', (await act(D.c, { action: 'decideQuote', fileId: quoteFile.id, accept: false })).status === 400);
   check('the note on the file changes', acc.data.state.org.files.find((f) => f.id === quoteFile.id).note.endsWith('accepted'));
+  const accOrg = acc.data.state.org.id;
+  const withCosts = (await S.json('/api/portal-staff')).data.docs.filter((d) => d.orgId === accOrg).map((d) => d.id === quoteFile.docId ? { ...d, costs: [{ desc: 'Courier', amt: 40 }], lines: (d.lines || []).map((l) => ({ ...l, cost: 12 })), custom: [{ desc: 'Extra', qty: 1, rate: 5, cost: 2 }] } : d);
+  check('staff can save costs on a document', (await S.json('/api/portal-staff', { method: 'POST', body: { action: 'saveDocs', orgId: accOrg, docs: withCosts } })).status === 200 && (await S.json('/api/portal-staff')).data.docs.find((d) => d.id === quoteFile.docId).costs[0].amt === 40);
   const read = await act(D.c, { action: 'readNotifs', all: true });
+  const seen = read.data.state.docs.find((d) => d.id === quoteFile.docId);
+  check('clients never see HazPack costs', seen && !('costs' in seen) && seen.lines.every((l) => !('cost' in l)) && seen.custom.every((c) => !('cost' in c)) && seen.custom[0].rate === 5);
   check('mark notifications read', read.status === 200 && read.data.state.org.notifs.every((n) => n.read[dana.id]));
 
   const add = await act(D.c, { action: 'addRep', name: 'Sam Rivera', pin: '5151', title: 'Driver', email: 'sam@example.com' });

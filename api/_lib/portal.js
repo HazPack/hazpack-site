@@ -86,6 +86,12 @@ export function staffLogin(ok) {
 const pubRep = (r) => { const { pinHash, ...rest } = r; return rest; };
 const pubOrg = (o) => { const { passwordHash, ...rest } = o; return { ...rest, reps: o.reps.map(pubRep) }; };
 const canSee = (rep, job) => rep.admin || job.rep === rep.id;
+// HazPack's own costs on a quote or invoice (per-line cost and extra costs) are staff only: clients get the document without them.
+const noCost = (l) => { const { cost, ...rest } = l || {}; return rest; };
+const pubDoc = (d) => {
+  const { costs, ...rest } = d;
+  return { ...rest, lines: Array.isArray(d.lines) ? d.lines.map(noCost) : d.lines, custom: Array.isArray(d.custom) ? d.custom.map(noCost) : d.custom };
+};
 
 export function clientState(db, org, rep) {
   const jobs = org.jobs.filter((j) => canSee(rep, j));
@@ -93,7 +99,7 @@ export function clientState(db, org, rep) {
   const files = org.files.filter((f) => ids.has(f.job) || (!f.job && rep.admin));
   const fileIds = new Set(files.map((f) => f.id));
   const notifs = org.notifs.filter((n) => n.to === 'client' && (n.job ? ids.has(n.job) : rep.admin));
-  const docs = db.docs.filter((d) => d.orgId === org.id && d.fileId && fileIds.has(d.fileId));
+  const docs = db.docs.filter((d) => d.orgId === org.id && d.fileId && fileIds.has(d.fileId)).map(pubDoc);
   return { org: { ...pubOrg(org), jobs, files, notifs, accountsEmail: rep.admin ? org.accountsEmail : undefined, rates: undefined }, docs, me: rep.id, rev: org.rev, mail: mailOn() };
 }
 

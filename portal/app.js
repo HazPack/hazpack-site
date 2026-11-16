@@ -593,7 +593,7 @@
     if (jlTop && (jl = document.getElementById('jlistWrap'))) jl.scrollTop = jlTop;
     RT.mountGlobes(app);
     if (foc) { var q = document.getElementById(foc); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
-    fitPaper(); cmDraw(); railAfter(); flipAfter(); dockAfter(); labelTables(); polishAfter(); S.recAnim = false;
+    fitPaper(); if (S.view === 'doc') costRefresh(); cmDraw(); railAfter(); flipAfter(); dockAfter(); labelTables(); polishAfter(); S.recAnim = false;
   }
 
   /* ---------- helpers ---------- */
@@ -920,6 +920,19 @@
     return { sub: sub, d: d, lf: lf, total: after + lf };
   }
   function docTotal(x) { return sums(x.lines, x.custom, x.disc, x.late).total; }
+  /* HazPack's own costs (staff only). Each service on the rate list can have a standard cost per unit; a quote or invoice
+     can change it per line and add other costs (courier, materials, subcontractor). The server strips all of this before
+     a client sees the document. A saved line keeps the cost it was saved with, so later cost changes do not rewrite past profit. */
+  function stdCost(id) { var t = id && tRow(id); return t && t.cost != null && t.cost !== '' ? +t.cost : null; }
+  function unitCost(l) { return l.cost != null && l.cost !== '' ? (parseFloat(l.cost) || 0) : stdCost(l.id); }
+  function costSums(lines, custom, extra) {
+    var c = 0, known = false, add = function (l) { if (l.active === false) return; var u = unitCost(l); if (u != null) { known = true; c += (l.qty || 0) * u; } };
+    (lines || []).forEach(add); (custom || []).forEach(add);
+    (extra || []).forEach(function (x) { var a = parseFloat(x.amt); if (a) { known = true; c += a; } });
+    return { cost: c, known: known };
+  }
+  function docProfit(x) { var c = costSums(x.lines, x.custom, x.costs), t = docTotal(x); return { rev: t, cost: c.cost, profit: t - c.cost, known: c.known }; }
+  function pct(p, rev) { return rev ? Math.round(p / rev * 100) + '%' : '—'; }
   function dueOf(x) { return addDays(x.date, 15); }
   function isOverdue(x) { return x.type === 'Invoice' && x.status === 'Unpaid' && dueOf(x) && dueOf(x) < iso(TODAY); }
 
@@ -974,7 +987,7 @@
   function edNew(type, orgId, jobId) {
     var org = ORGS[orgId] || null, job = org && jobId ? org.jobs.filter(function (j) { return j.id === jobId; })[0] : null;
     var rep = org ? (job ? org.reps.filter(function (r) { return r.id === job.rep; })[0] : null) || org.reps.filter(function (r) { return r.admin; })[0] : null;
-    var e = { id: null, type: type, orgId: orgId || '', repId: rep ? rep.id : '', jobId: jobId || '', name: '', company: '', addr: '', city: '', email: '', phone: '', bkg: job ? job.ref : '', date: iso(TODAY), docNum: '', preparedBy: 'James Whitty', issuedBy: 'James Whitty', rows: blankRows(org), custom: [], disc: '', late: '', notes: '', status: type === 'Invoice' ? 'Unpaid' : 'Open', fileId: '', split: '', decision: null };
+    var e = { id: null, type: type, orgId: orgId || '', repId: rep ? rep.id : '', jobId: jobId || '', name: '', company: '', addr: '', city: '', email: '', phone: '', bkg: job ? job.ref : '', date: iso(TODAY), docNum: '', preparedBy: 'James Whitty', issuedBy: 'James Whitty', rows: blankRows(org), custom: [], disc: '', late: '', notes: '', status: type === 'Invoice' ? 'Unpaid' : 'Open', fileId: '', split: '', decision: null, costs: [] };
     if (org) { applyBill(e, org, rep); if (org.billing) e.repId = ''; }
     if (job && prefillFromJob(e, job)) e.prefilled = true;
     autoNum(e);
@@ -984,13 +997,13 @@
     var e = JSON.parse(JSON.stringify(x));
     e.rows = TARIFF.map(function (t) {
       var l = x.lines.filter(function (y) { return y.id === t.id; })[0];
-      return l ? { id: l.id, label: l.label, note: l.note, unit: l.unit, rate: l.rate, active: true, qty: l.qty, noteOverride: l.noteOverride || '' } : { id: t.id, label: t.label, note: t.note, unit: t.unit, rate: t.rate, active: false, qty: 1, noteOverride: '' };
+      return l ? { id: l.id, label: l.label, note: l.note, unit: l.unit, rate: l.rate, active: true, qty: l.qty, noteOverride: l.noteOverride || '', cost: l.cost } : { id: t.id, label: t.label, note: t.note, unit: t.unit, rate: t.rate, active: false, qty: 1, noteOverride: '' };
     });
-    delete e.lines; e.split = ''; return e;
+    delete e.lines; e.split = ''; e.costs = e.costs || []; return e;
   }
   function edRecord(e) {
-    var lines = e.rows.filter(function (r) { return r.active; }).map(function (r) { return { id: r.id, label: r.label, note: r.note, unit: r.unit, rate: r.rate, qty: r.qty, noteOverride: r.noteOverride }; });
-    return { id: e.id, docNum: e.docNum, type: e.type, orgId: e.orgId, repId: e.repId, jobId: e.jobId, name: e.name, company: e.company, addr: e.addr, city: e.city, email: e.email, phone: e.phone, bkg: e.bkg, date: e.date, preparedBy: e.preparedBy, issuedBy: e.issuedBy, lines: lines, custom: JSON.parse(JSON.stringify(e.custom)), disc: e.disc, late: e.late, notes: e.notes, status: e.status, fileId: e.fileId, fromQuote: e.fromQuote || '', decision: e.decision || null };
+    var lines = e.rows.filter(function (r) { return r.active; }).map(function (r) { return { id: r.id, label: r.label, note: r.note, unit: r.unit, rate: r.rate, qty: r.qty, noteOverride: r.noteOverride, cost: unitCost(r) }; });
+    return { id: e.id, docNum: e.docNum, type: e.type, orgId: e.orgId, repId: e.repId, jobId: e.jobId, name: e.name, company: e.company, addr: e.addr, city: e.city, email: e.email, phone: e.phone, bkg: e.bkg, date: e.date, preparedBy: e.preparedBy, issuedBy: e.issuedBy, lines: lines, custom: JSON.parse(JSON.stringify(e.custom)), disc: e.disc, late: e.late, notes: e.notes, status: e.status, fileId: e.fileId, fromQuote: e.fromQuote || '', decision: e.decision || null, costs: (e.costs || []).filter(function (x) { return x.desc || parseFloat(x.amt); }).map(function (x) { return { desc: x.desc || '', amt: parseFloat(x.amt) || 0 }; }) };
   }
   function edSave() {
     var e = ED;
@@ -1054,7 +1067,7 @@
     var s = sums(ED.rows, ED.custom, ED.disc, ED.late), set = function (id, t) { var el = document.getElementById(id); if (el) el.textContent = t; };
     ED.rows.forEach(function (r, i) { set('ea' + i, r.active ? money(r.qty * r.rate) : '—'); });
     ED.custom.forEach(function (c, i) { set('ec' + i, money(c.qty * c.rate)); });
-    set('edSub', money(s.sub)); set('edDisc', s.d > 0 ? '−' + money(s.d) : '—'); set('edLate', money(s.lf)); set('edTot', money(s.total)); set('edDue', longDate(dueOf(ED))); var nb = document.getElementById('edNum'); if (nb) { autoNum(ED); nb.value = ED.docNum; nb.placeholder = nextDocNum(ED.type, ED.date); }
+    set('edSub', money(s.sub)); set('edDisc', s.d > 0 ? '−' + money(s.d) : '—'); set('edLate', money(s.lf)); set('edTot', money(s.total)); set('edDue', longDate(dueOf(ED))); costRefresh(); var nb = document.getElementById('edNum'); if (nb) { autoNum(ED); nb.value = ED.docNum; nb.placeholder = nextDocNum(ED.type, ED.date); }
   }
 
   /* ----- screens ----- */
@@ -1066,7 +1079,7 @@
   var billSort = { k: 'date', dir: -1 }, selMode = false, sel = {}, billIds = [];
   function shownStatus(x) { return isOverdue(x) ? 'Overdue' : x.status; }
   function billVal(x, k) {
-    switch (k) { case 'docNum': return x.docNum; case 'type': return x.type; case 'date': return x.date; case 'client': return docOrgName(x).toLowerCase(); case 'job': return x.jobId || ''; case 'amount': return docTotal(x); case 'status': return shownStatus(x); case 'due': return x.type === 'Invoice' ? dueOf(x) : ''; }
+    switch (k) { case 'docNum': return x.docNum; case 'type': return x.type; case 'date': return x.date; case 'client': return docOrgName(x).toLowerCase(); case 'job': return x.jobId || ''; case 'amount': return docTotal(x); case 'profit': var pf = docProfit(x); return x.type === 'Invoice' && x.status !== 'Cancelled' && pf.known ? pf.profit : -1e15; case 'status': return shownStatus(x); case 'due': return x.type === 'Invoice' ? dueOf(x) : ''; }
     return '';
   }
   function sth(label, k) { var on = billSort.k === k; return '<th aria-sort="' + (on ? (billSort.dir > 0 ? 'ascending' : 'descending') : 'none') + '"><button type="button" class="thb" data-act="docSort" data-k="' + k + '">' + label + (on ? (billSort.dir > 0 ? ' ▲' : ' ▼') : '') + '</button></th>'; }
@@ -1076,12 +1089,20 @@
       (stOpen ? '<div class="msel-p" role="group" aria-label="Statuses">' + ['Unpaid', 'Paid', 'Overdue'].map(function (o) { return '<label><input type="checkbox" data-act="stOne" data-v="' + o + '"' + (on.indexOf(o) > -1 ? ' checked' : '') + '><span><b>' + o + '</b></span></label>'; }).join('') + (on.length ? '<button type="button" class="linkbtn" data-act="stClear" style="padding:6px 10px">Clear</button>' : '') + '</div>' : '') + '</div>';
   }
   document.addEventListener('click', function (e) { if (stOpen && !e.target.closest('.msel.st')) { stOpen = false; render(); } });
+  /* Profit on an invoice: what it charges minus HazPack's costs. Quotes and cancelled invoices show a dash. */
+  function profitCell(x) {
+    if (x.type !== 'Invoice' || x.status === 'Cancelled') return '<span class="muted">—</span>';
+    var p = docProfit(x);
+    if (!p.known) return '<span class="muted">No costs</span>';
+    return '<span class="pl ' + (p.profit < 0 ? 'neg' : 'pos') + '">' + (p.profit < 0 ? '−' + money(-p.profit) : money(p.profit)) + '</span><br><span class="muted" style="font-size:12px">' + pct(p.profit, p.rev) + ' margin</span>';
+  }
   function billingView() {
-    var inv = DOCS.filter(function (x) { return x.type === 'Invoice'; }), tot = 0, paid = 0, out = 0, od = 0, thisM = 0, lastM = 0, nThis = 0;
+    var inv = DOCS.filter(function (x) { return x.type === 'Invoice'; }), tot = 0, paid = 0, out = 0, od = 0, thisM = 0, lastM = 0, nThis = 0, prof = 0, profRev = 0, noCost = 0;
     var ym = iso(TODAY).slice(0, 7), lm = iso(new Date(TODAY.getFullYear(), TODAY.getMonth() - 1, 1)).slice(0, 7);
     inv.forEach(function (x) {
       var t = docTotal(x); tot += t;
       if (x.status === 'Paid') { paid += t; } else if (x.status !== 'Cancelled') { out += t; if (isOverdue(x)) od++; }
+      if (x.status !== 'Cancelled') { var pf = docProfit(x); if (pf.known) { prof += pf.profit; profRev += pf.rev; } else noCost++; }
       if (x.status !== 'Cancelled') { if (x.date.slice(0, 7) === ym) { thisM += t; nThis++; } else if (x.date.slice(0, 7) === lm) lastM += t; }
     });
     var openQ = DOCS.filter(function (x) { return x.type === 'Quote' && x.status === 'Open'; }).length;
@@ -1092,19 +1113,20 @@
     billIds = list.map(function (x) { return x.id; }); var nSel = Object.keys(sel).length;
     var rows = list.map(function (x) {
       var t = docTotal(x);
-      return '<tr class="click' + (selMode && sel[x.id] ? ' sel' : '') + '" data-act="' + (selMode ? 'bulkRow' : 'docOpen') + '" data-id="' + x.id + '">' + (selMode ? '<td class="cb"><input type="checkbox" data-act="bulkOne" data-id="' + x.id + '"' + (sel[x.id] ? ' checked' : '') + ' aria-label="Select ' + esc(x.docNum) + '"></td>' : '') + '<td class="mono nw"><b>' + esc(x.docNum) + '</b>' + (x.decision ? '<br><span class="muted" style="font-size:12px;font-family:var(--font-sans)">' + x.decision.action + ' by ' + esc(x.decision.by) + ', ' + mdy(x.decision.when) + '</span>' : '') + '</td><td>' + x.type + '</td><td>' + mdy(x.date) + '</td><td class="nw">' + esc(docOrgName(x)) + '</td><td class="mono nw">' + esc(jnId(x.jobId) || '—') + '</td><td>' + money(t) + '</td><td>' + statusSel(x) + '</td>' +
+      return '<tr class="click' + (selMode && sel[x.id] ? ' sel' : '') + '" data-act="' + (selMode ? 'bulkRow' : 'docOpen') + '" data-id="' + x.id + '">' + (selMode ? '<td class="cb"><input type="checkbox" data-act="bulkOne" data-id="' + x.id + '"' + (sel[x.id] ? ' checked' : '') + ' aria-label="Select ' + esc(x.docNum) + '"></td>' : '') + '<td class="mono nw"><b>' + esc(x.docNum) + '</b>' + (x.decision ? '<br><span class="muted" style="font-size:12px;font-family:var(--font-sans)">' + x.decision.action + ' by ' + esc(x.decision.by) + ', ' + mdy(x.decision.when) + '</span>' : '') + '</td><td>' + x.type + '</td><td>' + mdy(x.date) + '</td><td class="nw">' + esc(docOrgName(x)) + '</td><td class="mono nw">' + esc(jnId(x.jobId) || '—') + '</td><td>' + money(t) + '</td><td class="nw">' + profitCell(x) + '</td><td>' + statusSel(x) + '</td>' +
         '<td>' + (x.type === 'Invoice' ? mdy(dueOf(x)) : '—') + '</td><td>' + (x.fileId ? '<span class="pill ok">Sent</span>' : '<span class="muted">Not sent</span>') + '</td>' +
         '<td class="go nw">' + (x.type === 'Quote' && x.status !== 'Declined' ? '<button type="button" class="linkbtn mk" data-act="docToInvoice" data-id="' + x.id + '">Make invoice</button>' : '') + '<span class="vw">Open &rsaquo;</span></td></tr>';
     }).join('');
     var card = function (k, v, s, cls) { return '<div class="card stat cf' + (cls || '') + '"><span class="k">' + k + '</span><span class="v">' + v + '</span><span class="s">' + s + '</span></div>'; };
     return '<div class="stats">' + card('Total invoiced', money(tot), inv.length + ' invoices') + card('Invoiced this month', money(thisM), 'Last month ' + money(lastM)) + card('Paid', money(paid), 'marked paid') + card('Outstanding', money(out), od ? od + ' overdue' : 'none overdue', out ? ' attn' : '') +
+      card('Profit', profRev ? (prof < 0 ? '−' + money(-prof) : money(prof)) : '—', profRev ? pct(prof, profRev) + ' margin' + (noCost ? ', ' + noCost + ' without costs' : '') : 'Add your costs to see profit', prof < 0 ? ' attn' : '') +
       card('Open quotes', openQ, 'waiting for an answer') + '</div>' +
       '<div class="tools"><input id="bq" type="search" placeholder="Search client, document, reference or job" value="' + esc(billF.q) + '" aria-label="Search documents"><select id="bt" aria-label="Type"><option value="">All types</option><option' + (billF.type === 'Quote' ? ' selected' : '') + '>Quote</option><option' + (billF.type === 'Invoice' ? ' selected' : '') + '>Invoice</option></select>' +
       stSelHtml() +
-      '<button type="button" class="btn ghost sm" data-act="bulkToggle" aria-pressed="' + selMode + '">' + (selMode ? 'Selecting' : 'Select') + '</button><button type="button" class="btn ghost sm" data-act="docCsv">Export CSV</button><button type="button" class="btn ghost sm" data-act="stmtOpen">Statement of accounts</button><button type="button" class="btn ghost sm" data-act="docNew" data-m="Quote">New quote</button><button type="button" class="btn sm" data-act="docNew" data-m="Invoice">New invoice</button></div>' +
+      '<button type="button" class="btn ghost sm" data-act="bulkToggle" aria-pressed="' + selMode + '">' + (selMode ? 'Selecting' : 'Select') + '</button><button type="button" class="btn ghost sm" data-act="docCsv">Export CSV</button><button type="button" class="btn ghost sm" data-act="tariff">Rates and our costs</button><button type="button" class="btn ghost sm" data-act="stmtOpen">Statement of accounts</button><button type="button" class="btn ghost sm" data-act="docNew" data-m="Quote">New quote</button><button type="button" class="btn sm" data-act="docNew" data-m="Invoice">New invoice</button></div>' +
       (selMode ? '<div class="bulkbar"><span><b>' + nSel + '</b> selected</span><span class="grow"></span><button type="button" class="btn ghost sm" data-act="bulkClear">Clear</button><button type="button" class="btn sm dng2" data-act="bulkAsk"' + (nSel ? '' : ' disabled') + '>Delete selected</button></div>' : '') +
-      '<div class="card"><div class="tbl-wrap"><table><thead><tr>' + (selMode ? '<th class="cb"><input type="checkbox" data-act="bulkAll" aria-label="Select all"' + (list.length && list.every(function (x) { return sel[x.id]; }) ? ' checked' : '') + '></th>' : '') + sth('Doc #', 'docNum') + sth('Type', 'type') + sth('Date', 'date') + sth('Client', 'client') + sth('Job', 'job') + sth('Amount', 'amount') + sth('Status', 'status') + sth('Due', 'due') + '<th>Client copy</th><th class="act-h">Action</th></tr></thead><tbody>' +
-      (rows || '<tr><td colspan="' + (selMode ? 12 : 11) + '">' + emptyS('No documents match', 'Change the filters, or start a new quote or invoice.', '') + '</td></tr>') + '</tbody></table></div></div>' +
+      '<div class="card"><div class="tbl-wrap"><table><thead><tr>' + (selMode ? '<th class="cb"><input type="checkbox" data-act="bulkAll" aria-label="Select all"' + (list.length && list.every(function (x) { return sel[x.id]; }) ? ' checked' : '') + '></th>' : '') + sth('Doc #', 'docNum') + sth('Type', 'type') + sth('Date', 'date') + sth('Client', 'client') + sth('Job', 'job') + sth('Amount', 'amount') + sth('Profit', 'profit') + sth('Status', 'status') + sth('Due', 'due') + '<th>Client copy</th><th class="act-h">Action</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="' + (selMode ? 13 : 12) + '">' + emptyS('No documents match', 'Change the filters, or start a new quote or invoice.', '') + '</td></tr>') + '</tbody></table></div></div>' +
       '<p class="muted" style="margin:0;font-size:13px">Staff only. Clients never see this screen. A client sees a quote or invoice only after you send it to a job, and then as a file on that job. Only invoices are copied to a company accounts email.</p>';
   }
   function docView() {
@@ -1118,7 +1140,33 @@
       '<div class="edbar" style="margin-top:12px"><label class="f" style="max-width:150px">Total pieces<input type="number" min="1" data-ed="split" value="' + esc(e.split) + '" placeholder="e.g. 25"></label><button type="button" class="btn ghost sm" data-act="edSplit">Split into tiers</button>' + (e.id && e.type === 'Quote' ? '<button type="button" class="btn ghost sm" data-act="docToInvoice" data-id="' + e.id + '">Make invoice from this quote</button>' : '') + (org && e.repId ? '<button type="button" class="btn ghost sm" data-act="edSaveRep" title="Next time you pick this contact, the Bill to section fills in with these details">Remember billing details for ' + esc(((ORGS[e.orgId] || { reps: [] }).reps.filter(function (r) { return r.id === e.repId; })[0] || { name: 'this contact' }).name.split(' ')[0]) + '</button>' : '') + '<span style="flex:1"></span>' +
       '<button type="button" class="btn ghost sm" data-act="edSave">Save</button><button type="button" class="btn ghost sm" data-act="edPdf">Download PDF</button><button type="button" class="btn sm" data-act="edSend">Send to client</button></div>' +
       '<p class="muted" style="margin:10px 0 0;font-size:13px">' + ratesNote(org) + (!e.jobId && !inv ? 'With no job chosen, a sent quote goes to the company admins and opens a new job request when accepted. ' : '') + 'Sending attaches the PDF to the job as ' + (inv ? 'an invoice' : 'a file') + ' and notifies the people who can see that job. Inspection and label tiers use the piece count above.</p></div>' +
-      '<div class="paperwrap">' + paperHtml(e, false) + '</div>';
+      '<div class="paperwrap">' + paperHtml(e, false) + '</div>' + costPanel(e);
+  }
+  /* Staff-only panel under the editor: what the job costs HazPack and what is left as profit. Not part of the paper, so never on the PDF. */
+  function costPanel(e) {
+    var ci = function (key, l) { var sc = stdCost(l.id); return '<input type="number" min="0" step="0.01" data-ek="' + key + '" value="' + (l.cost != null && l.cost !== '' ? esc(l.cost) : '') + '" placeholder="' + (sc != null ? sc : 'Not set') + '" aria-label="Our cost per unit for ' + esc(l.label || l.desc || 'this line') + '">'; };
+    var rows = '';
+    e.rows.forEach(function (r, i) { if (r.active) rows += '<tr><td>' + esc(r.label) + '</td><td class="r" id="kq' + i + '">' + r.qty + '</td><td class="r" id="kr' + i + '">' + money(r.qty * r.rate) + '</td><td class="r">' + ci('r:' + i, r) + '</td><td class="r" id="kc' + i + '"></td></tr>'; });
+    e.custom.forEach(function (c, i) { rows += '<tr><td>' + esc(c.desc || 'Additional line ' + (i + 1)) + '</td><td class="r" id="kqc' + i + '">' + c.qty + '</td><td class="r" id="krc' + i + '">' + money(c.qty * c.rate) + '</td><td class="r">' + ci('c:' + i, c) + '</td><td class="r" id="kcc' + i + '"></td></tr>'; });
+    var other = (e.costs || []).map(function (x, i) { return '<tr><td colspan="3"><input type="text" data-ek="x:' + i + ':desc" value="' + esc(x.desc || '') + '" placeholder="e.g. Courier, materials, subcontractor" aria-label="Cost description"></td><td class="r"><input type="number" min="0" step="0.01" data-ek="x:' + i + ':amt" value="' + esc(x.amt == null ? '' : x.amt) + '" placeholder="0.00" aria-label="Cost amount"></td><td class="r"><button type="button" class="x" data-act="edDelCost" data-i="' + i + '" aria-label="Remove cost">&times;</button></td></tr>'; }).join('');
+    var tile = function (k, id) { return '<div><span class="k">' + k + '</span><span class="v" id="' + id + '"></span></div>'; };
+    return '<div class="card pad costpanel"><div class="cp-head"><div><h3>Job costs and profit</h3><p class="muted">Staff only. Never on the PDF and never shown to the client. A blank cost box uses the standard cost from <button type="button" class="linkbtn" data-act="tariff">Rates and our costs</button>.</p></div>' +
+      '<div class="cp-sum">' + tile('We charge', 'kRev') + tile('Our costs', 'kCost') + tile('Profit', 'kProf') + tile('Margin', 'kMarg') + '</div></div>' +
+      '<div class="tbl-wrap"><table class="cp-t"><thead><tr><th>Service</th><th class="r">Qty</th><th class="r">We charge</th><th class="r">Our cost per unit</th><th class="r">Our cost</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="5" class="muted">No lines on this document yet.</td></tr>') +
+      '<tr class="cp-sub"><td colspan="5">Other costs for this job</td></tr>' + other +
+      '<tr><td colspan="5"><button type="button" class="addln" data-act="edAddCost">+ Add a cost</button></td></tr></tbody></table></div></div>';
+  }
+  function costRefresh() {
+    if (!ED || !document.getElementById('kRev')) return;
+    var set = function (id, t, cls) { var el = document.getElementById(id); if (el) { el.textContent = t; if (cls !== undefined) el.className = 'v ' + cls; } };
+    var lc = function (l) { var u = unitCost(l); return u == null ? '—' : money((l.qty || 0) * u); };
+    ED.rows.forEach(function (r, i) { if (r.active) { set('kq' + i, r.qty); set('kr' + i, money(r.qty * r.rate)); set('kc' + i, lc(r)); } });
+    ED.custom.forEach(function (c, i) { set('kqc' + i, c.qty); set('krc' + i, money(c.qty * c.rate)); set('kcc' + i, lc(c)); });
+    var t = sums(ED.rows, ED.custom, ED.disc, ED.late).total, c = costSums(ED.rows, ED.custom, ED.costs), p = t - c.cost;
+    set('kRev', money(t)); set('kCost', c.known ? money(c.cost) : 'Not set');
+    set('kProf', c.known ? (p < 0 ? '−' + money(-p) : money(p)) : '—', c.known ? (p < 0 ? 'neg' : 'pos') : '');
+    set('kMarg', c.known ? pct(p, t) : '—', c.known ? (p < 0 ? 'neg' : 'pos') : '');
   }
 
   /* ----- PDF ----- */
@@ -1352,14 +1400,14 @@
       '<div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn" data-act="ratesSave" data-org="' + o.id + '">Save client rates</button></div></div>');
   }
   function tariffModal() {
-    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Rates"><h2>Rates</h2><p class="muted" style="margin:0">Standard rates in US dollars. A change applies to new documents. Saved documents keep the rates they were made with. Rates reset when the prototype reloads.</p>' +
-      '<div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Service</th><th style="width:110px">Rate</th><th>Unit</th></tr></thead><tbody>' + TARIFF.map(function (t, i) { return '<tr><td>' + esc(t.label) + '</td><td><input type="number" min="0" step="0.01" id="te' + i + '" value="' + t.rate + '" aria-label="Rate for ' + esc(t.label) + '"></td><td>' + esc(t.unit) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
-      '<div class="row"><button type="button" class="btn ghost" data-act="tariffReset">Reset to defaults</button><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn" data-act="tariffSave">Save rates</button></div></div>');
+    openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Rates and our costs"><h2>Rates and our costs</h2><p class="muted" style="margin:0">Standard rates in US dollars, used for any company without its own rates. Our cost is what one unit costs HazPack (staff time, materials) and works out the profit on each quote and invoice. Costs are staff only and never shown to clients. A change applies to new documents. Saved documents keep the rates and costs they were made with.</p>' +
+      '<div class="tbl-wrap" style="max-height:50vh;overflow:auto"><table><thead><tr><th>Service</th><th style="width:110px">Rate</th><th style="width:110px">Our cost</th><th>Unit</th></tr></thead><tbody>' + TARIFF.map(function (t, i) { return '<tr><td>' + esc(t.label) + '</td><td><input type="number" min="0" step="0.01" id="te' + i + '" value="' + t.rate + '" aria-label="Rate for ' + esc(t.label) + '"></td><td><input type="number" min="0" step="0.01" id="tc' + i + '" value="' + (t.cost != null ? t.cost : '') + '" placeholder="Not set" aria-label="Our cost for ' + esc(t.label) + '"></td><td>' + esc(t.unit) + '</td></tr>'; }).join('') + '</tbody></table></div>' +
+      '<div class="row"><button type="button" class="btn ghost" data-act="tariffReset">Reset to defaults</button><button type="button" class="btn ghost" data-act="closeModal">Cancel</button><button type="button" class="btn" data-act="tariffSave">Save rates and costs</button></div></div>');
   }
   function applyRates() { if (ED && !ED.id) ED.rows.forEach(function (r) { if (tRow(r.id)) r.rate = rateFor(ORGS[ED.orgId], r.id); }); }
   function csvOut() {
     var q = function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; };
-    var rows = [['Doc #', 'Type', 'Date', 'Client', 'Job', 'BKG #', 'Amount', 'Status', 'Due', 'Prepared by']].concat(DOCS.map(function (x) { return [x.docNum, x.type, mdy(x.date), docOrgName(x), jnId(x.jobId), x.bkg, docTotal(x).toFixed(2), x.status, x.type === 'Invoice' ? mdy(dueOf(x)) : '', x.preparedBy]; }));
+    var rows = [['Doc #', 'Type', 'Date', 'Client', 'Job', 'BKG #', 'Amount', 'Our cost', 'Profit', 'Status', 'Due', 'Prepared by']].concat(DOCS.map(function (x) { var pf = docProfit(x), sh = pf.known && x.type === 'Invoice'; return [x.docNum, x.type, mdy(x.date), docOrgName(x), jnId(x.jobId), x.bkg, docTotal(x).toFixed(2), sh ? pf.cost.toFixed(2) : '', sh ? pf.profit.toFixed(2) : '', x.status, x.type === 'Invoice' ? mdy(dueOf(x)) : '', x.preparedBy]; }));
     download('HazPack_Billing_' + iso(TODAY) + '.csv', new Blob(['﻿' + rows.map(function (r) { return r.map(q).join(','); }).join('\n')], { type: 'text/csv;charset=utf-8' }));
   }
   /* ----- Statement of accounts (staff, Billing tab): one company's invoices, what is paid and what is still owed ----- */
@@ -1496,6 +1544,8 @@
       case 'edMode': if (!ED.id) { ED.type = ds.m; ED.status = ds.m === 'Invoice' ? 'Unpaid' : 'Open'; autoNum(ED); render(); } return true;
       case 'edAddLine': ED.custom.push({ desc: '', note: '', qty: 1, unit: 'each', rate: 0 }); render(); return true;
       case 'edDelLine': ED.custom.splice(+ds.i, 1); render(); return true;
+      case 'edAddCost': (ED.costs = ED.costs || []).push({ desc: '', amt: '' }); render(); var nc = document.querySelectorAll('[data-ek$=":desc"]'); if (nc.length) nc[nc.length - 1].focus(); return true;
+      case 'edDelCost': ED.costs.splice(+ds.i, 1); render(); return true;
       case 'edLate': ED.late = !ED.late ? '1.5' : lateRate(ED.late) === 1.5 ? '2.0' : ''; render(); return true;
       case 'edSplit':
         var total = parseInt(ED.split, 10) || 0; if (!total) { toast('Enter the total number of pieces first.'); return true; }
@@ -1515,11 +1565,11 @@
       case 'edPdf': edPdf(); return true;
       case 'edSend': edSend(); return true;
       case 'tariff': tariffModal(); return true;
-      case 'tariffSave': TARIFF.forEach(function (t, i) { t.rate = parseFloat(document.getElementById('te' + i).value) || 0; }); applyRates(); closeModal(); render(); toast('Rates saved.'); return true;
+      case 'tariffSave': TARIFF.forEach(function (t, i) { t.rate = parseFloat(document.getElementById('te' + i).value) || 0; var cv = document.getElementById('tc' + i).value.trim(); if (cv === '') delete t.cost; else t.cost = parseFloat(cv) || 0; }); applyRates(); closeModal(); render(); toast('Rates and costs saved.'); return true;
       case 'tariffReset':
         var b = document.querySelector('[data-act="tariffReset"]');
         if (b.dataset.armed !== '1') { b.dataset.armed = '1'; b.textContent = 'Click again to confirm'; return true; }
-        TARIFF = JSON.parse(JSON.stringify(TARIFF0)); applyRates(); closeModal(); render(); toast('Rates reset.'); return true;
+        var kept = {}; TARIFF.forEach(function (t) { if (t.cost != null) kept[t.id] = t.cost; }); TARIFF = JSON.parse(JSON.stringify(TARIFF0)); TARIFF.forEach(function (t) { if (kept[t.id] != null) t.cost = kept[t.id]; }); applyRates(); closeModal(); render(); toast('Rates reset. Your costs are kept.'); return true;
     }
     return false;
   }
@@ -1529,7 +1579,7 @@
     if (d.act === 'bulkAll') { sel = {}; if (el.checked) billIds.forEach(function (id) { sel[id] = true; }); render(); return true; }
     if (d.act === 'docStatus') { var x = DOCS.filter(function (y) { return y.id === d.id; })[0]; if (el.value === 'Overdue') { render(); return true; } setStatus(x, el.value); render(); toast(x.docNum + ' marked ' + el.value.toLowerCase() + '.'); return true; }
     if (d.act === 'edToggle') { var r = ED.rows[+d.i]; r.active = el.checked; if (!el.checked) r.qty = 1; render(); return true; }
-    if (d.act === 'edOrg') { var o = ORGS[el.value]; var keep = ED; ED = edNew(keep.type, el.value, ''); ED.id = keep.id; ED.docNum = keep.docNum; ED.autoNum = keep.autoNum; ED.date = keep.date; ED.rows = keep.rows; if (!keep.id) ED.rows.forEach(function (r) { r.rate = rateFor(o, r.id); }); ED.custom = keep.custom; ED.disc = keep.disc; ED.late = keep.late; ED.notes = keep.notes; ED.preparedBy = keep.preparedBy; ED.issuedBy = keep.issuedBy; ED.status = keep.status; ED.fileId = keep.fileId; if (!o) { ED.company = keep.company; ED.name = keep.name; ED.email = keep.email; ED.bkg = keep.bkg; } render(); return true; }
+    if (d.act === 'edOrg') { var o = ORGS[el.value]; var keep = ED; ED = edNew(keep.type, el.value, ''); ED.id = keep.id; ED.docNum = keep.docNum; ED.autoNum = keep.autoNum; ED.date = keep.date; ED.rows = keep.rows; if (!keep.id) ED.rows.forEach(function (r) { r.rate = rateFor(o, r.id); }); ED.custom = keep.custom; ED.costs = keep.costs || []; ED.disc = keep.disc; ED.late = keep.late; ED.notes = keep.notes; ED.preparedBy = keep.preparedBy; ED.issuedBy = keep.issuedBy; ED.status = keep.status; ED.fileId = keep.fileId; if (!o) { ED.company = keep.company; ED.name = keep.name; ED.email = keep.email; ED.bkg = keep.bkg; } render(); return true; }
     if (d.act === 'edRep') { var rp = ORGS[ED.orgId].reps.filter(function (y) { return y.id === el.value; })[0]; ED.repId = el.value; if (rp) putBill(ED, personBill(ORGS[ED.orgId], rp)); else applyBill(ED, ORGS[ED.orgId], null); render(); return true; }
     if (d.act === 'edJob') { var jb = ORGS[ED.orgId].jobs.filter(function (y) { return y.id === el.value; })[0]; var was = ED.jobId && ORGS[ED.orgId].jobs.filter(function (y) { return y.id === ED.jobId; })[0]; if (was && ED.bkg === was.ref) ED.bkg = ''; ED.jobId = el.value; if (jb) { ED.bkg = jb.ref || ED.bkg; if (!ED.id && prefillFromJob(ED, jb)) toast('Lines filled from the job\'s services and piece count. Check them before sending.'); var rq = ORGS[ED.orgId].billing ? null : ORGS[ED.orgId].reps.filter(function (y) { return y.id === jb.rep; })[0]; if (rq) { ED.repId = rq.id; putBill(ED, personBill(ORGS[ED.orgId], rq)); } } render(); return true; }
     if (el.id === 'bt') { billF.type = el.value; render(); return true; }
@@ -1543,6 +1593,7 @@
     if (!ED) return false;
     if (d.ed) { ED[d.ed] = el.value; if (d.ed === 'docNum') ED.autoNum = !el.value.trim(); if (d.ed === 'date' || d.ed === 'disc') edRefresh(); return true; }
     if (d.er) { p = d.er.split(':'); ED.rows[+p[0]][p[1]] = p[1] === 'qty' ? (parseFloat(el.value) || 0) : el.value; edRefresh(); return true; }
+    if (d.ek) { p = d.ek.split(':'); var v = el.value.trim(); if (p[0] === 'x') ED.costs[+p[1]][p[2]] = v; else (p[0] === 'r' ? ED.rows : ED.custom)[+p[1]].cost = v === '' ? null : (parseFloat(v) || 0); costRefresh(); return true; }
     if (d.ec) { p = d.ec.split(':'); ED.custom[+p[0]][p[1]] = (p[1] === 'qty' || p[1] === 'rate') ? (parseFloat(el.value) || 0) : el.value; edRefresh(); return true; }
     return false;
   }

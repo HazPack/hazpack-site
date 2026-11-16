@@ -217,3 +217,20 @@ label.f.dz:focus-within { outline: 2px solid var(--accent); outline-offset: 2px;
 .onb li.open .onb-h .cv { transform: none; }
 .onb-b { padding: 0 12px 14px 42px; display: grid; justify-items: start; gap: 10px; }
 .onb-b p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 60ch; }
+
+/* Billing: profit / loss (staff only) */
+.pl { font-weight: 700; font-variant-numeric: tabular-nums; }
+.costpanel { margin-top: 16px; display: grid; gap: 14px; }
+.costpanel h3 { font-size: 16px; margin: 0; }
+.costpanel .cp-head { display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; }
+.costpanel .cp-head p { margin: 4px 0 0; font-size: 13px; max-width: 520px; }
+.costpanel .cp-sum { display: grid; grid-template-columns: repeat(4, minmax(90px, auto)); gap: 8px 20px; }
+.costpanel .cp-sum .k { display: block; font-size: 12px; color: var(--muted); }
+.costpanel .cp-sum .v { display: block; font: 800 20px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--navy-text); }
+.pl.pos, .costpanel .cp-sum .v.pos { color: var(--ok); }
+.pl.neg, .costpanel .cp-sum .v.neg { color: var(--bad); }
+.costpanel .cp-t td.r, .costpanel .cp-t th.r { text-align: right; font-variant-numeric: tabular-nums; }
+.costpanel .cp-t input[type=number] { width: 110px; text-align: right; }
+.costpanel .cp-t input[type=text] { width: 100%; }
+.costpanel .cp-sub td { font-weight: 700; padding-top: 14px; }
+@media (max-width: 640px) { .costpanel .cp-sum { grid-template-columns: repeat(2, 1fr); } }
