@@ -20,7 +20,7 @@ const staffInbox = () => process.env.PORTAL_STAFF_EMAIL || 'lax-dgr@hazpackcompl
 const portalUrl = () => {
   if (process.env.PORTAL_URL) return process.env.PORTAL_URL;
   if (process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_BRANCH_URL) return `https://${process.env.VERCEL_BRANCH_URL}/portal`;
-  return 'https://www.hazpackcompliance.com/portal';
+  return 'https://hazpackcompliance.com/portal';
 };
 const realAddress = (a) => typeof a === 'string' && EMAIL.test(a.trim()) && !FAKE.test(a.trim());
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -97,7 +97,7 @@ export function greeting(now = new Date()) {
 // Staff alerts: logo on top, the update in a highlighted box, an orange button. Client emails: plain, like a personal email,
 // ending with a signature laid out like the team's email signature (logo, orange bar, navy name, orange title, grey labels).
 // Tables and inline styles only, so they hold up in Outlook and Gmail. The logo is served from the live site.
-const SITE = 'https://www.hazpackcompliance.com';
+const SITE = 'https://hazpackcompliance.com';
 // Signature logo: the logo on a solid white background (email-logo.png), so it reads the same in dark mode, where mail apps darken the page but never change images.
 const SIG_LOGO = `${SITE}/email-logo.png`;
 const LOGO = `${SITE}/logo.png`; // served by the live site today and kept at the repo root for after the merge
