@@ -237,6 +237,19 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--bg); }
 .mail .h { font-size: 12.5px; color: var(--muted); }
 .found { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 10px; }
 .found .g { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+/* Goods lines read from a multi-item DGD (request form editor and job views). */
+.goods-ed { display: grid; gap: 6px; min-width: 0; }
+.goods-h { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 13px; }
+.goods-ed .tbl-wrap, .goods-v .tbl-wrap { border: 1px solid var(--line); border-radius: 8px; max-height: 340px; overflow: auto; }
+table.gtab { font-size: 13px; }
+table.gtab th { position: sticky; top: 0; z-index: 1; padding: 7px 8px; font-size: 11px; }
+table.gtab td { padding: 4px; vertical-align: top; }
+table.gtab input[type=text] { padding: 6px 8px; font-size: 13px; border-radius: 6px; }
+table.gtab td:nth-child(1) input { min-width: 74px; } table.gtab td:nth-child(2) input { min-width: 220px; }
+table.gtab td:nth-child(3) input { min-width: 56px; } table.gtab td:nth-child(4) input { min-width: 48px; } table.gtab td:nth-child(5) input { min-width: 190px; }
+table.gtab td:last-child { width: 34px; vertical-align: middle; }
+.goods-v { padding: 0 18px 18px; display: grid; gap: 8px; }
+.goods-v table.gtab td { padding: 8px 10px; }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--navy); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 40; max-width: calc(100% - 32px); }
 .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; }

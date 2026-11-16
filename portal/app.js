@@ -504,6 +504,12 @@
     });
     return out.join('');
   }
+  /* Every goods line of a multi-item DGD, under the job's summary fields. */
+  function goodsView(j) {
+    if (!j.goods || j.goods.length < 2) return '';
+    return '<div class="goods-v"><div class="goods-h"><b>Dangerous goods · ' + j.goods.length + ' lines</b><span class="muted">As read from the DGD and confirmed with the request.</span></div><div class="tbl-wrap"><table class="gtab"><thead><tr><th>UN no.</th><th>Proper shipping name</th><th>Class</th><th>PG</th><th>Quantity and packing</th></tr></thead><tbody>' +
+      j.goods.map(function (g) { return '<tr><td><span class="un">' + esc(g.un || '—') + '</span></td><td>' + esc(g.item) + '</td><td>' + esc(g.cls) + '</td><td>' + esc(g.pg) + '</td><td>' + esc(g.qty) + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+  }
   function detail(j) {
     if (S.jobTab === 'flow') S.jobTab = 'overview';
     var a = pt(j.from), b = pt(j.to), t = S.jobTab, ok = routeOf(j);
@@ -514,7 +520,7 @@
         (j.fix ? fixPanel(j) : '') +
         '<dl class="dl"><div><dt>UN number</dt><dd><span class="un">' + esc(j.un || '—') + '</span></dd></div><div><dt>Hazard class</dt><dd>' + esc(j.cls) + '</dd></div><div><dt>Packing group</dt><dd>' + esc(j.pg) + '</dd></div><div><dt>Quantity</dt><dd>' + esc(j.qty || '—') + '</dd></div><div><dt>Transport</dt><dd>' + j.mode + '</dd></div><div><dt>Your reference</dt><dd class="mono">' + esc(j.ref || '—') + '</dd></div>' +
         '<div><dt>Requested by</dt><dd>' + esc(repName(j.rep)) + '</dd></div><div><dt>Services</dt><dd>' + j.svc.map(function (k) { return SVC[k]; }).join(', ') + '</dd></div><div><dt>Required by</dt><dd>' + (j.req ? fmt(isoDate(j.req)) : 'Not set') + '</dd></div>' +
-        (sea(j) ? '<div class="wide2"><dt>Ports</dt><dd>' + seaRoute(j) + '</dd></div>' : '') + noteRow(j) + '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl>' + (staff() ? '' : '<div class="pad" style="padding-top:0">' + taskRows(j) + '</div>');
+        (sea(j) ? '<div class="wide2"><dt>Ports</dt><dd>' + seaRoute(j) + '</dd></div>' : '') + noteRow(j) + '<div class="wide2"><dt>DGD</dt><dd>' + docCell(latest(j, 'DGD'), 'Not uploaded yet') + '</dd></div><div class="wide2"><dt>Invoice</dt><dd>' + docCell(latest(j, 'Invoice'), 'Not sent yet') + '</dd></div></dl>' + goodsView(j) + (staff() ? '' : '<div class="pad" style="padding-top:0">' + taskRows(j) + '</div>');
     } else if (t === 'timeline') {
       var items = j.ev.map(function (e) { return '<li class="' + (/^Correction needed/.test(e[1]) ? 'warn' : '') + '"><div><b>' + esc(clientText(e[1])) + '</b><span>' + fmt(e[0]) + '</span></div></li>'; });
       j.steps.forEach(function (n, i) { if (i >= j.done) items.push('<li class="todo"><div><b>' + esc(n) + '</b><span>Up next</span></div></li>'); });
@@ -641,15 +647,22 @@
   }
   function withTimeout(p, ms) { return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, ms); })]); }
   function openPdf(blob) { return loadPdfJs().then(function (lib) { return blob.arrayBuffer().then(function (buf) { return lib.getDocument({ data: buf }).promise; }); }); }
+  /* Resolves to { text, fields }: the printed text of the first 10 pages, and the values typed into a fillable PDF form
+     (many DGDs are filled in as forms, so the goods are only in the fields). */
   function readText(file) {
     if (/\.pdf$/i.test(file.name)) {
       return withTimeout(openPdf(file).then(function (doc) {
-        var n = Math.min(doc.numPages, 4), ps = [];
-        for (var i = 1; i <= n; i++) ps.push(doc.getPage(i).then(function (p) { return p.getTextContent(); }).then(function (c) { return c.items.map(function (x) { return x.str; }).join(' '); }));
-        return Promise.all(ps).then(function (a) { return a.join(' '); });
+        var n = Math.min(doc.numPages, 10), ps = [], fields = {};
+        for (var i = 1; i <= n; i++) ps.push(doc.getPage(i).then(function (p) {
+          var form = p.getAnnotations().then(function (an) {
+            an.forEach(function (a) { var v = a.fieldValue; if (Array.isArray(v)) v = v.join(' '); if (a.fieldName && typeof v === 'string' && v.trim()) fields[a.fieldName] = fields[a.fieldName] ? fields[a.fieldName] + '\n' + v : v; });
+          }, function () {});
+          return Promise.all([p.getTextContent(), form]);
+        }).then(function (r) { return r[0].items.map(function (x) { return x.str; }).join(' '); }));
+        return Promise.all(ps).then(function (a) { return { text: a.join(' '), fields: fields }; });
       }), 12000);
     }
-    return file.text();
+    return file.text().then(function (t) { return { text: t, fields: {} }; });
   }
   function viewFile(f) {
     ensureBlob(f).then(function (blob) { viewBlob(f, blob); }, function (e) { if (!e || e.message !== 'auth') toast('Could not open that file.'); });
@@ -733,7 +746,7 @@
       var job = getJob(document.getElementById('us').value), type = document.getElementById('ut').value, note = document.getElementById('un').value.trim();
       var btn = document.getElementById('upGo'); btn.disabled = true; btn.textContent = type === 'DGD' ? 'Reading file' : 'Uploading';
       var step = (document.getElementById('ustep') || {}).value || '';
-      var readP = type === 'DGD' ? readText(file).then(function (t) { return { det: detectRoute(t) }; }, function () { return { det: { from: null, to: null }, err: true }; }) : Promise.resolve({ det: null });
+      var readP = type === 'DGD' ? readText(file).then(function (t) { return { det: detectRoute(t.text + ' ' + formText(t.fields)) }; }, function () { return { det: { from: null, to: null }, err: true }; }) : Promise.resolve({ det: null });
       Promise.all([readP, sendFile(job.id, type, file, note, false, step)]).then(function (a) {
         if (!a[1]) { var b2 = document.getElementById('upGo'); if (b2) { b2.disabled = false; b2.textContent = 'Upload'; } return; }
         afterUpload(getJob(job.id), a[1], a[0].det, a[0].err);
@@ -785,16 +798,101 @@
     Object.keys(COUNTRY_AP).forEach(function (c) { var m = new RegExp('\\b' + c.replace(/\./g, '\\.') + '\\b', 'i').exec(T); if (m && (!best || m.index < best.i)) best = { code: COUNTRY_AP[c], i: m.index }; });
     return best ? best.code : null;
   }
-  /* Read what we can from a DGD's text. The IATA form lists the goods as one unlabelled row:
-     UN no., proper shipping name, quantity and type of packing, class (subsidiary), packing group, packing instruction.
+  /* The goods table of a DGD, one entry per UN/ID number. Each line comes out as { un, item, cls, pg, qty } plus g, the
+     "all packed in one" group it belongs to (or -1), and pcs, the packages that line or its group adds to the piece count.
+     Three layouts are read:
+       IATA software:  UN1263 Paint 9 Fibreboard Boxes x 22.7 L 3 II 364      (UN, name, quantity, class, PG, PI)
+       comma style:    UN1263, Paint, 3, III 1 Fibreboard Box x 6.6 L 355     (UN, name, class, PG, quantity, PI)
+                       UN1993, Flammable liquid, n.o.s., Class 3, PG II 0.4 L (the same with Class / PG words, also IMO forms)
+     Lines inside an "All packed in one ... x N" group carry only a net quantity (8 L); the group line follows them. */
+  var G_NUM = '\\.?\\d[\\d.,]*(?:\\s\\.?\\d+)?', G_UNIT = '(?:kg|KG|Kg|g|G|L|l|mL|ml|ML|lbs?|LBS?)\\b';
+  var G_QTY = '(?:\\d+\\s+[A-Za-z][A-Za-z0-9 ,()\\-]*?\\s*x\\s*' + G_NUM + '\\s*' + G_UNIT + '|' + G_NUM + '\\s*' + G_UNIT + ')(?:\\s*\\([^)]{0,30}\\))?(?:\\s+G\\b)?';
+  var G_CLS = '([1-9](?:\\.\\d)?[A-S]?)(?:\\s*\\(([\\d.,\\s]+)\\))?', G_PG = '(III|Ill|lll|II|Il|ll|I)';
+  var G_STD = new RegExp('^(.+?)\\s+(' + G_QTY + ')\\s+' + G_CLS + '(?:\\s+' + G_PG + '\\b)?(?=\\s|$)');
+  var G_COMMA = new RegExp('^(.+?),\\s*(?:Class\\s+|Div(?:ision)?\\s+)?' + G_CLS + '(?:,?\\s*(?:PG\\s+|Packing Group\\s+)?' + G_PG + '\\b)?,?\\s+(' + G_QTY + ')');
+  var G_FIRST = new RegExp('^(.+?)\\s+' + G_CLS + '(?:\\s+' + G_PG + ')?\\s+(' + G_QTY + ')');
+  var G_END = /\s(?:All\s+Packed\s+in\s+One|OVERPACK\s+USED|Total\s+Quantity\s+per|24[\s-]*h(?:ou)?r|I\s+hereby\s+declare|Additional\s+Handl|Emergency\s+Contact|Q\s*=\s*\d)/i;
+  function goodsPg(s) { return s ? s.replace(/l/g, 'I') : 'N/A'; }
+  function goodsLine(un, body) {
+    var b = body.replace(/^[\s,;:]+/, ''), cut = G_END.exec(' ' + b); if (cut) b = b.slice(0, Math.max(0, cut.index - 1));
+    var m, l = null, cls = function (c, s) { return c + (s ? ' (' + s.trim().replace(/,$/, '') + ')' : ''); };
+    var comma = /^[\s]*,/.test(body);
+    var tries = comma ? [G_COMMA, G_STD, G_FIRST] : [G_STD, G_COMMA, G_FIRST];
+    for (var i = 0; i < tries.length && !l; i++) {
+      if (!(m = tries[i].exec(b))) continue;
+      if (tries[i] === G_STD) l = { item: m[1], qty: m[2], cls: cls(m[3], m[4]), pg: goodsPg(m[5]) };
+      else l = { item: m[1], cls: cls(m[2], m[3]), pg: goodsPg(m[4]), qty: m[5] };
+    }
+    if (!l) return null;
+    l.item = l.item.replace(/^[\s,;:-]+|[\s,;:-]+$/g, '').replace(/\s+([,)])/g, '$1').replace(/\(\s+/g, '(');
+    l.qty = l.qty.replace(/\s+G$/, '').trim();
+    if (!l.item || l.item.length > 200) return null;
+    l.un = un; return l;
+  }
+  function readGoods(T) {
+    var re = /\b(UN|ID)\s?(\d{4})\b/g, hits = [], m, out = [], open = [], grp = 0;
+    while ((m = re.exec(T))) hits.push({ un: m[1] + m[2], at: m.index, body: m.index + m[0].length });
+    hits.forEach(function (h, i) {
+      var end = i + 1 < hits.length ? hits[i + 1].at : Math.min(T.length, h.body + 400), seg = T.slice(h.body, end), l = goodsLine(h.un, seg);
+      if (!l) return;
+      l.g = -1; l.pcs = (m = /^(\d+)\s+[A-Za-z].*?x\s*\.?\d/.exec(l.qty)) ? +m[1] : 0; out.push(l);
+      if (!l.pcs) open.push(l);
+      /* "All Packed in One Fibreboard Box x 19" after a run of net quantities closes that group. */
+      var ap = /All\s+Packed\s+in\s+One\s+([A-Za-z][A-Za-z0-9 ()\-]*?)(?:\s*x\s*(\d+))?(?=\s+(?:Q\s*=|OVERPACK|UN\b|ID\b|Total|24|I\s+hereby|$)|$)/i.exec(seg);
+      if (ap && open.length) {
+        var pack = 'all packed in one ' + ap[1].trim().replace(/\s+/g, ' ') + (ap[2] && ap[2] !== '1' ? ' x ' + ap[2] : '');
+        open.forEach(function (x, k) { x.qty += ', ' + pack; x.g = grp; x.pcs = k === 0 ? (+ap[2] || 1) : 0; });
+        grp++; open = [];
+      } else if (l.pcs) open = [];
+    });
+    open.forEach(function (x) { x.pcs = 1; });
+    return out;
+  }
+  /* Summary values for a job with several goods lines, so the jobs table, search, exports and quote piece counts keep working. */
+  function goodsSummary(goods) {
+    var uniq = function (a) { return a.filter(function (x, i) { return x && a.indexOf(x) === i; }); };
+    var names = uniq(goods.map(function (g) { return g.item; })), uns = uniq(goods.map(function (g) { return g.un.toUpperCase(); }));
+    var cls = uniq(goods.map(function (g) { return (g.cls || '').replace(/\s*\(.*$/, ''); })), pgs = uniq(goods.map(function (g) { return g.pg; }).filter(function (p) { return p && p !== 'N/A'; }));
+    var pcs = goods.reduce(function (s, g) { return s + (g.pcs || 0); }, 0);
+    var item = names.length < 2 ? names[0] || '' : names.length === 2 ? names[0] + ' and ' + names[1] : names[0] + ', ' + names[1] + ' and ' + (names.length - 2) + ' more';
+    if (item.length > 160) item = names[0].slice(0, 120) + ' and ' + (names.length - 1) + ' more';
+    return { item: item, un: uns.length < 2 ? uns[0] || '' : uns[0] + ' +' + (uns.length - 1), cls: cls.join(', ').slice(0, 20), pg: pgs.length ? pgs.join(', ') : 'N/A',
+      qty: (pcs ? pcs + (pcs === 1 ? ' package, ' : ' packages, ') : '') + goods.length + ' lines' };
+  }
+  /* Form fields as "Name: value" text, so the route and labelled readers can use them. */
+  function formText(fields) { return Object.keys(fields || {}).map(function (k) { return k + ': ' + fields[k]; }).join(' ').replace(/\s+/g, ' '); }
+  /* Goods typed into a fillable DGD form: one field per column (UN or ID, Proper Shipping Name, Class or Division, Packing Group,
+     Quantity and Type of Packing), with the rows on separate lines. */
+  function goodsFromForm(fields) {
+    var keys = Object.keys(fields || {}), col = function (re, not) { var k = keys.filter(function (x) { return re.test(x) && !(not && not.test(x)); })[0]; return k ? String(fields[k]) : ''; };
+    var un = col(/^\s*UN\b|UN\s*(or|\/)\s*ID/i);
+    if (!un) return [];
+    var rows = function (v) { return v.split(/\r\n?|\n/).map(function (s) { return s.trim(); }).filter(Boolean); };
+    var blocks = function (v) { return v.split(/(?:\r\n?|\n)\s*(?:\r\n?|\n)/).map(function (s) { return s.replace(/\s+/g, ' ').trim(); }).filter(Boolean); };
+    var uns = rows(un).map(function (s) { var m = /^(UN|ID)?\s*(\d{4})\b/i.exec(s); return m ? (m[1] || 'UN').toUpperCase() + m[2] : ''; }).filter(Boolean);
+    if (!uns.length) return [];
+    var cell = function (v, i) {
+      if (uns.length === 1) return v.replace(/\s+/g, ' ').trim();
+      var r = rows(v); if (r.length === uns.length) return r[i];
+      var b = blocks(v); if (b.length === uns.length) return b[i];
+      return i === 0 ? v.replace(/\s+/g, ' ').trim() : '';
+    };
+    var name = col(/proper\s+shipping/i), cls = col(/class|division/i), pg = col(/packing\s+group/i), qty = col(/quantity/i, /nature/i);
+    return uns.map(function (u, i) {
+      var p = cell(pg, i), q = cell(qty, i), m = /^(\d+)\s+[A-Za-z].*?x\s*\.?\d/.exec(q);
+      return { un: u, item: cell(name, i), cls: cell(cls, i), pg: /^(I{1,3})$/i.test(p) ? p.toUpperCase() : 'N/A', qty: q.slice(0, 80), g: -1, pcs: m ? +m[1] : 1 };
+    });
+  }
+  /* Read what we can from a DGD: every goods line (see readGoods and goodsFromForm) and the route.
      Labelled text (name: value) is handled too. Everything is shown to the person to confirm. */
-  function extractDgd(text) {
-    var T = text.replace(/\s+/g, ' '), r = detectRoute(T), o = { from: r.from, to: r.to, un: '', item: '', cls: '', pg: 'N/A', qty: '', mode: 'Air', inferred: false }, m;
-    var row = /\b(UN|ID)\s?(\d{4})\s+(.+?)\s+(\d+\s+[A-Za-z][A-Za-z ,\-]*?\s*x\s*[\d.,]+\s*(?:kg|g|L|mL|ml|lbs?)\b)\s+(\d(?:\.\d)?)(?:\s*\(([\d.,\s]+)\))?(?:\s+(III|II|I)\b)?/.exec(T);
-    if (row) { o.un = 'UN' + row[2]; o.item = row[3].trim(); o.qty = row[4].trim(); o.cls = row[5] + (row[6] ? ' (' + row[6].trim() + ')' : ''); o.pg = row[7] || 'N/A'; }
+  function extractDgd(text, fields) {
+    var P = text.replace(/\s+/g, ' '), T = (P + ' ' + formText(fields)).trim(), r = detectRoute(T), o = { from: r.from, to: r.to, un: '', item: '', cls: '', pg: 'N/A', qty: '', mode: 'Air', inferred: false, goods: [] }, m;
+    var goods = readGoods(P), fg = goodsFromForm(fields);
+    if (fg.length > goods.length) goods = fg;
+    if (goods.length) { var g0 = goods[0]; o.goods = goods; o.un = g0.un; o.item = g0.item; o.qty = g0.qty; o.cls = g0.cls; o.pg = g0.pg; }
     else {
       var STOP = '(?=\\s+(?:UN\\b|ID\\b|Class\\b|Division\\b|Packing\\b|Quantity\\b|Net\\b|Airport\\b|Proper\\b|Contents\\b|Subsidiary\\b)|$)';
-      if ((m = /\b(?:UN|ID)\s?(\d{4})\b/.exec(T))) o.un = 'UN' + m[1];
+      if ((m = /\b(UN|ID)\s?(\d{4})\b/.exec(T))) o.un = m[1] + m[2];
       if ((m = new RegExp('Proper Shipping Name\\s*:\\s*(.{3,110}?)' + STOP, 'i').exec(T))) o.item = m[1].replace(/^[\s,;:-]+|[\s,;:-]+$/g, '');
       if (!o.item && (m = new RegExp('Contents\\s*:\\s*(.{3,110}?)' + STOP, 'i').exec(T))) o.item = m[1].trim();
       if ((m = /Class(?:\s+or\s+Division)?\s*:\s*(\d(?:\.\d)?)/i.exec(T))) o.cls = m[1];
@@ -818,9 +916,30 @@
     t.textContent = on.length ? (on.length > 2 ? on.slice(0, 2).join(', ') + ' and ' + (on.length - 2) + ' more' : on.join(', ')) : 'Select one or more services'; t.className = on.length ? '' : 'muted';
   }
   var PORTS_LOADING = ['Los Angeles / Long Beach', 'Oakland', 'Seattle / Tacoma'];
+  /* A DGD with two or more goods lines gets an editable table, one row per line, instead of the single set of fields. */
+  function goodsEditor(goods) {
+    var cell = function (k, v, lab, i) { return '<td><input type="text" data-gk="' + k + '" value="' + esc(v) + '" aria-label="' + lab + ', line ' + (i + 1) + '"></td>'; };
+    return '<div class="goods-ed" id="gEd"><div class="goods-h"><b id="gEdN">' + goods.length + ' dangerous goods lines</b><span class="muted">One row for each line on the DGD.</span></div>' +
+      '<div class="tbl-wrap"><table class="gtab"><thead><tr><th>UN no.</th><th>Proper shipping name</th><th>Class</th><th>PG</th><th>Quantity and packing</th><th><span class="sr">Remove</span></th></tr></thead><tbody>' +
+      goods.map(function (g, i) {
+        return '<tr data-g="' + (g.g == null ? -1 : g.g) + '" data-pcs="' + (g.pcs || 0) + '">' + cell('un', g.un, 'UN number', i) + cell('item', g.item, 'Proper shipping name', i) + cell('cls', g.cls, 'Class', i) + cell('pg', g.pg, 'Packing group', i) + cell('qty', g.qty, 'Quantity', i) +
+          '<td><button type="button" class="dz-x" data-grm="1" aria-label="Remove line ' + (i + 1) + '">' + ico('x') + '</button></td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+  }
+  /* The goods rows as edited, with the package count kept from the reading (a removed "all packed in one" opener passes its count on). */
+  function goodsFromEditor() {
+    var rows = [].slice.call(document.querySelectorAll('#gEd tbody tr')), seen = {};
+    return rows.map(function (tr) {
+      var g = { g: +tr.dataset.g, pcs: +tr.dataset.pcs || 0 };
+      [].slice.call(tr.querySelectorAll('[data-gk]')).forEach(function (inp) { g[inp.dataset.gk] = inp.value.trim(); });
+      if (g.g > -1) { if (seen[g.g]) g.pcs = 0; else { seen[g.g] = 1; if (!g.pcs) g.pcs = 1; } }
+      return g;
+    }).filter(function (g) { return g.un || g.item; });
+  }
   function reviewFields(o) {
-    return '<div class="g3"><label class="f" for="rv1">Contents (proper shipping name)<input id="rv1" type="text" value="' + esc(o.item) + '"></label><label class="f" for="rv2">UN number<input id="rv2" type="text" value="' + esc(o.un) + '"></label><label class="f" for="rv3">Class<input id="rv3" type="text" value="' + esc(o.cls) + '"></label>' +
-      '<label class="f" for="rv4">Packing group<input id="rv4" type="text" value="' + esc(o.pg) + '"></label><label class="f" for="rv5">Quantity<input id="rv5" type="text" value="' + esc(o.qty) + '"></label><label class="f" for="rv6">Transport<select id="rv6">' + ['Air', 'Ground', 'Ocean'].map(function (x) { return '<option' + (x === o.mode ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></label>' +
+    var multi = o.goods && o.goods.length > 1;
+    return (multi ? goodsEditor(o.goods) : '') + '<div class="g3">' + (multi ? '' : '<label class="f" for="rv1">Contents (proper shipping name)<input id="rv1" type="text" value="' + esc(o.item) + '"></label><label class="f" for="rv2">UN number<input id="rv2" type="text" value="' + esc(o.un) + '"></label><label class="f" for="rv3">Class<input id="rv3" type="text" value="' + esc(o.cls) + '"></label>' +
+      '<label class="f" for="rv4">Packing group<input id="rv4" type="text" value="' + esc(o.pg) + '"></label><label class="f" for="rv5">Quantity<input id="rv5" type="text" value="' + esc(o.qty) + '"></label>') + '<label class="f" for="rv6">Transport<select id="rv6">' + ['Air', 'Ground', 'Ocean'].map(function (x) { return '<option' + (x === o.mode ? ' selected' : '') + '>' + x + '</option>'; }).join('') + '</select></label>' +
       '<span id="rtAir" style="display:' + (o.mode === 'Ocean' ? 'none' : 'contents') + '"><label class="f" for="rv7">From (origin airport)<select id="rv7">' + apOptions(o.from || 'LAX', false) + '</select></label><label class="f" for="rv8">To (destination airport)' + destInput('rv8', o.to) + '</label></span>' +
       '<span id="rtSea" style="display:' + (o.mode === 'Ocean' ? 'contents' : 'none') + '"><label class="f" for="rv9">Port of loading<input id="rv9" type="text" list="polList" autocomplete="off" maxlength="80" value="' + esc(PORTS_LOADING[0]) + '"></label><label class="f" for="rv10">Port of discharge<input id="rv10" type="text" autocomplete="off" maxlength="80" placeholder="City and country"></label></span></div>' + apDatalist() +
       '<datalist id="polList">' + PORTS_LOADING.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist>';
@@ -836,6 +955,15 @@
       '<label class="f" for="rq10">Notes for HazPack (optional)<textarea id="rq10" rows="2" maxlength="1000" placeholder="Pickup details, dock numbers or deadlines"></textarea></label>' +
       dropBox('rq9', 'Additional files (optional)', 'PDF, PNG or JPG, up to 3 MB each', 'multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"') + '<p class="hint" style="margin-top:-6px">Photos, safety data sheets (SDS) or anything else that helps. You can also add files to the job later.</p>' +
       '<p class="err" id="rqerr" role="alert"></p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Submit request', 'type="submit" id="rqGo"', '') + '</div></form>');
+    document.getElementById('found').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-grm]'); if (!b) return;
+      var tr = b.closest('tr'), next = tr.nextElementSibling, g = +tr.dataset.g;
+      /* The first row of an "all packed in one" group carries the group's package count; hand it to the next row of the group. */
+      if (g > -1 && +tr.dataset.pcs && next && +next.dataset.g === g) next.dataset.pcs = tr.dataset.pcs;
+      tr.remove();
+      var n = document.querySelectorAll('#gEd tbody tr').length, h = document.getElementById('gEdN'); if (h) h.textContent = n + (n === 1 ? ' dangerous goods line' : ' dangerous goods lines');
+      var f = document.querySelector('#gEd tbody [data-gk]'); if (f) f.focus();
+    });
     document.getElementById('found').addEventListener('change', function (e) {
       if (e.target.id !== 'rv6') return; var sea = e.target.value === 'Ocean';
       document.getElementById('rtAir').style.display = sea ? 'none' : 'contents'; document.getElementById('rtSea').style.display = sea ? 'contents' : 'none';
@@ -844,8 +972,9 @@
     document.getElementById('rq0').addEventListener('change', function () {
       var f = this.files[0], box = document.getElementById('found'); reqDetect = null; if (!f) { box.hidden = true; return; }
       box.hidden = false; box.innerHTML = '<b>Reading your DGD</b><p class="muted" style="margin:0;font-size:13px">This takes a few seconds.</p>';
-      reqDetect = readText(f).then(function (t) { return extractDgd(t); }, function () { return { from: null, to: null, un: '', item: '', cls: '', pg: 'N/A', qty: '', mode: 'Air', found: false, failed: true }; }).then(function (o) {
-        box.innerHTML = '<b>' + (o.found ? 'Here is what we read from your DGD' : o.failed ? 'We could not read this file here' : 'We could not find the details in this file') + '</b><p class="muted" style="margin:0;font-size:13px">' + (o.found ? (o.inferred ? 'This DGD has no destination airport written on it, so we used the consignee\'s address. Please check the destination airport. ' : 'Check it over and fix anything that looks wrong. ') + 'HazPack reviews every request.' : 'You can still submit. Fill in what you can below and HazPack will complete the rest.') + '</p>' + reviewFields(o); return o;
+      reqDetect = readText(f).then(function (t) { return extractDgd(t.text, t.fields); }, function () { return { from: null, to: null, un: '', item: '', cls: '', pg: 'N/A', qty: '', mode: 'Air', found: false, failed: true }; }).then(function (o) {
+        var nG = o.goods ? o.goods.length : 0;
+        box.innerHTML = '<b>' + (o.found ? 'Here is what we read from your DGD' : o.failed ? 'We could not read this file here' : 'We could not find the details in this file') + '</b><p class="muted" style="margin:0;font-size:13px">' + (o.found ? (nG > 1 ? 'We found ' + nG + ' dangerous goods lines. Remove any row that is not part of this shipment. ' : '') + (o.inferred ? 'This DGD has no destination airport written on it, so we used the consignee\'s address. Please check the destination airport. ' : 'Check it over and fix anything that looks wrong. ') + 'HazPack reviews every request.' : 'You can still submit. Fill in what you can below and HazPack will complete the rest.') + '</p>' + reviewFields(o); return o;
       });
     });
     document.getElementById('reqForm').addEventListener('submit', function (e) {
@@ -859,12 +988,16 @@
       Promise.resolve(reqDetect).then(function () {
         var v = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; };
         var item = v('rv1') || 'Shipment, details to be confirmed', dstP = parseAp(v('rv8'));
+        var goods = document.getElementById('gEd') ? goodsFromEditor() : null, gd = { item: item, un: v('rv2'), cls: v('rv3'), pg: v('rv4'), qty: v('rv5') };
+        if (goods && goods.length > 1) gd = goodsSummary(goods);
+        else if (goods && goods.length === 1) gd = { item: goods[0].item || item, un: goods[0].un, cls: goods[0].cls, pg: goods[0].pg, qty: goods[0].qty };
+        if (goods && goods.length < 2) goods = null;
         var fl = document.getElementById('rq9').files, list = [{ type: 'DGD', file: dgd, note: 'Sent with the request' }];
         for (var i = 0; i < fl.length; i++) {
           var nm = fl[i].name, isImg = /\.(png|jpe?g|gif|webp|heic)$/i.test(nm) || /^image\//.test(fl[i].type), isSds = /sds|safety/i.test(nm);
           list.push({ type: isImg ? 'Photo' : 'Other', file: fl[i], note: isSds ? 'Safety data sheet' : 'Sent with the request' });
         }
-        clientAct({ action: 'requestJob', svc: svc, item: item, un: v('rv2'), cls: v('rv3'), pg: v('rv4'), qty: v('rv5'), mode: v('rv6') || 'Air', from: v('rv7') || 'LAX', to: v('rv6') === 'Ocean' ? null : dstP.code, toText: v('rv6') === 'Ocean' ? v('rv10') : dstP.text, pol: v('rv6') === 'Ocean' ? v('rv9') : '', note: v('rq10'), ref: v('rq7'), req: v('rq8') }, function (res) {
+        clientAct({ action: 'requestJob', svc: svc, item: gd.item, un: gd.un, cls: gd.cls, pg: gd.pg, qty: gd.qty, goods: goods ? goods.map(function (g) { return { un: g.un, item: g.item, cls: g.cls, pg: g.pg, qty: g.qty }; }) : undefined, mode: v('rv6') || 'Air', from: v('rv7') || 'LAX', to: v('rv6') === 'Ocean' ? null : dstP.code, toText: v('rv6') === 'Ocean' ? v('rv10') : dstP.text, pol: v('rv6') === 'Ocean' ? v('rv9') : '', note: v('rq10'), ref: v('rq7'), req: v('rq8') }, function (res) {
         sendFiles(res.jobId, list, true).then(function () {
         var j = getJob(res.jobId);
         S.view = 'jobs'; S.job = j.id; S.jobTab = 'overview'; S.f = 'all'; S.q = ''; S.fp = 'all'; S.mobileDetail = true; render();
@@ -2052,7 +2185,7 @@
       f('Contents', esc(j.item)) + f('UN number', '<span class="un">' + esc(j.un || '—') + '</span>') + f('Hazard class', esc(j.cls)) + f('Packing group', esc(j.pg)) + f('Quantity', esc(j.qty || '—')) + f('Transport', j.mode) +
       (sea(j) ? f('Port of loading', esc(j.pol)) + f('Port of discharge', j.toText ? esc(j.toText) : '<span class="muted">Not set</span>') : f('From', j.from && AP[j.from] ? esc(AP[j.from].city) + ' (' + j.from + ')' : esc(j.from || 'LAX')) + f('To', routeOf(j) ? esc(AP[j.to].city) + ' (' + j.to + ')' : j.toText ? esc(j.toText) + ' <span class="muted">(not on the map yet)</span>' : '<span class="muted">Not set</span>')) + (j.note ? f('Notes', '<span style="white-space:pre-wrap">' + esc(j.note) + '</span>') : '') + f('Reference', '<span class="mono">' + esc(j.ref || '—') + '</span>') +
       f('Required by', j.req ? fmt(isoDate(j.req)) : 'Not set') + f('Services', j.svc.map(function (k) { return SVC[k]; }).join(', ')) + f('Submitted', fmt(j.ev[0][0])) +
-      f('Requested by', r ? esc(r.name) + '<br><span class="muted">' + esc(r.title) + '</span>' : 'Former member') + f('Contact', r ? esc(r.email) + (r.phone ? '<br>' + esc(r.phone) : '') : '—') + f('Company', esc(o.name)) + '</dl>' +
+      f('Requested by', r ? esc(r.name) + '<br><span class="muted">' + esc(r.title) + '</span>' : 'Former member') + f('Contact', r ? esc(r.email) + (r.phone ? '<br>' + esc(r.phone) : '') : '—') + f('Company', esc(o.name)) + '</dl>' + goodsView(j) +
       '<h4 class="reqh">Files sent with the request</h4>' + (files.length ? '<ul class="list">' + files.map(function (x) { return fileRow(x, false); }).join('') + '</ul>' : '<p class="muted" style="margin:0 20px 14px">No files were attached.</p>') +
       '<div class="reqf"><button type="button" class="btn ghost sm" data-act="openOrg" data-org="' + o.id + '" data-job="' + j.id + '">Open the full job</button></div></div>';
     return '<li class="reqli' + (open ? ' open' : '') + '"><div class="reqrow"><button type="button" class="reqhead" data-act="reqToggle" data-id="' + j.id + '" aria-expanded="' + open + '"><span class="chev" aria-hidden="true"></span><span class="t"><b><span class="mono">' + esc(jn(j)) + '</span> · ' + esc(o.name) + '</b><span>' + esc(j.item) + ' · ' + j.mode + (routeOf(j) ? ' · ' + j.from + ' to ' + j.to : j.toText ? ' · to ' + esc(j.toText) : '') + (r ? ' · ' + esc(r.name) : '') + (j.req ? ' · Required by ' + fmtS(isoDate(j.req)) : '') + '</span></span></button>' +

@@ -154,6 +154,15 @@ try {
   const newJob = rq.data.state.org.jobs.find((j) => j.id === rq.data.jobId);
   check('new job is pending, owned by the requester, UN uppercased', newJob.pending && newJob.rep === dana.id && newJob.un === 'UN1950' && newJob.steps.length === 5);
   check('Documentation & DGD is one step: Documentation created and signed', JSON.stringify(newJob.steps) === JSON.stringify(['Job received', 'Documents reviewed', 'Inspection complete', 'Documentation created and signed', 'Invoice sent']));
+  check('a single-item request stores no goods list', !('goods' in newJob));
+  check('a multi-item DGD request keeps every goods line, cleaned', await (async () => {
+    const goods = [{ un: 'un1263', item: 'Paint', cls: '3', pg: 'II', qty: '9 Fibreboard Boxes x 22.7 L' }, { un: 'UN1133', item: '  Adhesives ', cls: '3', pg: '', qty: '1.2 L, all packed in one Fibreboard Box' }, { un: '', item: '' }, 'junk', ...Array.from({ length: 90 }, () => ({ un: 'ID8000', item: 'Consumer commodity' }))];
+    const r = await act(D.c, { action: 'requestJob', svc: ['dgd'], item: 'Paint and Adhesives', un: 'UN1263 +1', cls: '3', pg: 'II', qty: '10 packages, 2 lines', goods, ref: 'PO-MULTI' });
+    const j = r.data.state.org.jobs.find((x) => x.id === r.data.jobId);
+    const ok = r.status === 200 && j.goods.length === 80 && j.goods[0].un === 'UN1263' && j.goods[1].item === 'Adhesives' && j.goods[1].pg === 'N/A' && j.un === 'UN1263 +1' && j.qty === '10 packages, 2 lines';
+    await act(D.c, { action: 'withdrawJob', jobId: r.data.jobId });
+    return ok;
+  })());
   const reqMail = mails.find((m) => m.to[0] === 'alerts@hazpack-qa.com' && /submitted a job request/.test(m.subject));
   check('a job request emails HazPack, naming the job by its reference', reqMail && /PO-1/.test(reqMail.subject) && !/HP-\d{4}/.test(reqMail.subject) && reqMail.auth === 'Bearer test-key' && reqMail.html.includes('https://portal.hazpack-qa.com/portal'), JSON.stringify(reqMail?.subject));
   check('HazPack alerts use the branded layout without the client signature', reqMail && reqMail.html.includes('hazpackcompliance.com/assets/logo.png') && !reqMail.html.includes('Alexander Walsh'));

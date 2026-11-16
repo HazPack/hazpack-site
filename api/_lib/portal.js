@@ -219,7 +219,17 @@ function makeJob(db, rep, f) {
     svc, steps: stepsFor(svc), done: 0, start: now, pending: true, fix: false, msgs: [], owner: '', pri: '', by: {}, notes: {},
     ev: [[now, 'Request submitted']], log: [], createdAt: now, expiresAt: addMonths(now, RETENTION_MONTHS),
   };
+  const goods = cleanGoods(f.goods);
+  if (goods.length > 1) j.goods = goods;
   return j;
+}
+// The goods lines of a multi-item DGD, as the client confirmed them. The job's item/un/cls/pg/qty hold a summary of these.
+const MAX_GOODS = 80;
+function cleanGoods(list) {
+  if (!Array.isArray(list)) return [];
+  return list.filter((g) => g && typeof g === 'object').map((g) => ({
+    un: clean(g.un, 12).toUpperCase(), item: clean(g.item, 200), cls: clean(g.cls, 20), pg: clean(g.pg, 12) || 'N/A', qty: clean(g.qty, 120),
+  })).filter((g) => g.un || g.item).slice(0, MAX_GOODS);
 }
 
 // Job fields a confirmed correction can change, by the row name HazPack used when flagging.
