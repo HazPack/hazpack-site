@@ -905,9 +905,14 @@
     var item = (m ? s.slice(0, m.index) : s.slice(0, 80)).replace(/^[\s,;:=-]+|[\s,;:=-]+$/g, ''), rest = m ? s.slice(m.index) : '';
     if ((item.match(/[A-Za-z]/g) || []).length < 3) return null;
     var c = /^,?\s*(?:(?:Class|Div(?:ision)?)\s+)?([1-9](?:\.\d)?)(?=[\s,.]|$)(?!\s+[A-Za-z]{3,})/.exec(rest), after = c ? rest.slice(c[0].length) : rest;
-    var p = /^,?\s*(?:(?:PG|Packing\s+Group)\s+)?(III|II|I)\b/.exec(after) || /(?:PG|Packing\s+Group)\s+(III|II|I)\b/.exec(rest);
-    var q = new RegExp(G_QTY).exec(rest) || /\d+\s+[A-Za-z][A-Za-z0-9 ()\-]{2,40}?\s[xX]\s?\S+(?:\s?(?:kg|g|L|ml|mL)\b)?/.exec(rest);
-    return { item: item.slice(0, 160), cls: c ? c[1] : '', pg: p ? p[1] : '', qty: q ? q[0].trim() : '' };
+    var p = /^,?\s*(?:(?:PG|Packing\s+Group)\s+)?(III|II|I)\b/.exec(after) || /(?:PG|Packing\s+Group)\s+(III|II|I)\b/.exec(rest), pg = p ? p[1] : '';
+    /* OCR often reads the roman numerals as lookalikes (II as tt, ll or 11): a short run of them right after the class, before the quantity. */
+    if (!p && c && (p = /^,?\s*(?:(?:PG|Packing\s+Group)\s+)?([IlLtTij1!\]]{1,3})(?=\s+\d|\s*$)/.exec(after))) pg = 'III'.slice(0, p[1].length);
+    if (p && after !== rest && after.indexOf(p[0]) === 0) after = after.slice(p[0].length);
+    var zone = c ? after : rest, q = new RegExp(G_QTY).exec(zone) || /\d+\s+[A-Za-z][A-Za-z0-9 ()\-]{2,40}?\s[xX]\s?\S+(?:\s?(?:kg|g|L|ml|mL)\b)?/.exec(zone), qty = q ? q[0].trim() : '';
+    /* Put back the packing code (4G) that was taken out above to find the columns. */
+    if (qty) { var full = new RegExp(qty.split(/\s+/).map(function (w) { return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('\\s*(?:\\(\\s*\\d[A-Z][\\w\\/]{0,4}\\s*\\))?\\s*')).exec(b); if (full) qty = full[0].replace(/\s+/g, ' '); }
+    return { item: item.slice(0, 160), cls: c ? c[1] : '', pg: pg, qty: qty };
   }
   function goodsLine(un, body, ocr) {
     var b = body.replace(/^[\s,;:]+/, ''), cut = G_END.exec(' ' + b); if (cut) b = b.slice(0, Math.max(0, cut.index - 1));
