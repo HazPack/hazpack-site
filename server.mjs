@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const PORT = process.env.PORT || 4321;
 const ROOT = fileURLToPath(new URL('./', import.meta.url));
-const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.xml': 'application/xml', '.txt': 'text/plain' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.css': 'text/css', '.js': 'text/javascript', '.png': 'image/png', '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.xml': 'application/xml', '.txt': 'text/plain', '.traineddata': 'application/octet-stream' };
 // Only these top-level names are public, like a deploy: everything else (api source, data, scripts) is not.
 const PUBLIC_DIRS = new Set(['portal', 'resources', 'assets']);
 

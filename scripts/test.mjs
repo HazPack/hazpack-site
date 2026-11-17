@@ -384,6 +384,12 @@ try {
   check('"dev" is not a staff key on Vercel', (await c.json('/api/portal-staff-login', { method: 'POST', body: { key: 'dev' } })).status === 401);
   check('configured staff key works', (await c.json('/api/portal-staff-login', { method: 'POST', body: { key: 'preview-key' } })).status === 200);
   check('no bank details until they are set', (await c.json('/api/portal-staff')).data.bank === null);
+  // Scanned DGDs are read with OCR in the browser: the engine and English data are served from the site, and the
+  // portal's CSP allows WebAssembly (and data: fetches, which the engine tries first) but still no outside hosts.
+  const csp = (await fetch('http://localhost:4403/portal/vendor/ocr/worker.min.js')).headers.get('content-security-policy') || '';
+  check('portal CSP allows WebAssembly for OCR, nothing from outside', /script-src 'self' 'wasm-unsafe-eval';/.test(csp) && /connect-src 'self' data:;/.test(csp));
+  const ocrFiles = await Promise.all(['tesseract.min.js', 'worker.min.js', 'tesseract-core-simd-lstm.wasm.js', 'tesseract-core-lstm.wasm.js', 'eng.traineddata'].map((f) => fetch(`http://localhost:4403/portal/vendor/ocr/${f}`).then((r) => r.status)));
+  check('OCR engine files are served from the site', ocrFiles.every((s) => s === 200), ocrFiles.join(','));
 } finally { demo.kill(); }
 
 await rm(dataDir, { recursive: true, force: true });

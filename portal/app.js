@@ -647,11 +647,87 @@
   }
   function withTimeout(p, ms) { return Promise.race([p, new Promise(function (_, rej) { setTimeout(function () { rej(new Error('timeout')); }, ms); })]); }
   function openPdf(blob) { return loadPdfJs().then(function (lib) { return blob.arrayBuffer().then(function (buf) { return lib.getDocument({ data: buf }).promise; }); }); }
-  /* Resolves to { text, fields }: the printed text of the first 10 pages, and the values typed into a fillable PDF form
-     (many DGDs are filled in as forms, so the goods are only in the fields). */
-  function readText(file) {
+  /* OCR for scanned DGDs: Tesseract (portal/vendor/ocr) runs in the browser, loaded the first time a scan needs it.
+     Page segmentation mode 6 reads the page as one block, line by line, which keeps each goods row on one line. */
+  var OCR_DIR = '/portal/vendor/ocr', ocrP = null, OCR_PAGES = 3;
+  function getOcr() {
+    if (ocrP) return ocrP;
+    ocrP = (window.Tesseract ? Promise.resolve() : new Promise(function (res, rej) {
+      var s = document.createElement('script'); s.src = OCR_DIR + '/tesseract.min.js'; s.onload = res; s.onerror = function () { rej(new Error('load')); }; document.head.appendChild(s);
+    })).then(function () {
+      return window.Tesseract.createWorker('eng', 1, { workerPath: OCR_DIR + '/worker.min.js', corePath: OCR_DIR, langPath: OCR_DIR, gzip: false, workerBlobURL: false });
+    }).then(function (w) { return w.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' }).then(function () { return w; }); });
+    ocrP.catch(function () { ocrP = null; });
+    return ocrP;
+  }
+  function ocrImage(img) { return getOcr().then(function (w) { return w.recognize(img); }).then(function (r) { return r.data.text || ''; }); }
+  /* A greyscale copy of a scanned page with coloured ink (red border stripes, blue signatures) and the form's ruled lines
+     removed, because table borders next to the text make Tesseract misread whole rows. A rule is a long run of dark pixels
+     that is thin: OFF pixels to either side is mostly paper, which is never true inside a line of text. */
+  function ocrClean(src) {
+    var W = src.width, H = src.height, px = src.getContext('2d').getImageData(0, 0, W, H), d = px.data;
+    var lum = new Uint8ClampedArray(W * H), dark = new Uint8Array(W * H), GAP = 2, OFF = 12, LH = Math.round(W / 25), LV = Math.round(H / 30), i, x, y;
+    for (i = 0; i < W * H; i++) {
+      var r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = mx - mn > 60 ? 255 : 0.299 * r + 0.587 * g + 0.114 * b;
+      lum[i] = l; dark[i] = l < 225 ? 1 : 0;
+    }
+    function runs(len, at, side, minLen, wipe) {
+      var s = -1, last = -1;
+      for (var p = 0; p <= len; p++) {
+        if (p < len && at(p)) { if (s < 0) s = p; last = p; }
+        else if (s >= 0 && (p === len || p - last > GAP)) {
+          if (last - s + 1 >= minLen) { var busy = 0; for (var k = s; k <= last; k++) busy += side(k); if (busy < 0.25 * (last - s + 1)) wipe(s, last); }
+          s = -1;
+        }
+      }
+    }
+    for (y = OFF; y < H - OFF; y++) runs(W, function (x) { return dark[y * W + x]; }, function (x) { return dark[(y - OFF) * W + x] | dark[(y + OFF) * W + x]; }, LH,
+      function (a, b) { for (var k = a; k <= b; k++) for (var dy = -2; dy <= 2; dy++) lum[(y + dy) * W + k] = 255; });
+    for (x = OFF; x < W - OFF; x++) runs(H, function (y) { return dark[y * W + x]; }, function (y) { return dark[y * W + x - OFF] | dark[y * W + x + OFF]; }, LV,
+      function (a, b) { for (var k = a; k <= b; k++) for (var dx = -2; dx <= 2; dx++) lum[k * W + x + dx] = 255; });
+    for (i = 0; i < W * H; i++) { d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = lum[i]; d[i * 4 + 3] = 255; }
+    var c = document.createElement('canvas'); c.width = W; c.height = H; c.getContext('2d').putImageData(px, 0, 0);
+    return c;
+  }
+  var OCR_UN = /\b(U[NnH]|uN|un|ID)\s?[0-9OoIlS]{4}\b/;
+  /* Read the cleaned page; if no UN or ID number comes out, read the page as it is too. */
+  function ocrCanvas(c) {
+    var clean = ocrClean(c);
+    return ocrImage(clean).then(function (t) { clean.width = clean.height = 0; return OCR_UN.test(t) ? t : ocrImage(c).then(function (t2) { return OCR_UN.test(t2) ? t2 : t + '\n' + t2; }); });
+  }
+  function ocrFile(file) {
+    return createImageBitmap(file).then(function (bm) {
+      var s = Math.min(4, 2400 / bm.width), c = document.createElement('canvas'), ctx = c.getContext('2d'); c.width = Math.round(bm.width * s); c.height = Math.round(bm.height * s);
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bm, 0, 0, c.width, c.height);
+      return ocrCanvas(c).then(function (t) { c.width = c.height = 0; return t; });
+    });
+  }
+  /* Draw each page about 2400 px wide (roughly 280 dpi on a letter page) and read it. */
+  function ocrPdf(doc, onScan) {
+    var n = Math.min(doc.numPages, OCR_PAGES), out = [], chain = Promise.resolve();
+    for (var i = 1; i <= n; i++) (function (num) {
+      chain = chain.then(function () {
+        if (onScan) onScan(num, n);
+        return doc.getPage(num).then(function (p) {
+          var v0 = p.getViewport({ scale: 1 }), vp = p.getViewport({ scale: Math.min(4, 2400 / v0.width) });
+          var c = document.createElement('canvas'), ctx = c.getContext('2d'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+          /* intent 'print' draws without waiting for animation frames, which browsers pause in background tabs. */
+          return p.render({ canvasContext: ctx, viewport: vp, intent: 'print' }).promise.then(function () { return ocrCanvas(c); }).then(function (t) { out.push(t); c.width = c.height = 0; });
+        });
+      });
+    })(i);
+    return chain.then(function () { return out.join('\n'); });
+  }
+  function hasUn(t) { return /\b(UN|ID)\s?\d{4}\b/.test(t.text + ' ' + formText(t.fields)); }
+  /* Resolves to { text, fields, ocr }: the printed text of the first 10 pages, and the values typed into a fillable PDF form
+     (many DGDs are filled in as forms, so the goods are only in the fields). A DGD with no UN or ID number in its text is
+     a scan (or uses a font with no readable text), so its pages are read with OCR; onScan(page, pages) reports progress.
+     PNG and JPG files are always read with OCR. */
+  function readText(file, onScan) {
     if (/\.pdf$/i.test(file.name)) {
-      return withTimeout(openPdf(file).then(function (doc) {
+      var docP = openPdf(file);
+      return withTimeout(docP.then(function (doc) {
         var n = Math.min(doc.numPages, 10), ps = [], fields = {};
         for (var i = 1; i <= n; i++) ps.push(doc.getPage(i).then(function (p) {
           var form = p.getAnnotations().then(function (an) {
@@ -660,8 +736,12 @@
           return Promise.all([p.getTextContent(), form]);
         }).then(function (r) { return r[0].items.map(function (x) { return x.str; }).join(' '); }));
         return Promise.all(ps).then(function (a) { return { text: a.join(' '), fields: fields }; });
-      }), 12000);
+      }), 12000).then(function (t) {
+        if (hasUn(t)) return t;
+        return docP.then(function (doc) { return withTimeout(ocrPdf(doc, onScan), 120000); }).then(function (o) { return { text: o + '\n' + t.text, fields: t.fields, ocr: true }; }, function () { return t; });
+      });
     }
+    if (/\.(png|jpe?g)$/i.test(file.name)) { if (onScan) onScan(1, 1); return withTimeout(ocrFile(file), 90000).then(function (t) { return { text: t, fields: {}, ocr: true }; }); }
     return file.text().then(function (t) { return { text: t, fields: {} }; });
   }
   function viewFile(f) {
@@ -746,7 +826,7 @@
       var job = getJob(document.getElementById('us').value), type = document.getElementById('ut').value, note = document.getElementById('un').value.trim();
       var btn = document.getElementById('upGo'); btn.disabled = true; btn.textContent = type === 'DGD' ? 'Reading file' : 'Uploading';
       var step = (document.getElementById('ustep') || {}).value || '';
-      var readP = type === 'DGD' ? readText(file).then(function (t) { return { det: detectRoute(t.text + ' ' + formText(t.fields)) }; }, function () { return { det: { from: null, to: null }, err: true }; }) : Promise.resolve({ det: null });
+      var readP = type === 'DGD' ? readText(file, function (pg, n) { var b = document.getElementById('upGo'); if (b) b.textContent = 'Reading scan, page ' + pg + ' of ' + n; }).then(function (t) { return { det: detectRoute((t.ocr ? ocrNorm(t.text) : t.text) + ' ' + formText(t.fields)) }; }, function () { return { det: { from: null, to: null }, err: true }; }) : Promise.resolve({ det: null });
       Promise.all([readP, sendFile(job.id, type, file, note, false, step)]).then(function (a) {
         if (!a[1]) { var b2 = document.getElementById('upGo'); if (b2) { b2.disabled = false; b2.textContent = 'Upload'; } return; }
         afterUpload(getJob(job.id), a[1], a[0].det, a[0].err);
@@ -806,14 +886,30 @@
                        UN1993, Flammable liquid, n.o.s., Class 3, PG II 0.4 L (the same with Class / PG words, also IMO forms)
      Lines inside an "All packed in one ... x N" group carry only a net quantity (8 L); the group line follows them. */
   var G_NUM = '\\.?\\d[\\d.,]*(?:\\s\\.?\\d+)?', G_UNIT = '(?:kg|KG|Kg|g|G|L|l|mL|ml|ML|lbs?|LBS?)\\b';
-  var G_QTY = '(?:\\d+\\s+[A-Za-z][A-Za-z0-9 ,()\\-]*?\\s*x\\s*' + G_NUM + '\\s*' + G_UNIT + '|' + G_NUM + '\\s*' + G_UNIT + ')(?:\\s*\\([^)]{0,30}\\))?(?:\\s+G\\b)?';
+  var G_QTY = '(?:\\d+\\s+[A-Za-z][A-Za-z0-9 ,()\\-]*?\\s*[xX\u00d7]\\s*' + G_NUM + '\\s*' + G_UNIT + '|' + G_NUM + '\\s*' + G_UNIT + ')(?:\\s*\\([^)]{0,30}\\))?(?:\\s+G\\b)?';
   var G_CLS = '([1-9](?:\\.\\d)?[A-S]?)(?:\\s*\\(([\\d.,\\s]+)\\))?', G_PG = '(III|Ill|lll|II|Il|ll|I)';
   var G_STD = new RegExp('^(.+?)\\s+(' + G_QTY + ')\\s+' + G_CLS + '(?:\\s+' + G_PG + '\\b)?(?=\\s|$)');
   var G_COMMA = new RegExp('^(.+?),\\s*(?:Class\\s+|Div(?:ision)?\\s+)?' + G_CLS + '(?:,?\\s*(?:PG\\s+|Packing Group\\s+)?' + G_PG + '\\b)?,?\\s+(' + G_QTY + ')');
   var G_FIRST = new RegExp('^(.+?)\\s+' + G_CLS + '(?:\\s+' + G_PG + ')?\\s+(' + G_QTY + ')');
   var G_END = /\s(?:All\s+Packed\s+in\s+One|OVERPACK\s+USED|Total\s+Quantity\s+per|24[\s-]*h(?:ou)?r|I\s+hereby\s+declare|Additional\s+Handl|Emergency\s+Contact|Q\s*=\s*\d)/i;
   function goodsPg(s) { return s ? s.replace(/l/g, 'I') : 'N/A'; }
-  function goodsLine(un, body) {
+  /* OCR text from scans: table edges come out as | and quote marks, x as « or ×, and digits in UN numbers as letters (UNI307). */
+  function ocrNorm(t) {
+    return t.replace(/[|\u2018\u2019\u201c\u201d"\u2014_~]/g, ' ').replace(/(^|\s)[\u00ab\u00d7](?=\s|\d)/g, '$1x').replace(/[\u00ab\u00bb]/g, ' ')
+      .replace(/\b(U[NnH]|uN|un|ID)\s?([0-9OoIlS]{4})\b/g, function (all, p, d) { var n = d.replace(/[Oo]/g, '0').replace(/[Il]/g, '1').replace(/S/g, '5'); return /\d{3}/.test(d.replace(/\D/g, '')) || /^\d{4}$/.test(d) ? (p.toUpperCase() === 'ID' ? 'ID' : 'UN') + n : all; });
+  }
+  /* For a scan, a row that does not match a full layout still gives the UN number, the name before the class, the class,
+     and any quantity found, for the person to correct. */
+  function goodsLoose(un, b) {
+    var s = b.replace(/^[\s,;:=.\-]+/, '').replace(/\(\s*\d[A-Z][\w\/]{0,4}\s*\)/g, ' '), m = /,?\s+(?:Class|Div(?:ision)?)\b|,?\s+[1-9](?:\.\d)?(?=[\s,]|$)(?!\s+[A-Za-z]{3,})|\s+\d+\s+[A-Za-z]/.exec(s);
+    var item = (m ? s.slice(0, m.index) : s.slice(0, 80)).replace(/^[\s,;:=-]+|[\s,;:=-]+$/g, ''), rest = m ? s.slice(m.index) : '';
+    if ((item.match(/[A-Za-z]/g) || []).length < 3) return null;
+    var c = /^,?\s*(?:(?:Class|Div(?:ision)?)\s+)?([1-9](?:\.\d)?)(?=[\s,.]|$)(?!\s+[A-Za-z]{3,})/.exec(rest), after = c ? rest.slice(c[0].length) : rest;
+    var p = /^,?\s*(?:(?:PG|Packing\s+Group)\s+)?(III|II|I)\b/.exec(after) || /(?:PG|Packing\s+Group)\s+(III|II|I)\b/.exec(rest);
+    var q = new RegExp(G_QTY).exec(rest) || /\d+\s+[A-Za-z][A-Za-z0-9 ()\-]{2,40}?\s[xX]\s?\S+(?:\s?(?:kg|g|L|ml|mL)\b)?/.exec(rest);
+    return { item: item.slice(0, 160), cls: c ? c[1] : '', pg: p ? p[1] : '', qty: q ? q[0].trim() : '' };
+  }
+  function goodsLine(un, body, ocr) {
     var b = body.replace(/^[\s,;:]+/, ''), cut = G_END.exec(' ' + b); if (cut) b = b.slice(0, Math.max(0, cut.index - 1));
     var m, l = null, cls = function (c, s) { return c + (s ? ' (' + s.trim().replace(/,$/, '') + ')' : ''); };
     var comma = /^[\s]*,/.test(body);
@@ -823,17 +919,20 @@
       if (tries[i] === G_STD) l = { item: m[1], qty: m[2], cls: cls(m[3], m[4]), pg: goodsPg(m[5]) };
       else l = { item: m[1], cls: cls(m[2], m[3]), pg: goodsPg(m[4]), qty: m[5] };
     }
+    /* On a scan, a strict match whose name holds stray numbers ran across columns of noise: read the row loosely instead. */
+    if (l && ocr && (/\s\d+(?:\.\d+)?\s/.test(' ' + l.item + ' ') || /[=:;]/.test(l.item))) l = null;
+    if (!l && ocr) l = goodsLoose(un, b);
     if (!l) return null;
     l.item = l.item.replace(/^[\s,;:-]+|[\s,;:-]+$/g, '').replace(/\s+([,)])/g, '$1').replace(/\(\s+/g, '(');
     l.qty = l.qty.replace(/\s+G$/, '').trim();
     if (!l.item || l.item.length > 200) return null;
     l.un = un; return l;
   }
-  function readGoods(T) {
+  function readGoods(T, ocr) {
     var re = /\b(UN|ID)\s?(\d{4})\b/g, hits = [], m, out = [], open = [], grp = 0;
     while ((m = re.exec(T))) hits.push({ un: m[1] + m[2], at: m.index, body: m.index + m[0].length });
     hits.forEach(function (h, i) {
-      var end = i + 1 < hits.length ? hits[i + 1].at : Math.min(T.length, h.body + 400), seg = T.slice(h.body, end), l = goodsLine(h.un, seg);
+      var end = i + 1 < hits.length ? hits[i + 1].at : Math.min(T.length, h.body + 400), seg = T.slice(h.body, end), l = goodsLine(h.un, seg, ocr);
       if (!l) return;
       l.g = -1; l.pcs = (m = /^(\d+)\s+[A-Za-z].*?x\s*\.?\d/.exec(l.qty)) ? +m[1] : 0; out.push(l);
       if (!l.pcs) open.push(l);
@@ -885,9 +984,10 @@
   }
   /* Read what we can from a DGD: every goods line (see readGoods and goodsFromForm) and the route.
      Labelled text (name: value) is handled too. Everything is shown to the person to confirm. */
-  function extractDgd(text, fields) {
+  function extractDgd(text, fields, ocr) {
+    if (ocr) text = ocrNorm(text);
     var P = text.replace(/\s+/g, ' '), T = (P + ' ' + formText(fields)).trim(), r = detectRoute(T), o = { from: r.from, to: r.to, un: '', item: '', cls: '', pg: 'N/A', qty: '', mode: 'Air', inferred: false, goods: [] }, m;
-    var goods = readGoods(P), fg = goodsFromForm(fields);
+    var goods = readGoods(P, ocr), fg = goodsFromForm(fields);
     if (fg.length > goods.length) goods = fg;
     if (goods.length) { var g0 = goods[0]; o.goods = goods; o.un = g0.un; o.item = g0.item; o.qty = g0.qty; o.cls = g0.cls; o.pg = g0.pg; }
     else {
@@ -972,9 +1072,13 @@
     document.getElementById('rq0').addEventListener('change', function () {
       var f = this.files[0], box = document.getElementById('found'); reqDetect = null; if (!f) { box.hidden = true; return; }
       box.hidden = false; box.innerHTML = '<b>Reading your DGD</b><p class="muted" style="margin:0;font-size:13px">This takes a few seconds.</p>';
-      reqDetect = readText(f).then(function (t) { return extractDgd(t.text, t.fields); }, function () { return { from: null, to: null, un: '', item: '', cls: '', pg: 'N/A', qty: '', mode: 'Air', found: false, failed: true }; }).then(function (o) {
+      var mine = reqDetect = readText(f, function (pg, n) {
+        if (reqDetect !== mine) return;
+        box.innerHTML = '<b>This DGD is a scan, reading the text from it</b><p class="muted" style="margin:0;font-size:13px">' + (n > 1 ? 'Page ' + pg + ' of ' + n + '. ' : '') + 'Scans take longer, up to a minute.</p>';
+      }).then(function (t) { var o = extractDgd(t.text, t.fields, t.ocr); o.ocr = !!t.ocr; return o; }, function () { return { from: null, to: null, un: '', item: '', cls: '', pg: 'N/A', qty: '', mode: 'Air', found: false, failed: true }; }).then(function (o) {
         var nG = o.goods ? o.goods.length : 0;
-        box.innerHTML = '<b>' + (o.found ? 'Here is what we read from your DGD' : o.failed ? 'We could not read this file here' : 'We could not find the details in this file') + '</b><p class="muted" style="margin:0;font-size:13px">' + (o.found ? (nG > 1 ? 'We found ' + nG + ' dangerous goods lines. Remove any row that is not part of this shipment. ' : '') + (o.inferred ? 'This DGD has no destination airport written on it, so we used the consignee\'s address. Please check the destination airport. ' : 'Check it over and fix anything that looks wrong. ') + 'HazPack reviews every request.' : 'You can still submit. Fill in what you can below and HazPack will complete the rest.') + '</p>' + reviewFields(o); return o;
+        if (reqDetect !== mine) return o;
+        box.innerHTML = '<b>' + (o.found ? 'Here is what we read from your DGD' : o.failed ? 'We could not read this file here' : 'We could not find the details in this file') + '</b><p class="muted" style="margin:0;font-size:13px">' + (o.found ? (o.ocr ? 'This DGD is a scan, so some characters may be misread. Check every value against the DGD. ' : '') + (nG > 1 ? 'We found ' + nG + ' dangerous goods lines. Remove any row that is not part of this shipment. ' : '') + (o.inferred ? 'This DGD has no destination airport written on it, so we used the consignee\'s address. Please check the destination airport. ' : 'Check it over and fix anything that looks wrong. ') + 'HazPack reviews every request.' : 'You can still submit. Fill in what you can below and HazPack will complete the rest.') + '</p>' + reviewFields(o); return o;
       });
     });
     document.getElementById('reqForm').addEventListener('submit', function (e) {
