@@ -228,7 +228,7 @@
         status.appendChild(link('mailto:lax-dgr@hazpackcompliance.com', 'lax-dgr@hazpackcompliance.com'));
         status.appendChild(document.createTextNode(' or call '));
         status.appendChild(link('tel:+13104253712', '+1 (310) 425-3712'));
-        status.appendChild(document.createTextNode('.'));
+        status.appendChild(document.createTextNode(' (Mon–Fri, 9am–5pm Pacific).'));
       })
       .then(function () {
         btn.disabled = false;
@@ -255,7 +255,7 @@
     var p2 = document.createElement('p');
     p2.appendChild(document.createTextNode('Urgent? Call '));
     p2.appendChild(link('tel:+13104253712', '+1 (310) 425-3712'));
-    p2.appendChild(document.createTextNode('.'));
+    p2.appendChild(document.createTextNode(', Mon–Fri, 9am–5pm Pacific.'));
     var again = document.createElement('button');
     again.type = 'button';
     again.className = 'btn btn-outline btn-sm';
@@ -306,7 +306,7 @@
     documentation: { value: 'Documentation & DGD', lead: ticked('Documentation & DGD') },
     packaging: { value: 'Packaging & labeling', lead: ticked('Packaging & labeling') },
     inspection: { value: 'DG inspections', title: 'Request an Inspection', lead: 'Tell us what needs inspecting and where. ' + ticked('DG inspections'), button: 'Send inspection request', subject: 'New inspection request from HazPackCompliance.com' },
-    emergency: { value: 'DG emergency support', title: 'Urgent DG help', lead: 'For anything needed today, call +1 (310) 425-3712. Otherwise send the form and we will reply within one business day.', subject: 'Urgent: new DG emergency request from HazPackCompliance.com' },
+    emergency: { value: 'DG emergency support', title: 'Urgent DG help', lead: 'For anything needed today, call +1 (310) 425-3712, Mon–Fri, 9am–5pm Pacific. Outside these hours, send the form and we will reply the next business day.', subject: 'Urgent: new DG emergency request from HazPackCompliance.com' },
     consulting: { value: 'DG consulting', lead: ticked('DG consulting') },
     temperature: { value: 'Temperature control', lead: ticked('Temperature control') },
     'dry-ice': { value: 'Dry ice services', lead: ticked('Dry ice services') },

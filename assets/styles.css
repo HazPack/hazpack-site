@@ -641,3 +641,10 @@ input[type="date"]{min-width:0}
 .contact-list a:hover{color:var(--navy)}
 .form-title{font-size:1.4rem;margin:0 0 18px}
 .form-title[hidden]{display:none}
+
+/* phone hours (brief 3, #4) */
+.fc-hours{display:block;font-size:.82rem;color:#aebcd0;font-weight:500}
+.side-hours{margin:-10px 0 14px!important;font-size:.85rem;color:#c3cfdf}
+.checks-hours{display:block;margin-left:36px;font-weight:500;font-size:.88rem;color:var(--muted)}
+.card-hours{display:block;margin-top:4px;font-size:.85rem;color:var(--muted);font-weight:500}
+.nf-hours{margin:-24px 0 32px;color:var(--muted)}
