@@ -573,3 +573,5 @@ input[type="date"]{min-width:0}
   .brand img{height:40px}
   .header-inner{gap:12px}
 }
+.contact-list span{width:130px;white-space:nowrap}
+@media (max-width:600px){.contact-list span{width:auto}}
