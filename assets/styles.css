@@ -627,3 +627,11 @@ input[type="date"]{min-width:0}
 .cta-btns{display:flex;flex-wrap:wrap;gap:12px}
 .card-click{display:flex;flex-direction:column}
 .hero-area{margin:0}.hero-area+.hero-cta{margin-top:20px}
+
+/* header: no phone, Client Portal as a navy button */
+.btn-navy{background:var(--navy);color:#fff}
+.nav .btn-navy{color:#fff}
+.btn-navy:hover{background:var(--navy-d);transform:translateY(-1px)}
+.nav .nav-login.btn-navy{color:#fff}
+.nav .nav-login.btn-navy:hover{color:#fff}
+@media (max-width:900px){.nav .nav-login.btn-navy{margin-top:10px;padding:14px!important;border-bottom:0!important}}
