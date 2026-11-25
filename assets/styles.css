@@ -635,3 +635,9 @@ input[type="date"]{min-width:0}
 .nav .nav-login.btn-navy{color:#fff}
 .nav .nav-login.btn-navy:hover{color:#fff}
 @media (max-width:900px){.nav .nav-login.btn-navy{margin-top:10px;padding:14px!important;border-bottom:0!important}}
+
+/* brief 3: contact details look like links (#9), Contact form title (#5) */
+.contact-list a{color:var(--orange-d);text-decoration:underline;text-underline-offset:2px}
+.contact-list a:hover{color:var(--navy)}
+.form-title{font-size:1.4rem;margin:0 0 18px}
+.form-title[hidden]{display:none}

@@ -50,7 +50,7 @@
             <li><a href="/resources/dry-ice">Shipping with Dry Ice</a></li>
           </ul>
         </div>
-        <a href="/quote?service=question">Contact</a>
+        <a href="/contact">Contact</a>
         <a class="btn btn-primary btn-sm" href="/quote" aria-current="page">Request a Quote</a>
         <a class="btn btn-navy btn-sm nav-login" href="/portal">Client Portal</a>
       </nav>
@@ -61,7 +61,7 @@
     <section class="page-hero">
       <div class="hazard-stripe" aria-hidden="true"></div>
       <div class="wrap">
-        <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><span aria-current="page">Request a Quote</span></nav>
+        <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><span aria-current="page" id="quote-crumb">Request a Quote</span></nav>
         <h1 id="quote-title">Request a Quote</h1>
         <p class="lead" id="quote-lead">Tell us about your shipment and we will get back to you with next steps and a quote.</p>
       </div>
@@ -82,6 +82,8 @@
           <input type="hidden" name="subject" value="New quote request from HazPackCompliance.com">
           <input type="hidden" name="from_name" value="HazPack Website">
           <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+          <h2 class="form-title" id="form-title" hidden>Ask a Question</h2>
 
           <div class="form-alert" id="form-alert" role="alert" tabindex="-1" hidden></div>
 
@@ -122,13 +124,18 @@
               <input type="hidden" name="services">
             </div>
 
+            <div class="field q-only">
+              <label for="material">Material / product name</label>
+              <input id="material" name="material" type="text" placeholder="e.g. lithium batteries">
+            </div>
+
             <div class="field">
               <label for="message" id="message-label">Shipment details <span class="req">*</span></label>
-              <textarea id="message" name="message" rows="5" required placeholder="What you are shipping, quantities, packaging you use today, and anything else we should know."></textarea>
+              <textarea id="message" name="message" rows="5" required placeholder="Quantities, packaging you use today, and anything else we should know."></textarea>
             </div>
 
             <details class="more-details q-only" id="more-details">
-              <summary>Add shipment details <span>(optional)</span></summary>
+              <summary>More details <span>(optional): route, dates, mode, hazard class</span></summary>
               <div class="more-body">
               <div class="grid3">
                 <div class="field">
@@ -163,10 +170,10 @@
                 <label class="mopt"><input type="checkbox" value="Class 1 – Explosives"><span>Class 1 – Explosives</span></label>
                 <label class="mopt"><input type="checkbox" value="Class 2 – Gases"><span>Class 2 – Gases</span></label>
                 <label class="mopt"><input type="checkbox" value="Class 3 – Flammable liquids"><span>Class 3 – Flammable liquids</span></label>
-                <label class="mopt"><input type="checkbox" value="Class 4 – Flammable solids"><span>Class 4 – Flammable solids</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 4 – Flammable solids and reactive substances"><span>Class 4 – Flammable solids and reactive substances</span></label>
                 <label class="mopt"><input type="checkbox" value="Class 5 – Oxidizers &amp; organic peroxides"><span>Class 5 – Oxidizers &amp; organic peroxides</span></label>
                 <label class="mopt"><input type="checkbox" value="Class 6 – Toxic &amp; infectious substances"><span>Class 6 – Toxic &amp; infectious substances</span></label>
-                <label class="mopt"><input type="checkbox" value="Class 7 – Radioactive"><span>Class 7 – Radioactive</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 7 – Radioactive material"><span>Class 7 – Radioactive material</span></label>
                 <label class="mopt"><input type="checkbox" value="Class 8 – Corrosives"><span>Class 8 – Corrosives</span></label>
                 <label class="mopt"><input type="checkbox" value="Class 9 – Miscellaneous (incl. lithium batteries)"><span>Class 9 – Miscellaneous (incl. lithium batteries)</span></label>
                 <label class="mopt"><input type="checkbox" value="Not sure / not applicable" data-exclusive><span>Not sure / not applicable</span></label>
@@ -182,10 +189,6 @@
                     <option>Weekly</option>
                     <option>Daily</option>
                   </select>
-                </div>
-                <div class="field">
-                  <label for="material">Material / product name</label>
-                  <input id="material" name="material" type="text" placeholder="e.g. lithium batteries">
                 </div>
               </div>
 
@@ -214,7 +217,7 @@
           <ul class="contact-list">
           <li><span>Email</span><a href="mailto:lax-dgr@hazpackcompliance.com">lax-dgr@hazpackcompliance.com</a></li>
           <li><span>Phone</span><a href="tel:+13104253712">+1 (310) 425-3712</a></li>
-          <li><span>Service area</span>LAX, Long Beach, Ontario, Orange County and surrounding areas. Mobile service: we come to you.</li>
+          <li><span>Service area</span>Based at LAX. Mobile service across LAX, Long Beach, Ontario, Orange County and surrounding areas: we come to you.</li>
           <li><span>LinkedIn</span><a href="https://www.linkedin.com/company/hazpack-compliance-solutions" target="_blank" rel="noopener">HazPack Compliance Solutions</a></li>
           </ul>
         </aside>
@@ -228,7 +231,7 @@
       <div class="footer-brand">
         <img src="/assets/logo.svg" alt="HazPack Compliance" width="150" height="48">
         <p class="footer-tag">Dangerous goods shipping support. Air, ocean and ground.</p>
-        <p class="footer-area">Mobile service: LAX, Long Beach, Ontario, Orange County and surrounding areas.</p>
+        <p class="footer-area">Based at LAX. Mobile service: LAX, Long Beach, Ontario, Orange County and surrounding areas.</p>
       </div>
       <nav class="footer-nav" aria-label="Footer">
         <a href="/">Home</a>
@@ -236,6 +239,8 @@
         <a href="/who-we-serve">Who We Serve</a>
         <a href="/resources">Resources</a>
         <a href="/quote">Request a Quote</a>
+        <a href="/contact">Contact</a>
+        <a href="/privacy">Privacy</a>
       </nav>
       <p class="footer-contact">
         <span class="fc-label">Email us</span>

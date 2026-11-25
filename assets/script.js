@@ -310,9 +310,10 @@
     consulting: { value: 'DG consulting', lead: ticked('DG consulting') },
     temperature: { value: 'Temperature control', lead: ticked('Temperature control') },
     'dry-ice': { value: 'Dry ice services', lead: ticked('Dry ice services') },
-    question: { value: 'Not sure yet', question: true, title: 'Ask a Question', lead: 'Questions are welcome. Ask anything about your shipment. There is no obligation and no job is booked.', button: 'Send question', subject: 'New question from HazPackCompliance.com' }
+    question: { value: 'Not sure yet', question: true, title: 'Contact Us', lead: 'Questions are welcome. Ask anything about your shipment, call or email us. There is no obligation and no job is booked.', button: 'Send question', subject: 'New question from HazPackCompliance.com' }
   };
-  var preset = PRESETS[new URLSearchParams(location.search).get('service')];
+  var isContact = location.pathname.replace(/\/$/, '') === '/contact';
+  var preset = PRESETS[isContact ? 'question' : new URLSearchParams(location.search).get('service')];
   function applyPreset() {
     if (!preset) return;
     var box = form.querySelector('#services-group input[value="' + preset.value + '"]');
@@ -326,6 +327,14 @@
     if (preset.button) btn.textContent = preset.button;
     if (preset.subject) form.querySelector('[name="subject"]').value = preset.subject;
     if (preset.question) {
+      // Contact page: breadcrumb, menu highlight and form title say Contact (brief 3, #5)
+      var crumb = document.getElementById('quote-crumb');
+      if (crumb) crumb.textContent = 'Contact';
+      var navQuote = document.querySelector('.nav a[href="/quote"][aria-current]'), navContact = document.querySelector('.nav a[href="/contact"]');
+      if (navQuote) navQuote.removeAttribute('aria-current');
+      if (navContact) navContact.setAttribute('aria-current', 'page');
+      var ft = document.getElementById('form-title');
+      if (ft) ft.hidden = false;
       form.classList.add('is-question');
       var ml = document.getElementById('message-label');
       ml.firstChild.textContent = 'Your question ';

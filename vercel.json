@@ -92,5 +92,11 @@
       "destination": "/assets/apple-touch-icon.png",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/contact",
+      "destination": "/quote"
+    }
   ]
 }

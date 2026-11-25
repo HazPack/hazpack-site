@@ -35,7 +35,8 @@ createServer(async (req, res) => {
       res.end(Buffer.from(await out.arrayBuffer()));
       return;
     }
-    let rel = normalize(decodeURIComponent(url.pathname)).replace(/^[/\\]+/, '');
+    // Same as the vercel.json rewrite: /contact is the quote page in question mode
+    let rel = normalize(decodeURIComponent(url.pathname === '/contact' ? '/quote' : url.pathname)).replace(/^[/\\]+/, '');
     const top = rel.split(/[/\\]/)[0];
     if (rel && !PUBLIC_DIRS.has(top) && extname(rel) === '.js') throw new Error('not public');
     let p = join(ROOT, rel);
