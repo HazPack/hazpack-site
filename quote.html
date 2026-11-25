@@ -51,6 +51,7 @@
             <li><a href="/resources/dry-ice">Shipping with Dry Ice</a></li>
           </ul>
         </div>
+        <a href="/quote?service=question">Contact</a>
         <a class="btn btn-primary btn-sm" href="/quote" aria-current="page">Request a Quote</a>
         <a class="nav-login" href="/portal">Client login</a>
       </nav>
@@ -85,137 +86,142 @@
 
           <div class="form-alert" id="form-alert" role="alert" tabindex="-1" hidden></div>
 
-          <div class="grid2">
-            <div class="field">
-              <label for="name">Full name <span class="req">*</span></label>
-              <input id="name" name="name" type="text" autocomplete="name" required>
+          <div class="form-fields" id="form-fields">
+            <div class="grid2">
+              <div class="field">
+                <label for="name">Full name <span class="req">*</span></label>
+                <input id="name" name="name" type="text" autocomplete="name" required>
+              </div>
+              <div class="field">
+                <label for="company">Company</label>
+                <input id="company" name="company" type="text" autocomplete="organization">
+              </div>
+              <div class="field">
+                <label for="email">Email <span class="req">*</span></label>
+                <input id="email" name="email" type="email" autocomplete="email" required>
+              </div>
+              <div class="field">
+                <label for="phone">Phone</label>
+                <input id="phone" name="phone" type="tel" autocomplete="tel">
+              </div>
             </div>
-            <div class="field">
-              <label for="company">Company</label>
-              <input id="company" name="company" type="text" autocomplete="organization">
+
+            <div class="field msel q-only" id="services-group" data-name="services" data-required data-placeholder="Select one or more">
+              <label id="services-group-label" for="services-group-btn">Services needed <span class="req">*</span></label>
+              <button type="button" class="msel-btn" id="services-group-btn" aria-expanded="false" aria-controls="services-group-panel"><span class="msel-text">Select one or more</span></button>
+              <div class="msel-panel" id="services-group-panel" role="group" aria-labelledby="services-group-label" hidden>
+              <label class="mopt"><input type="checkbox" value="DG classification"><span>DG classification</span></label>
+              <label class="mopt"><input type="checkbox" value="Documentation &amp; DGD"><span>Documentation &amp; DGD</span></label>
+              <label class="mopt"><input type="checkbox" value="Packaging &amp; labeling"><span>Packaging &amp; labeling</span></label>
+              <label class="mopt"><input type="checkbox" value="DG inspections"><span>DG inspections</span></label>
+              <label class="mopt"><input type="checkbox" value="DG emergency support"><span>DG emergency support</span></label>
+              <label class="mopt"><input type="checkbox" value="DG consulting"><span>DG consulting</span></label>
+              <label class="mopt"><input type="checkbox" value="Temperature control"><span>Temperature control</span></label>
+              <label class="mopt"><input type="checkbox" value="Dry ice services"><span>Dry ice services</span></label>
+              <label class="mopt"><input type="checkbox" value="Not sure yet" data-exclusive><span>Not sure yet</span></label>
+              </div>
+              <input type="hidden" name="services">
             </div>
+
             <div class="field">
-              <label for="email">Email <span class="req">*</span></label>
-              <input id="email" name="email" type="email" autocomplete="email" required>
+              <label for="message" id="message-label">Shipment details <span class="req">*</span></label>
+              <textarea id="message" name="message" rows="5" required placeholder="What you are shipping, quantities, packaging you use today, and anything else we should know."></textarea>
             </div>
-            <div class="field">
-              <label for="phone">Phone</label>
-              <input id="phone" name="phone" type="tel" autocomplete="tel">
-            </div>
+
+            <details class="more-details q-only" id="more-details">
+              <summary>Add shipment details <span>(optional)</span></summary>
+              <div class="more-body">
+              <div class="grid3">
+                <div class="field">
+                  <label for="origin">Origin</label>
+                  <input id="origin" name="origin" type="text" placeholder="City or airport" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="destination">Destination</label>
+                  <input id="destination" name="destination" type="text" placeholder="City or airport" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="ready">Ready date</label>
+                  <input id="ready" name="ready_date" type="date">
+                </div>
+              </div>
+
+              <div class="grid2">
+                <div class="field">
+                  <label for="mode">Shipping mode</label>
+                  <select id="mode" name="mode">
+                    <option value="">Select one</option>
+                    <option>Air</option>
+                    <option>Ocean</option>
+                    <option>Ground</option>
+                    <option>Multiple / not sure</option>
+                  </select>
+                </div>
+                <div class="field msel" id="hazard-group" data-name="hazard_class" data-placeholder="Select any that apply">
+                <label id="hazard-group-label" for="hazard-group-btn">Hazard class (if known)</label>
+                <button type="button" class="msel-btn" id="hazard-group-btn" aria-expanded="false" aria-controls="hazard-group-panel"><span class="msel-text">Select any that apply</span></button>
+                <div class="msel-panel" id="hazard-group-panel" role="group" aria-labelledby="hazard-group-label" hidden>
+                <label class="mopt"><input type="checkbox" value="Class 1 – Explosives"><span>Class 1 – Explosives</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 2 – Gases"><span>Class 2 – Gases</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 3 – Flammable liquids"><span>Class 3 – Flammable liquids</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 4 – Flammable solids"><span>Class 4 – Flammable solids</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 5 – Oxidizers &amp; organic peroxides"><span>Class 5 – Oxidizers &amp; organic peroxides</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 6 – Toxic &amp; infectious substances"><span>Class 6 – Toxic &amp; infectious substances</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 7 – Radioactive"><span>Class 7 – Radioactive</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 8 – Corrosives"><span>Class 8 – Corrosives</span></label>
+                <label class="mopt"><input type="checkbox" value="Class 9 – Miscellaneous (incl. lithium batteries)"><span>Class 9 – Miscellaneous (incl. lithium batteries)</span></label>
+                <label class="mopt"><input type="checkbox" value="Not sure / not applicable" data-exclusive><span>Not sure / not applicable</span></label>
+                </div>
+                <input type="hidden" name="hazard_class">
+              </div>
+                <div class="field">
+                  <label for="volume">Shipment frequency</label>
+                  <select id="volume" name="frequency">
+                    <option value="">Select one</option>
+                    <option>One-time</option>
+                    <option>Occasional</option>
+                    <option>Weekly</option>
+                    <option>Daily</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="material">Material / product name</label>
+                  <input id="material" name="material" type="text" placeholder="e.g. lithium batteries">
+                </div>
+              </div>
+
+              <fieldset class="yn-group">
+                <legend>About your cargo (tick any that apply)</legend>
+                <label class="yn" for="cargo-packed"><input type="checkbox" id="cargo-packed" data-yn="cargo_packed"><span>My cargo is already packed.</span></label>
+                <label class="yn" for="cargo-photos"><input type="checkbox" id="cargo-photos" data-yn="cargo_photos"><span>I can send photos of the cargo (we'll reply with where to send them).</span></label>
+                <input type="hidden" name="cargo_packed" value="No">
+                <input type="hidden" name="cargo_photos" value="No">
+              </fieldset>
+              </div>
+            </details>
+
+            <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Send quote request</button>
+            <p class="form-promise">We reply within one business day. Urgent? Call <a href="tel:+13104253712">+1 (310) 425-3712</a>.</p>
+            <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+            <p class="fineprint">Please don't include sensitive personal or payment information in this form.</p>
           </div>
 
-          <div class="grid3">
-            <div class="field">
-              <label for="origin">Origin</label>
-              <input id="origin" name="origin" type="text" placeholder="City or airport" autocomplete="off">
-            </div>
-            <div class="field">
-              <label for="destination">Destination</label>
-              <input id="destination" name="destination" type="text" placeholder="City or airport" autocomplete="off">
-            </div>
-            <div class="field">
-              <label for="ready">Ready date</label>
-              <input id="ready" name="ready_date" type="date">
-            </div>
-          </div>
-
-          <div class="field msel" id="services-group" data-name="services" data-required data-placeholder="Select one or more">
-            <label id="services-group-label" for="services-group-btn">Services needed <span class="req">*</span></label>
-            <button type="button" class="msel-btn" id="services-group-btn" aria-expanded="false" aria-controls="services-group-panel"><span class="msel-text">Select one or more</span></button>
-            <div class="msel-panel" id="services-group-panel" role="group" aria-labelledby="services-group-label" hidden>
-            <label class="mopt"><input type="checkbox" value="DG classification"><span>DG classification</span></label>
-            <label class="mopt"><input type="checkbox" value="Documentation &amp; DGD"><span>Documentation &amp; DGD</span></label>
-            <label class="mopt"><input type="checkbox" value="Packaging &amp; labeling"><span>Packaging &amp; labeling</span></label>
-            <label class="mopt"><input type="checkbox" value="DG inspections"><span>DG inspections</span></label>
-            <label class="mopt"><input type="checkbox" value="DG emergency support"><span>DG emergency support</span></label>
-            <label class="mopt"><input type="checkbox" value="DG consulting"><span>DG consulting</span></label>
-            <label class="mopt"><input type="checkbox" value="Temperature control"><span>Temperature control</span></label>
-            <label class="mopt"><input type="checkbox" value="Dry ice services"><span>Dry ice services</span></label>
-            <label class="mopt"><input type="checkbox" value="Not sure yet" data-exclusive><span>Not sure yet</span></label>
-            </div>
-            <input type="hidden" name="services">
-          </div>
-
-          <div class="grid2">
-            <div class="field">
-              <label for="mode">Shipping mode</label>
-              <select id="mode" name="mode">
-                <option value="">Select one</option>
-                <option>Air</option>
-                <option>Ocean</option>
-                <option>Ground</option>
-                <option>Multiple / not sure</option>
-              </select>
-            </div>
-            <div class="field msel" id="hazard-group" data-name="hazard_class" data-placeholder="Select any that apply">
-            <label id="hazard-group-label" for="hazard-group-btn">Hazard class (if known)</label>
-            <button type="button" class="msel-btn" id="hazard-group-btn" aria-expanded="false" aria-controls="hazard-group-panel"><span class="msel-text">Select any that apply</span></button>
-            <div class="msel-panel" id="hazard-group-panel" role="group" aria-labelledby="hazard-group-label" hidden>
-            <label class="mopt"><input type="checkbox" value="Class 1 – Explosives"><span>Class 1 – Explosives</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 2 – Gases"><span>Class 2 – Gases</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 3 – Flammable liquids"><span>Class 3 – Flammable liquids</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 4 – Flammable solids"><span>Class 4 – Flammable solids</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 5 – Oxidizers &amp; organic peroxides"><span>Class 5 – Oxidizers &amp; organic peroxides</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 6 – Toxic &amp; infectious substances"><span>Class 6 – Toxic &amp; infectious substances</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 7 – Radioactive"><span>Class 7 – Radioactive</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 8 – Corrosives"><span>Class 8 – Corrosives</span></label>
-            <label class="mopt"><input type="checkbox" value="Class 9 – Miscellaneous (incl. lithium batteries)"><span>Class 9 – Miscellaneous (incl. lithium batteries)</span></label>
-            <label class="mopt"><input type="checkbox" value="Not sure / not applicable" data-exclusive><span>Not sure / not applicable</span></label>
-            </div>
-            <input type="hidden" name="hazard_class">
-          </div>
-            <div class="field">
-              <label for="volume">Shipment frequency</label>
-              <select id="volume" name="frequency">
-                <option value="">Select one</option>
-                <option>One-time</option>
-                <option>Occasional</option>
-                <option>Weekly</option>
-                <option>Daily</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="material">Material / product name</label>
-              <input id="material" name="material" type="text" placeholder="e.g. lithium batteries">
-            </div>
-          </div>
-
-          <fieldset class="yn-group">
-            <legend>About your cargo (tick any that apply)</legend>
-            <label class="yn" for="cargo-packed"><input type="checkbox" id="cargo-packed" data-yn="cargo_packed"><span>My cargo is already packed.</span></label>
-            <label class="yn" for="cargo-photos"><input type="checkbox" id="cargo-photos" data-yn="cargo_photos"><span>I can send photos of the cargo.</span></label>
-            <input type="hidden" name="cargo_packed" value="No">
-            <input type="hidden" name="cargo_photos" value="No">
-          </fieldset>
-
-          <div class="field">
-            <label for="message">Shipment details <span class="req">*</span></label>
-            <textarea id="message" name="message" rows="5" required placeholder="What you are shipping, quantities, packaging you use today, and anything else we should know."></textarea>
-          </div>
-
-          <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Send quote request</button>
-          <p class="form-promise">We reply within one business day. Urgent? Call <a href="tel:+13104253712">+1 (310) 425-3712</a>.</p>
-          <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
-          <p class="fineprint">Please don't include sensitive personal or payment information in this form.</p>
+          <div class="form-done" id="form-done" tabindex="-1" hidden></div>
         </form>
-      </div>
-    </section>
 
-<section class="section contact" id="contact">
-      <div class="wrap contact-grid">
-        <div>
-          <p class="eyebrow">Get in touch</p>
-          <h2>Prefer to talk?</h2>
+        <aside class="quote-contact" id="contact" aria-labelledby="contact-title">
+          <h2 id="contact-title">Prefer to talk?</h2>
           <p>Reach out directly. For urgent DG shipments, call.</p>
-        </div>
-        <ul class="contact-list">
+          <ul class="contact-list">
           <li><span>Email</span><a href="mailto:lax-dgr@hazpackcompliance.com">lax-dgr@hazpackcompliance.com</a></li>
           <li><span>Phone</span><a href="tel:+13104253712">+1 (310) 425-3712</a></li>
           <li><span>Service area</span>LAX, Long Beach, Ontario, Orange County and surrounding areas. Mobile service: we come to you.</li>
           <li><span>LinkedIn</span><a href="https://www.linkedin.com/company/hazpack-compliance-solutions" target="_blank" rel="noopener">HazPack Compliance Solutions</a></li>
-        </ul>
+          </ul>
+        </aside>
       </div>
     </section>
+
   </main>
 
   <footer class="site-footer">
@@ -223,6 +229,7 @@
       <div class="footer-brand">
         <img src="/assets/logo.svg" alt="HazPack Compliance" width="150" height="48">
         <p class="footer-tag">Dangerous goods shipping support. Air, ocean and ground.</p>
+        <p class="footer-area">Mobile service: LAX, Long Beach, Ontario, Orange County and surrounding areas.</p>
       </div>
       <nav class="footer-nav" aria-label="Footer">
         <a href="/">Home</a>

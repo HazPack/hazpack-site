@@ -140,7 +140,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
 .dd a{display:block;padding:10px 14px;border-radius:8px;font-weight:600}
 .dd a:hover{background:var(--tint);color:var(--orange-d)!important}
 .has-dd.open .dd{display:block}
-@media (hover:hover) and (min-width:761px){.has-dd:hover .dd{display:block}}
+@media (hover:hover) and (min-width:901px){.has-dd:hover .dd{display:block}}
 
 /* who we serve + badges */
 .chips{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
@@ -255,7 +255,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
   .steps li::after{display:none}
   .section{padding:72px 0}
 }
-@media (max-width:760px){
+@media (max-width:900px){
   .nav-toggle{display:block}
   .nav{position:absolute;top:100%;left:0;right:0;background:#fff;flex-direction:column;align-items:stretch;gap:0;padding:8px 20px 20px;border-bottom:1px solid var(--line);display:none;box-shadow:0 14px 24px rgba(24,49,82,.1)}
   .nav.open{display:flex}
@@ -336,7 +336,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
 
 @media (max-width:1100px){.reg-grid{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:960px){.cards-3{grid-template-columns:1fr}}
-@media (max-width:760px){
+@media (max-width:900px){
   .footer-nav{align-self:flex-start}
   .nav a[aria-current="page"]:not(.btn){font-weight:800}
 }
@@ -531,7 +531,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
   .header-call span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .header-call{width:44px;height:44px;justify-content:center;border:1.5px solid var(--line);border-radius:10px}
 }
-@media (max-width:760px){
+@media (max-width:900px){
   .header-inner{gap:10px}
   .nav .nav-login{text-align:center;border-bottom:0!important;padding:14px 4px 4px!important}
 }
@@ -567,7 +567,7 @@ input[type="date"]{min-width:0}
 .card-call a{color:var(--orange-d);font-weight:800;text-decoration:none;white-space:nowrap}
 .card-call a:hover{text-decoration:underline}
 .nav a,.dd-toggle{white-space:nowrap}
-@media (min-width:761px) and (max-width:1020px){
+@media (min-width:901px) and (max-width:1080px){
   .nav{gap:14px;font-size:.88rem}
   .nav .btn-sm{padding:9px 12px}
   .brand img{height:40px}
@@ -575,3 +575,55 @@ input[type="date"]{min-width:0}
 }
 .contact-list span{width:130px;white-space:nowrap}
 @media (max-width:600px){.contact-list span{width:auto}}
+
+/* quote page round 2 (brief 2, #1, #2, #4, #15) */
+.quote-grid{grid-template-areas:"intro form" "contact form";grid-template-rows:auto 1fr}
+.quote-intro{grid-area:intro}
+.quote-form{grid-area:form}
+.quote-contact{grid-area:contact;align-self:start}
+.quote-contact h2{font-size:1.4rem;margin-bottom:.3em}
+.quote-contact>p{color:var(--muted);margin-bottom:14px}
+.quote-contact .contact-list li{padding:12px 0;flex-direction:column;gap:2px}
+.quote-contact .contact-list span{width:auto}
+.quote-contact .contact-list a{overflow-wrap:anywhere}
+@media (max-width:960px){.quote-grid{grid-template-areas:"intro" "form" "contact";grid-template-rows:auto}}
+.more-details{margin:0 0 18px;border:1.5px solid #c9d3e1;border-radius:10px;background:#fff}
+.more-details>summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px;font-weight:700;color:var(--navy)}
+.more-details>summary::-webkit-details-marker{display:none}
+.more-details>summary span{font-weight:500;color:var(--muted)}
+.more-details>summary::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--navy);border-bottom:2px solid var(--navy);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.more-details[open]>summary::after{transform:rotate(-135deg) translate(-2px,0)}
+.more-details>summary:focus-visible{outline:3px solid var(--orange);outline-offset:2px;border-radius:8px}
+.more-body{padding:4px 14px 0}
+.more-body .yn-group{margin-bottom:14px}
+.is-question .q-only{display:none}
+.form-fields[hidden],.form-done[hidden]{display:none}
+.form-done{text-align:center;padding:30px 10px}
+.form-done:focus{outline:none}
+.form-done h2{font-size:1.8rem}
+.form-done p{color:var(--ink);font-size:1.05rem}
+.form-done a{color:var(--orange-d);font-weight:700;white-space:nowrap}
+.form-done .btn{margin-top:10px}
+.form-status a{color:inherit;white-space:nowrap}
+
+/* clickable cards (brief 2, #7, #13) */
+.card-click{position:relative;transition:border-color .15s,box-shadow .15s,transform .15s}
+.card-click:hover{border-color:var(--orange);box-shadow:0 14px 30px rgba(24,49,82,.12);transform:translateY(-2px)}
+.card-go{color:inherit;text-decoration:none}
+.card-go::after{content:"";position:absolute;inset:0;border-radius:inherit}
+.card-go:focus-visible{outline:none}
+.card-click:focus-within{outline:3px solid var(--orange);outline-offset:2px}
+.card-click .card-link a,.card-click .card-call a{position:relative;z-index:1}
+.card-quote{margin:auto 0 0;padding-top:12px}
+.card-quote .card-go{color:var(--orange-d);font-weight:700}
+.card-click:hover .card-quote .card-go{text-decoration:underline}
+.steps a{color:#fff;text-decoration:underline}
+@media (prefers-reduced-motion:reduce){.card-click:hover{transform:none}}
+
+/* service area, guide buttons (brief 2, #3, #9) */
+.hero-area{margin:-6px 0 22px;color:#d5deea;font-size:1rem}
+.hero-area b{color:#fff}
+.footer-area{margin:10px 0 0!important;font-size:.88rem;color:#aebcd0}
+.cta-btns{display:flex;flex-wrap:wrap;gap:12px}
+.card-click{display:flex;flex-direction:column}
+.hero-area{margin:0}.hero-area+.hero-cta{margin-top:20px}

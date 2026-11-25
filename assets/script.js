@@ -158,7 +158,7 @@
     check(name.closest('.field'), name.value.trim() ? '' : MESSAGES.name);
     var ev = email.value.trim();
     check(email.closest('.field'), !ev ? MESSAGES.email : (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev) ? '' : MESSAGES.emailBad));
-    check(services, picked(services).length ? '' : MESSAGES.services);
+    if (!form.classList.contains('is-question')) check(services, picked(services).length ? '' : MESSAGES.services);
     check(msg.closest('.field'), msg.value.trim() ? '' : MESSAGES.message);
     return problems;
   }
@@ -216,26 +216,74 @@
       .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.success !== false, j: j }; }); })
       .then(function (res) {
         if (res.ok) {
-          form.reset();
-          Array.prototype.forEach.call(form.querySelectorAll('input[data-yn]'), function (cb) {
-            var h = form.querySelector('input[name="' + cb.getAttribute('data-yn') + '"]');
-            if (h) h.value = 'No';
-          });
-          msels.forEach(refresh);
-          showSummary([]);
-          setStatus('Thank you! Your request was sent. We will reply within one business day.', 'ok');
+          showDone(form.querySelector('#name').value.trim());
         } else {
           throw new Error('bad response');
         }
       })
       .catch(function () {
-        setStatus('Sorry, something went wrong. Please try again or email us directly.', 'err');
+        // Failed send: give the address and number right here (brief 2, #5)
+        setStatus('', 'err');
+        status.appendChild(document.createTextNode("Sorry, that didn't send. Please try again, or email "));
+        status.appendChild(link('mailto:lax-dgr@hazpackcompliance.com', 'lax-dgr@hazpackcompliance.com'));
+        status.appendChild(document.createTextNode(' or call '));
+        status.appendChild(link('tel:+13104253712', '+1 (310) 425-3712'));
+        status.appendChild(document.createTextNode('.'));
       })
       .then(function () {
         btn.disabled = false;
         btn.textContent = label;
       });
   });
+
+  function link(href, text) {
+    var a = document.createElement('a');
+    a.href = href;
+    a.textContent = text;
+    return a;
+  }
+
+  // After a successful send, swap the form for a confirmation the visitor can see (brief 2, #1)
+  var fields = document.getElementById('form-fields'), done = document.getElementById('form-done');
+  function showDone(name) {
+    var isQ = form.classList.contains('is-question');
+    done.innerHTML = '';
+    var h = document.createElement('h2');
+    h.textContent = name ? 'Thanks, ' + name.split(/\s+/)[0] + '.' : 'Thanks.';
+    var p1 = document.createElement('p');
+    p1.textContent = "We've got your " + (isQ ? 'question' : 'request') + ' and will reply within one business day.';
+    var p2 = document.createElement('p');
+    p2.appendChild(document.createTextNode('Urgent? Call '));
+    p2.appendChild(link('tel:+13104253712', '+1 (310) 425-3712'));
+    p2.appendChild(document.createTextNode('.'));
+    var again = document.createElement('button');
+    again.type = 'button';
+    again.className = 'btn btn-outline btn-sm';
+    again.textContent = isQ ? 'Ask another question' : 'Send another request';
+    again.addEventListener('click', function () {
+      form.reset();
+      Array.prototype.forEach.call(form.querySelectorAll('input[data-yn]'), function (cb) {
+        var hd = form.querySelector('input[name="' + cb.getAttribute('data-yn') + '"]');
+        if (hd) hd.value = 'No';
+      });
+      applyPreset();
+      msels.forEach(refresh);
+      setStatus('', '');
+      done.hidden = true;
+      fields.hidden = false;
+      form.querySelector('#name').focus();
+    });
+    done.appendChild(h); done.appendChild(p1); done.appendChild(p2); done.appendChild(again);
+    showSummary([]);
+    fields.hidden = true;
+    done.hidden = false;
+    done.scrollIntoView({ block: 'center' });
+    done.focus({ preventScroll: true });
+  }
+
+  // Optional shipment details: open on larger screens, closed until tapped on phones (brief 2, #15)
+  var more = document.getElementById('more-details');
+  if (more && window.matchMedia('(min-width: 761px)').matches) more.open = true;
 
   // Yes/No checkboxes: send "Yes" or "No" in the email instead of nothing when unchecked
   Array.prototype.forEach.call(form.querySelectorAll('input[data-yn]'), function (cb) {
@@ -250,20 +298,39 @@
     if (f && !f.classList.contains('msel') && f.classList.contains('invalid') && e.target.value.trim()) setFieldError(f, '');
   });
 
-  // Links like /quote?service=inspection open the form with that service ticked (brief #13, #14)
+  // Links like /quote?service=inspection open the form with that service ticked,
+  // and set the heading, button and email subject to match (brief 2, #2, #7, #11, #12, #21)
+  function ticked(name) { return "We've ticked " + name + ' for you below.'; }
   var PRESETS = {
-    inspection: { value: 'DG inspections', title: 'Request an Inspection', lead: 'Tell us what needs inspecting and where. DG inspections is already ticked below.' },
-    emergency: { value: 'DG emergency support', title: 'Urgent DG help', lead: 'For anything needed today, call +1 (310) 425-3712. Otherwise send the form and we will reply within one business day.' },
-    'dry-ice': { value: 'Dry ice services', lead: 'Tell us about your dry ice shipment. Dry ice services is already ticked below.' },
-    question: { value: 'Not sure yet', title: 'Ask a Question', lead: 'Questions are welcome. Ask anything about your shipment. There is no obligation and no job is booked.' }
+    classification: { value: 'DG classification', lead: ticked('DG classification') },
+    documentation: { value: 'Documentation & DGD', lead: ticked('Documentation & DGD') },
+    packaging: { value: 'Packaging & labeling', lead: ticked('Packaging & labeling') },
+    inspection: { value: 'DG inspections', title: 'Request an Inspection', lead: 'Tell us what needs inspecting and where. ' + ticked('DG inspections'), button: 'Send inspection request', subject: 'New inspection request from HazPackCompliance.com' },
+    emergency: { value: 'DG emergency support', title: 'Urgent DG help', lead: 'For anything needed today, call +1 (310) 425-3712. Otherwise send the form and we will reply within one business day.', subject: 'Urgent: new DG emergency request from HazPackCompliance.com' },
+    consulting: { value: 'DG consulting', lead: ticked('DG consulting') },
+    temperature: { value: 'Temperature control', lead: ticked('Temperature control') },
+    'dry-ice': { value: 'Dry ice services', lead: ticked('Dry ice services') },
+    question: { value: 'Not sure yet', question: true, title: 'Ask a Question', lead: 'Questions are welcome. Ask anything about your shipment. There is no obligation and no job is booked.', button: 'Send question', subject: 'New question from HazPackCompliance.com' }
   };
   var preset = PRESETS[new URLSearchParams(location.search).get('service')];
-  if (preset) {
+  function applyPreset() {
+    if (!preset) return;
     var box = form.querySelector('#services-group input[value="' + preset.value + '"]');
     if (box) { box.checked = true; refresh(document.getElementById('services-group')); }
+  }
+  if (preset) {
+    applyPreset();
     var t = document.getElementById('quote-title'), l = document.getElementById('quote-lead');
     if (preset.title && t) { t.textContent = preset.title; document.title = preset.title + ' | HazPack Compliance Solutions'; }
     if (preset.lead && l) l.textContent = preset.lead;
+    if (preset.button) btn.textContent = preset.button;
+    if (preset.subject) form.querySelector('[name="subject"]').value = preset.subject;
+    if (preset.question) {
+      form.classList.add('is-question');
+      var ml = document.getElementById('message-label');
+      ml.firstChild.textContent = 'Your question ';
+      document.getElementById('message').placeholder = 'What would you like to know?';
+    }
   }
 })();
 
