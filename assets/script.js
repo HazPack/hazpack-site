@@ -95,7 +95,7 @@
         });
       }
       refresh(m);
-      if (picked(m).length) m.classList.remove('invalid');
+      if (picked(m).length && m.classList.contains('invalid')) setFieldError(m, '');
     });
     m.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && m.classList.contains('open')) {
@@ -113,30 +113,87 @@
     status.className = 'form-status ' + (cls || '');
   }
 
+  var alertBox = document.getElementById('form-alert');
+
+  // Inline message under a field (brief #5)
+  function setFieldError(field, msg) {
+    var ctl = field.querySelector('.msel-btn, input, select, textarea');
+    var id = (ctl.id || field.id) + '-err';
+    var err = document.getElementById(id);
+    field.classList.toggle('invalid', !!msg);
+    if (!msg) {
+      if (err) err.remove();
+      ctl.removeAttribute('aria-invalid');
+      ctl.removeAttribute('aria-describedby');
+      return;
+    }
+    if (!err) {
+      err = document.createElement('p');
+      err.className = 'field-err';
+      err.id = id;
+      field.appendChild(err);
+    }
+    err.textContent = msg;
+    ctl.setAttribute('aria-invalid', 'true');
+    ctl.setAttribute('aria-describedby', id);
+  }
+
+  var MESSAGES = {
+    name: 'Please enter your name.',
+    email: 'Please enter your email address.',
+    emailBad: 'Please check your email address, for example name@company.com.',
+    message: 'Please tell us a little about your shipment.',
+    services: 'Please choose at least one service, or "Not sure yet".'
+  };
+
+  // Returns the list of problems, in form order (brief #6: services is only named when none is ticked)
   function validate() {
-    var ok = true;
-    form.querySelectorAll('[required]').forEach(function (el) {
-      var good = el.value.trim() !== '' &&
-        (el.type !== 'email' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim()));
-      el.closest('.field').classList.toggle('invalid', !good);
-      if (!good) ok = false;
+    var problems = [];
+    var name = form.querySelector('#name'), email = form.querySelector('#email'), msg = form.querySelector('#message');
+    var services = document.getElementById('services-group');
+    function check(field, text) {
+      setFieldError(field, text || '');
+      if (text) problems.push({ field: field, text: text });
+    }
+    check(name.closest('.field'), name.value.trim() ? '' : MESSAGES.name);
+    var ev = email.value.trim();
+    check(email.closest('.field'), !ev ? MESSAGES.email : (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev) ? '' : MESSAGES.emailBad));
+    check(services, picked(services).length ? '' : MESSAGES.services);
+    check(msg.closest('.field'), msg.value.trim() ? '' : MESSAGES.message);
+    return problems;
+  }
+
+  function showSummary(problems) {
+    if (!problems.length) { alertBox.hidden = true; alertBox.innerHTML = ''; return; }
+    alertBox.innerHTML = '';
+    var h = document.createElement('p');
+    h.className = 'form-alert-title';
+    h.textContent = problems.length === 1 ? 'One thing needs your attention:' : problems.length + ' things need your attention:';
+    var ul = document.createElement('ul');
+    problems.forEach(function (pr) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      var ctl = pr.field.querySelector('.msel-btn, input, select, textarea');
+      a.href = '#' + ctl.id;
+      a.textContent = pr.text;
+      a.addEventListener('click', function (e) { e.preventDefault(); ctl.focus(); });
+      li.appendChild(a);
+      ul.appendChild(li);
     });
-    msels.forEach(function (m) {
-      if (m.hasAttribute('data-required')) {
-        var bad = picked(m).length === 0;
-        m.classList.toggle('invalid', bad);
-        if (bad) ok = false;
-      }
-    });
-    return ok;
+    alertBox.appendChild(h);
+    alertBox.appendChild(ul);
+    alertBox.hidden = false;
   }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    if (!validate()) {
-      setStatus('Please complete the highlighted fields and choose at least one service.', 'err');
-      var first = form.querySelector('.field.invalid input, .field.invalid select, .field.invalid textarea, .msel.invalid .msel-btn');
-      if (first) first.focus();
+    var problems = validate();
+    showSummary(problems);
+    if (problems.length) {
+      setStatus(problems.length === 1 ? problems[0].text : 'Please fix the ' + problems.length + ' highlighted fields above.', 'err');
+      // Bring the summary into view (it sits at the top of the form), then focus the first field
+      alertBox.scrollIntoView({ block: 'start', behavior: 'auto' });
+      alertBox.focus({ preventScroll: true });
       return;
     }
 
@@ -165,7 +222,8 @@
             if (h) h.value = 'No';
           });
           msels.forEach(refresh);
-          setStatus('Thank you! Your request was sent. We will be in touch soon.', 'ok');
+          showSummary([]);
+          setStatus('Thank you! Your request was sent. We will reply within one business day.', 'ok');
         } else {
           throw new Error('bad response');
         }
@@ -189,8 +247,24 @@
 
   form.addEventListener('input', function (e) {
     var f = e.target.closest('.field');
-    if (f && !f.classList.contains('msel')) f.classList.remove('invalid');
+    if (f && !f.classList.contains('msel') && f.classList.contains('invalid') && e.target.value.trim()) setFieldError(f, '');
   });
+
+  // Links like /quote?service=inspection open the form with that service ticked (brief #13, #14)
+  var PRESETS = {
+    inspection: { value: 'DG inspections', title: 'Request an Inspection', lead: 'Tell us what needs inspecting and where. DG inspections is already ticked below.' },
+    emergency: { value: 'DG emergency support', title: 'Urgent DG help', lead: 'For anything needed today, call +1 (310) 425-3712. Otherwise send the form and we will reply within one business day.' },
+    'dry-ice': { value: 'Dry ice services', lead: 'Tell us about your dry ice shipment. Dry ice services is already ticked below.' },
+    question: { value: 'Not sure yet', title: 'Ask a Question', lead: 'Questions are welcome. Ask anything about your shipment. There is no obligation and no job is booked.' }
+  };
+  var preset = PRESETS[new URLSearchParams(location.search).get('service')];
+  if (preset) {
+    var box = form.querySelector('#services-group input[value="' + preset.value + '"]');
+    if (box) { box.checked = true; refresh(document.getElementById('services-group')); }
+    var t = document.getElementById('quote-title'), l = document.getElementById('quote-lead');
+    if (preset.title && t) { t.textContent = preset.title; document.title = preset.title + ' | HazPack Compliance Solutions'; }
+    if (preset.lead && l) l.textContent = preset.lead;
+  }
 })();
 
 // Step-by-step package animations: Home "package builder" and Services "inspection"

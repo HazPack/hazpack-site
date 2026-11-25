@@ -516,3 +516,60 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);
 .hero-facts li:hover{--cf-s:20px;background-color:rgba(255,255,255,.07)}
 @media (max-width:600px){.hero-facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (prefers-reduced-motion:reduce){.cf{transition:none}}
+
+/* header: phone number and quieter client login (brief #3, #4) */
+.header-inner{justify-content:flex-start}
+.brand{margin-right:auto}
+.header-call{order:3;display:inline-flex;align-items:center;gap:8px;color:var(--navy);font-weight:700;font-size:.97rem;text-decoration:none;white-space:nowrap}
+.header-call:hover{color:var(--orange-d)}
+.header-call svg{flex:none;color:var(--orange-d)}
+.nav{order:2}
+.nav-toggle{order:4}
+.nav .nav-login{font-weight:600;color:var(--muted)}
+.nav .nav-login:hover{color:var(--orange-d)}
+@media (max-width:1180px){
+  .header-call span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .header-call{width:44px;height:44px;justify-content:center;border:1.5px solid var(--line);border-radius:10px}
+}
+@media (max-width:760px){
+  .header-inner{gap:10px}
+  .nav .nav-login{text-align:center;border-bottom:0!important;padding:14px 4px 4px!important}
+}
+
+/* footer contact labels (brief #19) */
+.fc-label{display:block;font-family:var(--font-narrow);text-transform:uppercase;letter-spacing:.1em;font-size:.78rem;color:var(--orange);margin-top:6px}
+.fc-label:first-child{margin-top:0}
+
+/* quote form (brief #5, #10, #12, #16) */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 20px}
+input:not([type="checkbox"]),select,.msel-btn{height:50px;line-height:1.4}
+select{appearance:none;-webkit-appearance:none;padding-right:40px;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5 6 8l3.5-3.5' fill='none' stroke='%23183152' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-size:12px}
+input[type="date"]{min-width:0}
+.field-err{margin:6px 0 0;color:#b3261e;font-size:.88rem;font-weight:600}
+.form-alert{margin:0 0 22px;padding:14px 18px;border:1.5px solid #e3b1ac;border-left:5px solid #b3261e;border-radius:10px;background:#fdf3f2;color:#7a1a14;scroll-margin-top:100px}
+.form-alert:focus{outline:none}
+.form-alert-title{margin:0 0 4px;font-weight:700}
+.form-alert ul{margin:0;padding-left:20px}
+.form-alert a{color:inherit}
+.form-promise{margin:12px 0 0;text-align:center;font-weight:600;color:var(--navy);font-size:.95rem}
+.form-promise a{color:var(--orange-d);white-space:nowrap}
+.checks a{color:var(--orange-d);white-space:nowrap}
+@media (max-width:960px){.grid3{grid-template-columns:1fr 1fr}.grid3 .field:last-child{grid-column:1/-1}}
+@media (max-width:600px){.grid3{grid-template-columns:1fr}}
+
+/* 404 page (brief #7) */
+.nf-actions{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:40px}
+.nf h2{font-size:1.3rem}
+.nf-links{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:12px 28px;font-weight:700}
+.nf-links a{color:var(--navy)}
+.nf-links a:hover{color:var(--orange-d)}
+.card-call{margin:auto 0 0;padding-top:6px}
+.card-call a{color:var(--orange-d);font-weight:800;text-decoration:none;white-space:nowrap}
+.card-call a:hover{text-decoration:underline}
+.nav a,.dd-toggle{white-space:nowrap}
+@media (min-width:761px) and (max-width:1020px){
+  .nav{gap:14px;font-size:.88rem}
+  .nav .btn-sm{padding:9px 12px}
+  .brand img{height:40px}
+  .header-inner{gap:12px}
+}

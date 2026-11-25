@@ -597,3 +597,12 @@ select:disabled { cursor: default; opacity: .6; }
 body.is-login .login-globe { display: block; }
 .login-globe canvas { position: absolute; inset: 0; display: block; pointer-events: none; }
 .login { position: relative; z-index: 1; }
+
+/* sign-in: a way back to the website (site brief #8, #32) */
+.login-wrap { width: min(100%, 440px); display: grid; gap: 14px; }
+.login-home { display: inline-block; width: max-content; border-radius: 6px; }
+.login-back { margin: 0; text-align: center; font-size: 14px; }
+.login-back a { color: #ffffff; font-weight: 600; text-decoration: none; }
+.login-back a:hover { text-decoration: underline; }
+.hint a.nowrap { white-space: nowrap; color: inherit; font-weight: 600; }
+.login-body h1 { color: var(--ink); }

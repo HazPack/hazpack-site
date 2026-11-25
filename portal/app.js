@@ -339,14 +339,14 @@
 
   /* ---------- sign-in ---------- */
   function loginShell(inner) {
-    return '<div class="login"><div class="login-card"><div class="login-band"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"><p class="eyebrow">Client portal</p></div><div class="login-body">' + inner + '</div></div></div>';
+    return '<div class="login"><div class="login-wrap"><div class="login-card"><div class="login-band"><a class="login-home" href="/" aria-label="HazPack Compliance home"><img class="logo logo-l" src="' + LOGO_L + '" alt="HazPack Compliance"><img class="logo logo-d" src="' + LOGO_D + '" alt="" aria-hidden="true"></a><p class="eyebrow">Client portal</p></div><div class="login-body">' + inner + '</div></div><p class="login-back"><a href="/">&larr; Back to hazpackcompliance.com</a></p></div></div>';
   }
   function orgView() {
     return loginShell('<div><h1>Sign in</h1><p class="muted" style="margin:4px 0 0">Enter your organization login. You will choose your name and enter your PIN next.</p></div>' +
       '<form id="orgForm" style="display:grid;gap:14px"><label class="f" for="oid">Organization ID<input id="oid" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" required value="' + esc(S.orgIdVal || '') + '"></label>' +
       '<label class="f" for="opw">Password<input id="opw" type="password" autocomplete="current-password" required></label>' +
       '<p class="err" id="oerr" role="alert">' + esc(S.orgErr) + '</p><button class="btn" type="submit" id="oGo">Continue</button></form>' +
-      '<p class="hint">Need a login or a reset? Contact HazPack at lax-dgr@hazpackcompliance.com. <button type="button" class="linkbtn" data-act="toStaff">HazPack staff sign-in</button></p>');
+      '<p class="hint">Need a login or a reset? Contact HazPack at <a class="nowrap" href="mailto:' + FROM_EMAIL + '">' + FROM_EMAIL + '</a>. <button type="button" class="linkbtn" data-act="toStaff">HazPack staff sign-in</button></p>');
   }
   function staffView() {
     return loginShell('<div><h1>HazPack staff</h1><p class="muted" style="margin:4px 0 0">Enter the staff key to manage client companies, jobs, quotes and invoices.</p></div>' +

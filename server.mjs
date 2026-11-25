@@ -52,7 +52,10 @@ createServer(async (req, res) => {
     res.end(await readFile(p));
   } catch (err) {
     if (url.pathname.startsWith('/api/')) console.error(err);
-    res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found');
+    // Same as Vercel: missing pages get the branded 404.html
+    const page = !url.pathname.startsWith('/api/') && await readFile(join(ROOT, '404.html')).catch(() => null);
+    if (page) res.writeHead(404, { 'content-type': TYPES['.html'] }).end(page);
+    else res.writeHead(404, { 'content-type': 'text/plain' }).end('Not found');
   }
 }).listen(PORT, async () => {
   console.log(`HazPack site on http://localhost:${PORT}`);

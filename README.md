@@ -50,7 +50,8 @@ Each tab is its own page. With `cleanUrls` on in `vercel.json`, Vercel serves th
 | Who We Serve | `who-we-serve.html` | `/who-we-serve` |
 | Request a Quote (form + contact) | `quote.html` | `/quote` |
 | Resources hub | `resources/index.html` | `/resources` |
-| Seven resource guides | `resources/*.html` | `/resources/<name>` |
+| Eight resource guides | `resources/*.html` | `/resources/<name>` |
+| Page not found (served by Vercel for any unknown address) | `404.html` | any missing page |
 
 **Editing the menu or footer.** The header and footer are repeated in every page's HTML (there is no build step). To change a menu item, phone number or email, search the project for the old text and change it in each file. Phone and email also appear on `quote.html`, the resource pages' side boxes and the footer.
 

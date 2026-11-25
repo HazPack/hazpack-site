@@ -29,6 +29,7 @@
       <a class="brand" href="/" aria-label="HazPack Compliance Solutions home">
         <img src="/assets/logo.svg" alt="HazPack Compliance" width="190" height="60">
       </a>
+      <a class="header-call" href="tel:+13104253712" aria-label="Call us: +1 (310) 425-3712"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg><span>+1 (310) 425-3712</span></a>
       <button class="nav-toggle" aria-expanded="false" aria-controls="nav" aria-label="Menu">
         <span></span><span></span><span></span>
       </button>
@@ -46,11 +47,12 @@
             <li><a href="/resources/lithium-batteries">Lithium Batteries</a></li>
             <li><a href="/resources/dangerous-goods-declarations">Dangerous Goods Declarations</a></li>
             <li><a href="/resources/enforcement-and-penalties">Enforcement and Penalties</a></li>
-            <li><a href="/resources/what-is-an-overpack">What is an Overpack</a></li>
+            <li><a href="/resources/what-is-an-overpack">What is an Overpack?</a></li>
+            <li><a href="/resources/dry-ice">Shipping with Dry Ice</a></li>
           </ul>
         </div>
-        <a class="btn btn-primary btn-sm" href="/portal">Client Portal</a>
         <a class="btn btn-primary btn-sm" href="/quote" aria-current="page">Request a Quote</a>
+        <a class="nav-login" href="/portal">Client login</a>
       </nav>
     </div>
   </header>
@@ -60,20 +62,18 @@
       <div class="hazard-stripe" aria-hidden="true"></div>
       <div class="wrap">
         <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><span aria-current="page">Request a Quote</span></nav>
-        <h1>Request a quote</h1>
-        <p class="lead">Tell us about your shipment and we will get back to you with next steps and a quote.</p>
+        <h1 id="quote-title">Request a Quote</h1>
+        <p class="lead" id="quote-lead">Tell us about your shipment and we will get back to you with next steps and a quote.</p>
       </div>
     </section>
 
     <section class="section section-tint" id="quote">
       <div class="wrap quote-grid">
         <div class="quote-intro">
-          <h2>Tell us about your shipment</h2>
-          <p>Fill out the form and we'll get back to you with next steps and a quote. The more detail you can share, the faster we can respond.</p>
           <ul class="checks">
             <li>No obligation</li>
             <li>Response from a real person</li>
-            <li>Urgent? Call us directly</li>
+            <li>Urgent? Call <a class="checks-call" href="tel:+13104253712">+1 (310) 425-3712</a></li>
           </ul>
         </div>
 
@@ -82,6 +82,8 @@
           <input type="hidden" name="subject" value="New quote request from HazPackCompliance.com">
           <input type="hidden" name="from_name" value="HazPack Website">
           <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+          <div class="form-alert" id="form-alert" role="alert" tabindex="-1" hidden></div>
 
           <div class="grid2">
             <div class="field">
@@ -99,6 +101,21 @@
             <div class="field">
               <label for="phone">Phone</label>
               <input id="phone" name="phone" type="tel" autocomplete="tel">
+            </div>
+          </div>
+
+          <div class="grid3">
+            <div class="field">
+              <label for="origin">Origin</label>
+              <input id="origin" name="origin" type="text" placeholder="City or airport" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="destination">Destination</label>
+              <input id="destination" name="destination" type="text" placeholder="City or airport" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="ready">Ready date</label>
+              <input id="ready" name="ready_date" type="date">
             </div>
           </div>
 
@@ -124,9 +141,9 @@
               <label for="mode">Shipping mode</label>
               <select id="mode" name="mode">
                 <option value="">Select one</option>
-                <option>Ground</option>
                 <option>Air</option>
                 <option>Ocean</option>
+                <option>Ground</option>
                 <option>Multiple / not sure</option>
               </select>
             </div>
@@ -159,12 +176,12 @@
             </div>
             <div class="field">
               <label for="material">Material / product name</label>
-              <input id="material" name="material" type="text" placeholder="e.g. lithium-ion batteries, paint">
+              <input id="material" name="material" type="text" placeholder="e.g. lithium batteries">
             </div>
           </div>
 
           <fieldset class="yn-group">
-            <legend>Where is your cargo at?</legend>
+            <legend>About your cargo (tick any that apply)</legend>
             <label class="yn" for="cargo-packed"><input type="checkbox" id="cargo-packed" data-yn="cargo_packed"><span>My cargo is already packed.</span></label>
             <label class="yn" for="cargo-photos"><input type="checkbox" id="cargo-photos" data-yn="cargo_photos"><span>I can send photos of the cargo.</span></label>
             <input type="hidden" name="cargo_packed" value="No">
@@ -173,10 +190,11 @@
 
           <div class="field">
             <label for="message">Shipment details <span class="req">*</span></label>
-            <textarea id="message" name="message" rows="5" required placeholder="Origin and destination, quantities, packaging you use today, timeline, and anything else we should know."></textarea>
+            <textarea id="message" name="message" rows="5" required placeholder="What you are shipping, quantities, packaging you use today, and anything else we should know."></textarea>
           </div>
 
           <button class="btn btn-primary btn-block" type="submit" id="submit-btn">Send quote request</button>
+          <p class="form-promise">We reply within one business day. Urgent? Call <a href="tel:+13104253712">+1 (310) 425-3712</a>.</p>
           <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
           <p class="fineprint">Please don't include sensitive personal or payment information in this form.</p>
         </form>
@@ -193,7 +211,7 @@
         <ul class="contact-list">
           <li><span>Email</span><a href="mailto:lax-dgr@hazpackcompliance.com">lax-dgr@hazpackcompliance.com</a></li>
           <li><span>Phone</span><a href="tel:+13104253712">+1 (310) 425-3712</a></li>
-          <li><span>US coverage</span>LAX</li>
+          <li><span>Service area</span>Based at LAX. Mobile service: we come to you.</li>
           <li><span>LinkedIn</span><a href="https://www.linkedin.com/company/hazpack-compliance-solutions" target="_blank" rel="noopener">HazPack Compliance Solutions</a></li>
         </ul>
       </div>
@@ -211,11 +229,14 @@
         <a href="/services">Services</a>
         <a href="/who-we-serve">Who We Serve</a>
         <a href="/resources">Resources</a>
-        <a href="/quote">Get a Quote</a>
+        <a href="/quote">Request a Quote</a>
       </nav>
       <p class="footer-contact">
+        <span class="fc-label">Email us</span>
         <a href="mailto:lax-dgr@hazpackcompliance.com">lax-dgr@hazpackcompliance.com</a>
+        <span class="fc-label">Call us</span>
         <a href="tel:+13104253712">+1 (310) 425-3712</a>
+        <a href="https://www.linkedin.com/company/hazpack-compliance-solutions" target="_blank" rel="noopener">LinkedIn</a>
       </p>
     </div>
     <div class="wrap footer-base">
