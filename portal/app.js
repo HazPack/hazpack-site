@@ -800,9 +800,9 @@
   }
   function dzList(inp) {
     var ul = document.getElementById(inp.id + 'List'); if (!ul) return;
-    var fs = [].slice.call(inp.files || []), okType = inp.dataset.pdf ? /\.pdf$/i : /\.(pdf|png|jpe?g)$/i;
+    var fs = [].slice.call(inp.files || []), okType = inp.dataset.pdf ? /\.pdf$/i : inp.dataset.img ? /\.(png|jpe?g)$/i : /\.(pdf|png|jpe?g)$/i;
     ul.innerHTML = fs.map(function (f, i) {
-      var st = f.size > UP_MAX ? ['Too large, limit 3 MB', 'bad'] : !okType.test(f.name) ? [inp.dataset.pdf ? 'PDF only' : 'PDF, PNG or JPG only', 'bad'] : ['Ready', 'ok'];
+      var st = f.size > UP_MAX ? ['Too large, limit 3 MB', 'bad'] : !okType.test(f.name) ? [inp.dataset.pdf ? 'PDF only' : inp.dataset.img ? 'PNG or JPG only' : 'PDF, PNG or JPG only', 'bad'] : ['Ready', 'ok'];
       return '<li class="dz-row ' + st[1] + '">' + ico('files') + '<span class="dz-n">' + esc(f.name) + '</span><span class="dz-s">' + sizeOf(f) + '</span><span class="dz-st">' + st[0] + '</span>' +
         '<button type="button" class="dz-x" data-dz="' + inp.id + '" data-i="' + i + '" aria-label="Remove ' + esc(f.name) + '">' + ico('x') + '</button></li>';
     }).join('');
@@ -1049,17 +1049,54 @@
       '<span id="rtSea" style="display:' + (o.mode === 'Ocean' ? 'contents' : 'none') + '"><label class="f" for="rv9">Port of loading<input id="rv9" type="text" list="polList" autocomplete="off" maxlength="80" value="' + esc(PORTS_LOADING[0]) + '"></label><label class="f" for="rv10">Port of discharge<input id="rv10" type="text" autocomplete="off" maxlength="80" placeholder="City and country"></label></span></div>' + apDatalist() +
       '<datalist id="polList">' + PORTS_LOADING.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist>';
   }
+  /* Documents a client can say they have. Ticking one opens its own upload box, and that upload is then required.
+     id, label, help, file type on the job, note on the file, kind of file (pdf / img / any), several files allowed. */
+  var REQ_DOCS = [
+    ['dgd', 'Dangerous Goods Declaration (DGD)', 'We read the goods and route from it', 'DGD', 'Sent with the request', 'pdf', false],
+    ['sds', 'Safety data sheet (SDS)', 'One for each product', 'Other', 'Safety data sheet', 'pdf', true],
+    ['un383', 'UN 38.3 test summary', 'For lithium batteries', 'Other', 'UN 38.3 test summary', 'pdf', true],
+    ['photo', 'Photos of the goods', 'Packages, labels or the products', 'Photo', 'Photos of the goods', 'img', true]
+  ];
+  var REQ_KIND = { pdf: ['PDF', 'accept="application/pdf,.pdf" data-pdf="1"'], img: ['PNG or JPG', 'accept="image/png,image/jpeg,.png,.jpg,.jpeg" data-img="1"'], any: ['PDF, PNG or JPG', 'accept="application/pdf,image/png,image/jpeg,.pdf,.png,.jpg,.jpeg"'] };
+  function reqDocLabel(d) { return d[1].replace(/ \(.*\)$/, '').toLowerCase().replace(/^dangerous goods declaration$/, 'DGD'); }
+  function reqDocs() {
+    return '<fieldset class="f rdocs"><legend>Which documents do you have for this shipment?</legend><p class="muted" style="margin:0 0 4px;font-size:12.5px">Tick each one you have. You upload it below. If you don\'t have something yet, leave it unticked and HazPack can help.</p>' +
+      '<div class="rdoc-list">' + REQ_DOCS.map(function (d) {
+        return '<label class="rdoc"><input type="checkbox" data-rdoc="' + d[0] + '"' + (d[0] === 'dgd' ? ' checked' : '') + '><span><b>' + d[1] + '</b>' + (d[2] ? '<small>' + d[2] + '</small>' : '') + '</span></label>';
+      }).join('') + '</div></fieldset>' +
+      REQ_DOCS.map(function (d) {
+        var k = REQ_KIND[d[5]];
+        return '<div class="rdoc-up" id="rdu-' + d[0] + '"' + (d[0] === 'dgd' ? '' : ' hidden') + '>' + dropBox('rqd-' + d[0], d[1], k[0] + ', up to 3 MB' + (d[6] ? ' each' : ''), k[1] + (d[6] ? ' multiple' : '')) +
+          (d[0] === 'dgd' ? '<div id="found" class="found" hidden></div>' : '') + '</div>';
+      }).join('');
+  }
+  /* Without a DGD there is nothing to read, so the client fills in the goods and route themselves. */
+  function reqNoDgd() {
+    var box = document.getElementById('found'), slot = document.getElementById('rqManual');
+    reqDetect = null;
+    var blank = { from: 'LAX', to: null, un: '', item: '', cls: '', pg: '', qty: '', mode: 'Air' };
+    slot.innerHTML = '<div class="found"><b>Tell us about the goods</b><p class="muted" style="margin:0;font-size:13px">Fill in what you know. HazPack completes the rest and reviews every request.</p>' + reviewFields(blank) + '</div>';
+    slot.hidden = false; if (box) { box.innerHTML = ''; box.hidden = true; }
+  }
   function requestModal() {
     reqDetect = null;
-    openModal('<form class="modal wide" id="reqForm" role="dialog" aria-modal="true" aria-label="New job request"><h2>New job request</h2><p class="muted" style="margin:0">Choose the services you need, add your reference number and upload your DGD. We fill in the rest from the DGD.</p>' +
+    openModal('<form class="modal wide" id="reqForm" role="dialog" aria-modal="true" aria-label="New job request"><h2>New job request</h2><p class="muted" style="margin:0">Choose the services you need, add your reference number and tell us which documents you have. If you upload a DGD, we fill in the rest from it.</p>' +
       '<div class="f"><span id="svl" style="font-size:13px;font-weight:600">Services</span>' + msel() + '</div>' +
       '<label class="f" for="rq7">Your reference number<input id="rq7" type="text" required placeholder="PO or order number"></label>' +
       '<label class="f" for="rq8">Required by (optional)<input id="rq8" type="date" min="' + iso(TODAY) + '"></label>' +
-      dropBox('rq0', 'DGD', 'PDF, up to 3 MB', 'accept="application/pdf,.pdf" required data-pdf="1"') +
-      '<div id="found" class="found" hidden></div>' +
+      reqDocs() + '<div id="rqManual" hidden></div>' +
       '<label class="f" for="rq10">Notes for HazPack (optional)<textarea id="rq10" rows="2" maxlength="1000" placeholder="Pickup details, dock numbers or deadlines"></textarea></label>' +
-      dropBox('rq9', 'Additional files (optional)', 'PDF, PNG or JPG, up to 3 MB each', 'multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"') + '<p class="hint" style="margin-top:-6px">Photos, safety data sheets (SDS) or anything else that helps. You can also add files to the job later.</p>' +
       '<p class="err" id="rqerr" role="alert"></p><div class="row"><button type="button" class="btn ghost" data-act="closeModal">Cancel</button>' + ihb('Submit request', 'type="submit" id="rqGo"', '') + '</div></form>');
+    document.getElementById('reqForm').addEventListener('change', function (e) {
+      var k = e.target.dataset && e.target.dataset.rdoc; if (!k) return;
+      var er = document.getElementById('rqerr'); if (er) er.textContent = '';
+      document.getElementById('rdu-' + k).hidden = !e.target.checked;
+      if (e.target.checked) { var inp = document.getElementById('rqd-' + k); if (inp) inp.closest('.dzw').querySelector('label.dz').scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      if (k === 'dgd') {
+        if (e.target.checked) { document.getElementById('rqManual').hidden = true; document.getElementById('rqManual').innerHTML = ''; var d0 = document.getElementById('rqd-dgd'); if (d0.files[0]) d0.dispatchEvent(new Event('change')); }
+        else reqNoDgd();
+      }
+    });
     document.getElementById('found').addEventListener('click', function (e) {
       var b = e.target.closest('[data-grm]'); if (!b) return;
       var tr = b.closest('tr'), next = tr.nextElementSibling, g = +tr.dataset.g;
@@ -1069,12 +1106,12 @@
       var n = document.querySelectorAll('#gEd tbody tr').length, h = document.getElementById('gEdN'); if (h) h.textContent = n + (n === 1 ? ' dangerous goods line' : ' dangerous goods lines');
       var f = document.querySelector('#gEd tbody [data-gk]'); if (f) f.focus();
     });
-    document.getElementById('found').addEventListener('change', function (e) {
+    document.getElementById('reqForm').addEventListener('change', function (e) {
       if (e.target.id !== 'rv6') return; var sea = e.target.value === 'Ocean';
       document.getElementById('rtAir').style.display = sea ? 'none' : 'contents'; document.getElementById('rtSea').style.display = sea ? 'contents' : 'none';
     });
-    ['rq0', 'rq9'].forEach(function (id) { document.getElementById(id).addEventListener('change', function () { var er = document.getElementById('rqerr'); if (er) er.textContent = ''; }); });
-    document.getElementById('rq0').addEventListener('change', function () {
+    REQ_DOCS.forEach(function (d) { document.getElementById('rqd-' + d[0]).addEventListener('change', function () { var er = document.getElementById('rqerr'); if (er) er.textContent = ''; }); });
+    document.getElementById('rqd-dgd').addEventListener('change', function () {
       var f = this.files[0], box = document.getElementById('found'); reqDetect = null; if (!f) { box.hidden = true; return; }
       box.hidden = false; box.innerHTML = '<b>Reading your DGD</b><p class="muted" style="margin:0;font-size:13px">This takes a few seconds.</p>';
       var mine = reqDetect = readText(f, function (pg, n) {
@@ -1090,8 +1127,17 @@
       e.preventDefault();
       var svc = [].slice.call(document.querySelectorAll('[data-svc]:checked')).map(function (c) { return c.dataset.svc; }), err = document.getElementById('rqerr');
       if (!svc.length) { err.textContent = 'Choose at least one service.'; document.getElementById('mselB').focus(); return; }
-      var dgd = document.getElementById('rq0').files[0]; if (!dgd) { err.textContent = 'Upload your DGD.'; return; }
-      var big = [dgd].concat([].slice.call(document.getElementById('rq9').files)).filter(function (f) { return f.size > UP_MAX; })[0];
+      var list = [], had = [];
+      for (var di = 0; di < REQ_DOCS.length; di++) {
+        var d = REQ_DOCS[di], box = document.querySelector('[data-rdoc="' + d[0] + '"]'); if (!box.checked) continue;
+        var inp = document.getElementById('rqd-' + d[0]), fs = [].slice.call(inp.files || []);
+        if (!fs.length) { err.textContent = 'Upload your ' + reqDocLabel(d) + ', or untick it if you don\'t have it.'; inp.closest('.dzw').querySelector('label.dz').scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+        var bad = fs.filter(function (f) { return d[5] === 'pdf' ? !/\.pdf$/i.test(f.name) : d[5] === 'img' ? !/\.(png|jpe?g)$/i.test(f.name) : !/\.(pdf|png|jpe?g)$/i.test(f.name); })[0];
+        if (bad) { err.textContent = bad.name + ' must be ' + (d[5] === 'pdf' ? 'a PDF' : d[5] === 'img' ? 'a PNG or JPG' : 'a PDF, PNG or JPG') + '.'; return; }
+        had.push(d[1] + ': ' + fs.map(function (f) { return f.name; }).join(', '));
+        fs.forEach(function (f) { list.push({ type: d[5] === 'any' ? (/\.pdf$/i.test(f.name) ? 'Other' : 'Photo') : d[3], file: f, note: d[4] }); });
+      }
+      var big = list.map(function (x) { return x.file; }).filter(function (f) { return f.size > UP_MAX; })[0];
       if (big) { err.textContent = big.name + ' is larger than 3 MB. Remove it or choose a smaller file.'; return; }
       var go = document.getElementById('rqGo'); go.disabled = true; go.querySelectorAll('.ihb-t').forEach(function (t) { t.textContent = 'Submitting'; });
       Promise.resolve(reqDetect).then(function () {
@@ -1101,17 +1147,12 @@
         if (goods && goods.length > 1) gd = goodsSummary(goods);
         else if (goods && goods.length === 1) gd = { item: goods[0].item || item, un: goods[0].un, cls: goods[0].cls, pg: goods[0].pg, qty: goods[0].qty };
         if (goods && goods.length < 2) goods = null;
-        var fl = document.getElementById('rq9').files, list = [{ type: 'DGD', file: dgd, note: 'Sent with the request' }];
-        for (var i = 0; i < fl.length; i++) {
-          var nm = fl[i].name, isImg = /\.(png|jpe?g|gif|webp|heic)$/i.test(nm) || /^image\//.test(fl[i].type), isSds = /sds|safety/i.test(nm);
-          list.push({ type: isImg ? 'Photo' : 'Other', file: fl[i], note: isSds ? 'Safety data sheet' : 'Sent with the request' });
-        }
         clientAct({ action: 'requestJob', svc: svc, item: gd.item, un: gd.un, cls: gd.cls, pg: gd.pg, qty: gd.qty, goods: goods ? goods.map(function (g) { return { un: g.un, item: g.item, cls: g.cls, pg: g.pg, qty: g.qty }; }) : undefined, mode: v('rv6') || 'Air', from: v('rv7') || 'LAX', to: v('rv6') === 'Ocean' ? null : dstP.code, toText: v('rv6') === 'Ocean' ? v('rv10') : dstP.text, pol: v('rv6') === 'Ocean' ? v('rv9') : '', note: v('rq10'), ref: v('rq7'), req: v('rq8') }, function (res) {
         sendFiles(res.jobId, list, true).then(function () {
         var j = getJob(res.jobId);
         S.view = 'jobs'; S.job = j.id; S.jobTab = 'overview'; S.f = 'all'; S.q = ''; S.fp = 'all'; S.mobileDetail = true; render();
         openModal('<div class="modal" role="dialog" aria-modal="true" aria-label="Request submitted"><h2>Request submitted</h2><p style="margin:0">Your request is <b class="mono">' + esc(jn(j)) + '</b>. HazPack will review it and open the job. You can follow it under Jobs.</p>' +
-          mailBox('HazPack client portal', esc(FROM_EMAIL), 'New job request ' + jn(j) + ' from ' + S.org.name, esc(S.rep.name) + ' requested: ' + svc.map(function (k) { return SVC[k]; }).join(', ') + '. Reference ' + esc(j.ref) + '. DGD attached: ' + esc(dgd.name) + '.') +
+          mailBox('HazPack client portal', esc(FROM_EMAIL), 'New job request ' + jn(j) + ' from ' + S.org.name, esc(S.rep.name) + ' requested: ' + svc.map(function (k) { return SVC[k]; }).join(', ') + '. Reference ' + esc(j.ref) + '. ' + (had.length ? 'Documents attached: ' + had.map(esc).join('; ') + '.' : 'No documents attached.')) +
           mailBox(HP_FROM, esc(S.rep.name) + ' &lt;' + esc(S.rep.email) + '&gt;', 'We received your request ' + j.id, 'Thanks. HazPack received your job request and will open the job shortly. You can follow it in the client portal.') + '<div class="row"><button type="button" class="btn" data-act="closeModal">Done</button></div></div>');
         });
         });
